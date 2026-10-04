@@ -18,6 +18,7 @@ export default function Profile() {
     { label: 'Passeports de mes enfants', meta: s.kids.map((k) => k.name).join(', ') || '—', href: '/kids' },
     { label: 'Notifications', meta: '2 nouvelles', href: '/notifications' },
     { label: 'Mon dressing public', meta: `${myListings(s.mine).length} annonces`, href: '/seller/me' },
+    { label: 'Comment ça marche', meta: 'Guide', href: '/guide' },
     { label: 'Réglages', meta: `Commission ${s.commission} %`, href: '/settings' },
   ];
 

@@ -15,7 +15,7 @@ npm run typecheck
 
 ## Ce qui est inclus
 
-- Onboarding (3 écrans + passeports des enfants)
+- Onboarding (3 écrans + passeports des enfants), puis guide interactif « Comment ça marche » (5 démos à manipuler, revoir depuis le profil)
 - **Accueil « par enfant »** (direction 1c) : un flux par passeport, à sa taille, trié selon ses couleurs préférées, avec rappel d'anniversaire et option « taille au-dessus »
 - **Passeport enfant** : prénom, avatar, naissance (âge calculé), taille portée, cm, pointure, couleurs, style, petits mots. Conservé sur l'appareil.
 - **Prix négociables** : « Faire une offre », contre-offre du vendeur dans la messagerie, prix négocié appliqué au panier. Le vendeur peut refuser les offres sur son annonce.

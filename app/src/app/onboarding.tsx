@@ -23,7 +23,7 @@ export default function Onboarding() {
 
   const finish = () => {
     set({ onboarded: true });
-    router.replace('/home');
+    router.replace('/guide?first=1');
   };
 
   const slide = SLIDES[Math.min(step, 2)];
