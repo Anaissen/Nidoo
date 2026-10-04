@@ -113,7 +113,8 @@ export const useStore = create<State & Actions>()(
       commission: DEFAULT_COMMISSION,
       kids: DEMO_KIDS,
       activeKidId: DEMO_KIDS[0].id,
-      theme: 'auto',
+      // Light by default for everyone; dark mode is a choice in Réglages.
+      theme: 'light',
       textScale: 1,
       meVerified: false,
       wardrobes: {},
@@ -292,7 +293,7 @@ export const useStore = create<State & Actions>()(
     {
       // Storage key kept from the app's first name so saved passports and settings survive the rename.
       name: 'nidoo-settings',
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => AsyncStorage),
       // v1 stored a home variant and bare ages; v2 keeps the children's passports instead.
       migrate: (old, version) => {
@@ -300,7 +301,10 @@ export const useStore = create<State & Actions>()(
         const base = version < 2
           ? { onboarded: !!o.onboarded, commission: o.commission ?? DEFAULT_COMMISSION, kids: DEMO_KIDS, activeKidId: DEMO_KIDS[0].id }
           : o;
-        return { theme: 'auto', textScale: 1, meVerified: false, wardrobes: {}, ...base } as Partial<State & Actions>;
+        const merged = { theme: 'light', textScale: 1, meVerified: false, wardrobes: {}, ...base } as Partial<State & Actions>;
+        // v4: back to the light look for everyone; people pick dark mode themselves.
+        if (version < 4) merged.theme = 'light';
+        return merged;
       },
       partialize: (s) => ({
         onboarded: s.onboarded, commission: s.commission, kids: s.kids, activeKidId: s.activeKidId,

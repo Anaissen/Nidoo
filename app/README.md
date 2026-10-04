@@ -15,7 +15,7 @@ npm run typecheck
 
 ## Ce qui est inclus
 
-- Onboarding (3 écrans + passeports des enfants), puis guide interactif « Comment ça marche » (5 démos à manipuler, revoir depuis le profil)
+- Onboarding (3 écrans + passeports des enfants), puis guide interactif « Comment ça marche » (6 démos à manipuler, dont affichage et taille du texte, revoir depuis le profil)
 - **Accueil « par enfant »** (direction 1c) : un flux par passeport, à sa taille, trié selon ses couleurs préférées, avec rappel d'anniversaire et option « taille au-dessus »
 - **Passeport enfant** : prénom, avatar, naissance (âge calculé), taille portée, cm, pointure, couleurs, style, petits mots. Conservé sur l'appareil.
 - **Prix négociables** : « Faire une offre », contre-offre du vendeur dans la messagerie, prix négocié appliqué au panier. Le vendeur peut refuser les offres sur son annonce.
@@ -25,7 +25,7 @@ npm run typecheck
 - **Guide des états** (de « Neuf avec étiquette » à « Satisfaisant »), accessible depuis la fiche, la vente et le profil
 - **Près de chez toi** : distance du vendeur, filtre « moins de 2 / 5 / 10 km », lieux sûrs proposés pour la remise en main propre
 - **Compteur d'impact** : vêtements sauvés, estimations CO₂ et eau, paliers
-- **Mode sombre** (automatique / clair / sombre) et **taille du texte** (normal / grand / très grand) dans Réglages
+- **Mode sombre** (clair par défaut, ou sombre / automatique) et **taille du texte** (normal / grand / très grand) dans Réglages
 - Recherche + filtres (âge, distance, fille/garçon, saison, état, prix, marque, couleur), Tout / Pièces / Lots
 - Fiche pièce ou lot (contenu du lot, prix à la pièce), profil vendeur (dressing, avis, suivre)
 - Vendre en 4 étapes (type, photos, description, prix avec montant reçu, modes de livraison)

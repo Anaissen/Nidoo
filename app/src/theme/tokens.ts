@@ -105,6 +105,9 @@ const darkShadows = {
 };
 const lightShadows = { ...shadows };
 
+/** Both palettes, for previews that must not change the live theme (guide demo). */
+export const palettes = { light, dark };
+
 /** Extra text magnification on top of the phone's own setting. */
 export const typeScale = { value: 1 };
 

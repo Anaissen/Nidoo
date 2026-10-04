@@ -3,7 +3,7 @@ import { Check } from 'lucide-react-native';
 import { ComponentType, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import { KidDemo, LotDemo, OfferDemo, SafeDemo, SellDemo } from '../components/GuideDemos';
+import { KidDemo, LookDemo, LotDemo, OfferDemo, SafeDemo, SellDemo } from '../components/GuideDemos';
 import { Logo } from '../components/Logo';
 import { BottomBar, Screen } from '../components/Screen';
 import { H, LinkButton, OutlineButton, PrimaryButton, Txt } from '../components/ui';
@@ -17,6 +17,7 @@ const STEPS: Step[] = [
   { kicker: '3 · Négocier', title: 'Fais une offre', text: "C'est de la seconde main : propose ton prix. Le vendeur accepte ou te fait une contre-offre, directement dans la messagerie.", tryIt: 'Choisis un prix et regarde la réponse.', Demo: OfferDemo },
   { kicker: '4 · En confiance', title: 'Ton paiement est protégé', text: "Le vendeur n'est payé qu'une fois que tu as reçu ta commande et confirmé que tout va bien.", tryIt: 'Avance la commande étape par étape.', Demo: SafeDemo },
   { kicker: '5 · Vendre', title: 'Revends en 2 minutes', text: 'Touche le gros + en bas de l\'écran : photos, description, prix. Tu vois tout de suite ce que tu vas recevoir.', tryIt: 'Choisis un prix.', Demo: SellDemo },
+  { kicker: '6 · À ta façon', title: 'Choisis ton affichage', text: 'Mode clair ou sombre, texte normal ou plus grand : Pimou s\'adapte à toi. Ces réglages se trouvent dans Profil → Réglages.', tryIt: 'Essaie le mode sombre et un texte plus grand.', Demo: LookDemo },
   { kicker: 'C\'est parti', title: 'Tu sais tout !', text: 'Tu pourras revoir ce guide à tout moment depuis ton profil, dans « Comment ça marche ».' },
 ];
 
@@ -72,7 +73,7 @@ export default function Guide() {
 
         {last && (
           <View style={{ gap: 10 }}>
-            {['Ton accueil suit les passeports de tes enfants', 'Tu peux acheter à la pièce ou en lot', 'Les prix se négocient', 'Ton paiement est protégé', 'Vendre prend 2 minutes'].map((t) => (
+            {['Ton accueil suit les passeports de tes enfants', 'Tu peux acheter à la pièce ou en lot', 'Les prix se négocient', 'Ton paiement est protégé', 'Vendre prend 2 minutes', 'Tu choisis l\'affichage et la taille du texte'].map((t) => (
               <View key={t} style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
                 <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: colors.accent2_600, alignItems: 'center', justifyContent: 'center' }}>
                   <Check size={13} strokeWidth={3.5} color={colors.bg} />

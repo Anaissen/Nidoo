@@ -1,11 +1,11 @@
 // Small hands-on demos for the "Comment ça marche" guide. Each calls `onDone` once the person has tried it.
 import { Check, Layers, ShieldCheck, Shirt } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, View } from 'react-native';
+import { Animated, Pressable, Text, View } from 'react-native';
 
 import { fmt } from '../lib/format';
 import { commissionRate, useStore } from '../store/useStore';
-import { colors, ICON_STROKE, shadows } from '../theme/tokens';
+import { colors, fonts, ICON_STROKE, palettes, shadows } from '../theme/tokens';
 import { Chip, H, PrimaryButton, Segmented, Stripes, Txt } from './ui';
 
 type DemoProps = { onDone: () => void };
@@ -209,6 +209,53 @@ export function SellDemo({ onDone }: DemoProps) {
           </View>
         </Pop>
       )}
+    </Card>
+  );
+}
+
+// 6 · Appearance & text size ───────────────────────────────────────────────
+
+const SIZES: [string, string, number][] = [['1', 'A', 1], ['1.15', 'A+', 1.15], ['1.3', 'A++', 1.3]];
+
+/** Preview only: flips a mini card between light/dark and text sizes, without touching the real settings. */
+export function LookDemo({ onDone }: DemoProps) {
+  const [mode, setMode] = useState<'light' | 'dark'>('light');
+  const [scale, setScale] = useState('1');
+  const [tried, setTried] = useState({ mode: false, size: false });
+  const k = SIZES.find((x) => x[0] === scale)![2];
+  const p = palettes[mode];
+  const touch = (key: 'mode' | 'size') => setTried((t) => {
+    const next = { ...t, [key]: true };
+    if (next.mode && next.size) onDone();
+    return next;
+  });
+
+  return (
+    <Card>
+      <View style={{ gap: 6 }}>
+        <Txt size={13} weight="semi">Apparence</Txt>
+        <Segmented options={[['light', '☀️  Clair'], ['dark', '🌙  Sombre']]} value={mode} onChange={(v) => { setMode(v); touch('mode'); }} />
+      </View>
+      <View style={{ gap: 6 }}>
+        <Txt size={13} weight="semi">Taille du texte</Txt>
+        <Segmented options={SIZES.map(([v, l]) => [v, l] as [string, string])} value={scale} onChange={(v) => { setScale(v); touch('size'); }} />
+      </View>
+      <Pop k={mode + scale}>
+        <View style={{ padding: 14, borderRadius: 22, backgroundColor: p.bg, borderWidth: 1, borderColor: p.divider, gap: 10 }}>
+          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+            <Stripes tones={['#ffe1d0', '#fff2eb']} style={{ width: 64, height: 64, borderRadius: 18 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: fonts.bodySemi, fontSize: 15 * k, lineHeight: 15 * k * 1.3, color: p.text }}>Robe en lin smockée</Text>
+              <Text style={{ fontFamily: fonts.body, fontSize: 13 * k, lineHeight: 13 * k * 1.35, color: p.neutral700 }}>2-4 ans · Neuf avec étiquette</Text>
+              <Text style={{ fontFamily: fonts.bodyBold, fontSize: 16 * k, lineHeight: 16 * k * 1.3, color: p.text }}>18,00 €</Text>
+            </View>
+          </View>
+          <View style={{ height: 40 * Math.max(1, k * 0.95), borderRadius: 999, backgroundColor: p.accent, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontFamily: fonts.heading, fontSize: 15 * k, color: p.bg }}>Ajouter au panier</Text>
+          </View>
+        </View>
+      </Pop>
+      <Txt size={13} color={colors.neutral700}>Pour changer pour de vrai : Profil → Réglages. Tu peux revenir en arrière quand tu veux.</Txt>
     </Card>
   );
 }
