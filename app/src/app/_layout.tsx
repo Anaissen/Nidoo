@@ -4,12 +4,12 @@ import { useFonts } from 'expo-font';
 import { router, Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { useColorScheme, View } from 'react-native';
+import { Platform, useColorScheme, useWindowDimensions, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { Toast } from '../components/Toast';
 import { useStore } from '../store/useStore';
-import { applyTheme, colors } from '../theme/tokens';
+import { applyTheme, colors, shadows } from '../theme/tokens';
 
 export default function RootLayout() {
   const [loaded] = useFonts({ Caprasimo_400Regular, Figtree_400Regular, Figtree_600SemiBold, Figtree_700Bold });
@@ -18,6 +18,8 @@ export default function RootLayout() {
   const textScale = useStore((s) => s.textScale);
   const returnTo = useStore((s) => s.returnTo);
   const pathname = usePathname();
+  const { width } = useWindowDimensions();
+  const framed = Platform.OS === 'web' && width > 600;
 
   const mode = theme === 'auto' ? (system === 'dark' ? 'dark' : 'light') : theme;
   // Swap the live palette before anything below renders; the `key` then re-mounts every screen with it.
@@ -38,9 +40,10 @@ export default function RootLayout() {
   if (!loaded) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={framed ? { backgroundColor: colors.surface } : undefined}>
       <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
-      <View key={look} style={{ flex: 1, backgroundColor: colors.bg }}>
+      {/* On a wide web screen (link shared to a computer), show the app in a phone-sized column. */}
+      <View key={look} style={[{ flex: 1, backgroundColor: colors.bg }, framed && { width: 430, alignSelf: 'center', boxShadow: shadows.lg }]}>
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
