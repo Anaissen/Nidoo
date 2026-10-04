@@ -28,7 +28,7 @@ npm run typecheck
 - **Mode sombre** (automatique / clair / sombre) et **taille du texte** (normal / grand / très grand) dans Réglages
 - Recherche + filtres (âge, distance, fille/garçon, saison, état, prix, marque, couleur), Tout / Pièces / Lots
 - Fiche pièce ou lot (contenu du lot, prix à la pièce), profil vendeur (dressing, avis, suivre)
-- Vendre en 4 étapes (type, photos, description, prix avec net après commission, modes de livraison)
+- Vendre en 4 étapes (type, photos, description, prix avec montant reçu, modes de livraison)
 - Panier groupé par vendeur, paiement (point relais / domicile / main propre, carte / Apple Pay)
 - Messagerie avec réponses rapides, favoris, mes achats / ventes, suivi de commande + notation, notifications
 

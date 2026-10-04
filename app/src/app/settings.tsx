@@ -4,15 +4,14 @@ import { View } from 'react-native';
 
 import { VerifiedBadge } from '../components/Badges';
 import { BackHeader, Screen } from '../components/Screen';
-import { CircleButton, H, OutlineButton, PrimaryButton, Segmented, Txt } from '../components/ui';
+import { H, OutlineButton, PrimaryButton, Segmented, Txt } from '../components/ui';
 import { ThemeMode, useStore } from '../store/useStore';
 import { colors, ICON_STROKE } from '../theme/tokens';
 
 const SCALES: [string, string][] = [['1', 'Normal'], ['1.15', 'Grand'], ['1.3', 'Très grand']];
 
-/** Affichage (mode sombre, taille du texte), vérification du compte et réglages de démo. */
+/** Affichage (mode sombre, taille du texte) et vérification du compte. */
 export default function Settings() {
-  const commission = useStore((s) => s.commission);
   const theme = useStore((s) => s.theme);
   const textScale = useStore((s) => s.textScale);
   const meVerified = useStore((s) => s.meVerified);
@@ -59,18 +58,6 @@ export default function Settings() {
               <PrimaryButton label="Vérifier mon compte" height={46} size={16} onPress={() => { set({ meVerified: true }); showToast('Compte vérifié ✓'); }} />
             </View>
           )}
-        </View>
-
-        <View style={{ gap: 8 }}>
-          <H size={18}>Commission vendeur (démo)</H>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingRight: 12, paddingLeft: 18, borderRadius: 999, backgroundColor: colors.surface }}>
-            <Txt weight="semi">Taux prélevé à la vente</Txt>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-              <CircleButton size={40} bg={colors.neutral100} onPress={() => set({ commission: Math.max(0, commission - 1) })}><Txt size={20} lh={1}>−</Txt></CircleButton>
-              <H size={22} style={{ minWidth: 48, textAlign: 'center' }}>{commission} %</H>
-              <CircleButton size={40} bg={colors.neutral100} onPress={() => set({ commission: Math.min(20, commission + 1) })}><Txt size={20} lh={1}>+</Txt></CircleButton>
-            </View>
-          </View>
         </View>
 
         <OutlineButton label="Revoir l'onboarding" onPress={() => { set({ onboarded: false }); router.dismissAll(); router.replace('/onboarding'); }} />

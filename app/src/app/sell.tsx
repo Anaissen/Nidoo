@@ -191,7 +191,6 @@ export default function Sell() {
             </View>
             <View style={{ gap: 8, paddingVertical: 16, paddingHorizontal: 20, borderRadius: 28, backgroundColor: colors.surface }}>
               <Line l="Prix affiché" r={fmt(price)} />
-              <Line l={`Commission Pimoo (${commission} %)`} r={`− ${fmt(price * rate)}`} muted />
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.divider }}>
                 <Txt size={16} weight="bold">Tu recevras</Txt>
                 <Txt size={16} weight="bold" color={colors.accent2_700}>{fmt(price * (1 - rate))}</Txt>

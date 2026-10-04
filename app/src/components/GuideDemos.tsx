@@ -203,10 +203,6 @@ export function SellDemo({ onDone }: DemoProps) {
         <Pop k={price}>
           <View style={{ padding: 14, borderRadius: 20, backgroundColor: colors.surface, gap: 4 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Txt size={14} color={colors.neutral700}>Commission Pimoo ({pct} %)</Txt>
-              <Txt size={14} color={colors.neutral700}>− {fmt(price * commissionRate(pct))}</Txt>
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Txt weight="bold">Tu recevras</Txt>
               <Txt weight="bold" color={colors.accent2_700}>{fmt(price * (1 - commissionRate(pct)))}</Txt>
             </View>
