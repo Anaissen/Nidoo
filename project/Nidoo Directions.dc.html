@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="design_doc_mode" content="canvas"><style>body{margin:0;background:#efe5d3;font-family:Figtree,system-ui,sans-serif}a{color:#8c491a}a:hover{color:#643312}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}</style></helmet>
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Nidoo · prototype iOS cliquable, 3 directions pour l'accueil</span></div>
+<p style="margin:0 0 24px;max-width:760px;font-size:13px;line-height:1.55;color:rgba(0,0,0,.65)">Chaque téléphone est le prototype complet (recherche + filtres, fiche pièce/lot, vente en 4 étapes, panier, paiement, messagerie, profil, favoris, commandes, suivi, notifications). Seul l'accueil change. Le 4ᵉ démarre à l'onboarding. Commission vendeur à 8 %, réglable dans les Tweaks du fichier Nidoo.</p>
+<div class="dv-opts">
+<div class="dv-opt" id="1a"><div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Classique : recherche, âges, lots du moment, nouveautés</div><dc-import name="Nidoo" home="1a" start="home" hint-size="442px,914px"></dc-import></div>
+<div class="dv-opt" id="1b"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Éditorial : entrée par âge en formes rondes, lot de la semaine</div><dc-import name="Nidoo" home="1b" start="home" hint-size="442px,914px"></dc-import></div>
+<div class="dv-opt" id="1c"><div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Par enfant : profils Léa / Tom, flux à la bonne taille</div><dc-import name="Nidoo" home="1c" start="home" hint-size="442px,914px"></dc-import></div>
+<div class="dv-opt" id="1d"><div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Parcours complet depuis l'onboarding (accueil <a class="dv-oid" href="#1a">1a</a>)</div><dc-import name="Nidoo" home="1a" start="onboarding" hint-size="442px,914px"></dc-import></div>
+</div>
+<p class="dv-next">Ensuite : « garde <a class="dv-oid" href="#1c">1c</a> avec la bannière lot de <a class="dv-oid" href="#1a">1a</a> » · « ajoute les offres de prix » · « version Android »</p>
+</section>
+</x-dc>
+</body>
+</html>

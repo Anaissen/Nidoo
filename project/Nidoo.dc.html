@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="styles.css">
+<style>body{margin:0;background:#e9dfcd}a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}input,textarea,button{font-family:inherit}::-webkit-scrollbar{display:none}</style>
+</helmet>
+<div style="display:flex;justify-content:center;padding:20px">
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+<div style="position:relative;height:100%;display:flex;flex-direction:column;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body);font-size:15px;line-height:1.45;overflow:hidden">
+<div style="position:absolute;top:0;left:0;right:0;height:54px;background:var(--color-bg);z-index:10"></div>
+
+<div ref="{{ scrollRef }}" style="flex:1;overflow-y:auto;padding-top:56px;display:flex;flex-direction:column">
+
+<!-- ONBOARDING -->
+<sc-if value="{{ scr.onboarding }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;padding:8px 24px 40px">
+  <div style="display:flex;justify-content:space-between;align-items:center;height:40px">
+    <span style="font-family:var(--font-heading);font-size:22px;color:var(--color-accent)">nidoo</span>
+    <sc-if value="{{ onbShowSkip }}" hint-placeholder-val="{{ true }}"><button onClick="{{ onbSkip }}" style="border:none;background:none;font-size:14px;font-weight:600;color:var(--color-neutral-700);cursor:pointer;padding:8px">Passer</button></sc-if>
+  </div>
+  <sc-if value="{{ onbIsSlide }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:28px">
+      <div style="position:relative;width:260px;height:260px;border-radius:50%;background:{{ onbSlide.ph }};display:grid;place-items:center">
+        <span style="font:500 10px ui-monospace,Menlo,monospace;color:var(--color-neutral-700);letter-spacing:.05em">{{ onbSlide.label }}</span>
+        <div style="position:absolute;right:-18px;bottom:24px;width:72px;height:72px;border-radius:50%;background:var(--color-accent-2-300)"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <h1 style="font-size:36px;margin:0;text-wrap:balance">{{ onbSlide.title }}</h1>
+        <p style="margin:0;font-size:16px;color:var(--color-neutral-800);text-wrap:pretty">{{ onbSlide.text }}</p>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+      <div style="display:flex;gap:6px">
+        <sc-for list="{{ onbDots }}" as="d" hint-placeholder-count="3"><div style="height:8px;width:{{ d.w }};border-radius:999px;background:{{ d.bg }};transition:width .25s"></div></sc-for>
+      </div>
+      <button onClick="{{ onbNext }}" style-hover="background:var(--color-accent-600)" style-active="background:var(--color-accent-700)" style="height:56px;padding:0 28px;border:none;border-radius:999px;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-heading);font-size:17px;cursor:pointer">Suivant</button>
+    </div>
+  </sc-if>
+  <sc-if value="{{ onbIsKids }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;gap:22px;padding-top:24px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <h1 style="font-size:34px;margin:0">Pour qui tu cherches ?</h1>
+        <p style="margin:0;color:var(--color-neutral-800)">Choisis les âges de tes enfants. On te montrera d'abord les bonnes tailles.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <sc-for list="{{ kidAgeChips }}" as="c" hint-placeholder-count="7">
+          <button onClick="{{ c.toggle }}" style="height:64px;border-radius:22px;border:2px solid {{ c.border }};background:{{ c.bg }};color:var(--color-text);font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:0 16px">
+            <span>{{ c.label }}</span>
+            <span style="width:22px;height:22px;border-radius:50%;background:{{ c.dot }};display:grid;place-items:center;color:var(--color-bg)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+          </button>
+        </sc-for>
+      </div>
+      <p style="margin:0;font-size:13px;color:var(--color-neutral-700)">Tu pourras modifier ça à tout moment depuis ton profil.</p>
+    </div>
+    <button onClick="{{ onbFinish }}" style-hover="background:var(--color-accent-600)" style="height:56px;border:none;border-radius:999px;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-heading);font-size:17px;cursor:pointer">{{ onbFinishLabel }}</button>
+  </sc-if>
+</div>
+</sc-if>
+
+<!-- HOME 1a -->
+<sc-if value="{{ home1a }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:22px;padding:4px 0 24px">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 20px">
+    <div><div style="font-size:13px;color:var(--color-neutral-700)">Bonjour Élodie</div><div style="font-family:var(--font-heading);font-size:26px;line-height:1.1">Qu'est-ce qu'on déniche ?</div></div>
+    <div style="display:flex;gap:8px">
+      <button onClick="{{ goNotifs }}" style="position:relative;width:44px;height:44px;border-radius:50%;border:none;background:var(--color-surface);display:grid;place-items:center;cursor:pointer;color:var(--color-text)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg><span style="position:absolute;top:10px;right:11px;width:8px;height:8px;border-radius:50%;background:var(--color-accent)"></span></button>
+      <button onClick="{{ goCart }}" style="position:relative;width:44px;height:44px;border-radius:50%;border:none;background:var(--color-surface);display:grid;place-items:center;cursor:pointer;color:var(--color-text)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg><sc-if value="{{ hasCart }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:2px;right:0;min-width:18px;height:18px;border-radius:999px;background:var(--color-accent);color:var(--color-bg);font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 4px">{{ cartCount }}</span></sc-if></button>
+    </div>
+  </div>
+  <button onClick="{{ goSearch }}" style="margin:0 20px;height:52px;border-radius:999px;border:none;background:var(--color-neutral-100);display:flex;align-items:center;gap:10px;padding:0 18px;color:var(--color-neutral-700);font-size:15px;cursor:pointer;box-shadow:var(--shadow-sm)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>Body, robe, lot 2 ans…</button>
+  <div style="display:flex;gap:8px;overflow-x:auto;padding:0 20px">
+    <sc-for list="{{ ageShortcuts }}" as="a" hint-placeholder-count="5"><button onClick="{{ a.open }}" style-hover="background:var(--color-accent-200)" style="flex:none;height:40px;padding:0 16px;border-radius:999px;border:none;background:var(--color-accent-100);color:var(--color-accent-800);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap">{{ a.label }}</button></sc-for>
+  </div>
+  <div style="margin:0 20px;border-radius:32px;background:var(--color-accent-2-500);color:var(--color-neutral-100);padding:22px;display:flex;flex-direction:column;gap:12px;position:relative;overflow:hidden">
+    <div style="position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:var(--color-accent-2-400)"></div>
+    <div style="font-family:var(--font-heading);font-size:24px;line-height:1.1;max-width:230px;position:relative">Trop petit ? Vends tout en un lot.</div>
+    <div style="font-size:14px;max-width:240px;position:relative">Une annonce, une photo de groupe, un prix. C'est fait en 2 minutes.</div>
+    <button onClick="{{ sellLot }}" style="align-self:flex-start;height:44px;padding:0 20px;border-radius:999px;border:none;background:var(--color-neutral-100);color:var(--color-accent-2-800);font-family:var(--font-heading);font-size:15px;cursor:pointer;position:relative">Créer un lot</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:0 20px"><h3 style="margin:0;font-size:21px">Lots du moment</h3><button onClick="{{ seeLots }}" style="border:none;background:none;color:var(--color-accent-700);font-weight:600;font-size:14px;cursor:pointer">Tout voir</button></div>
+    <div style="display:flex;gap:12px;overflow-x:auto;padding:0 20px">
+      <sc-for list="{{ lots }}" as="p" hint-placeholder-count="3">
+        <div onClick="{{ p.open }}" style="flex:none;width:220px;display:flex;flex-direction:column;gap:6px;cursor:pointer">
+          <div style="position:relative;height:150px;border-radius:24px;background:{{ p.ph }}">
+            <span style="position:absolute;left:12px;bottom:10px;font:500 9px ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">{{ p.phLabel }}</span>
+            <span style="position:absolute;top:10px;left:10px;padding:4px 10px;border-radius:999px;background:var(--color-text);color:var(--color-bg);font-size:11px;font-weight:700">Lot · {{ p.count }} pièces</span>
+            <button onClick="{{ p.toggleFav }}" style="position:absolute;top:8px;right:8px;width:34px;height:34px;border-radius:50%;border:none;background:var(--color-neutral-100);display:grid;place-items:center;cursor:pointer"><svg width="17" height="17" viewBox="0 0 24 24" fill="{{ p.heartFill }}" stroke="{{ p.heartStroke }}" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg></button>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-weight:700;font-size:16px">{{ p.priceF }}</span><span style="font-size:12px;color:var(--color-neutral-700)">{{ p.perPiece }} / pièce</span></div>
+          <div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.title }}</div>
+          <div style="font-size:12px;color:var(--color-neutral-700)">{{ p.size }} · {{ p.condition }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px;padding:0 20px">
+    <h3 style="margin:0;font-size:21px">Nouveautés à ta taille</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 12px">
+      <sc-for list="{{ forYou }}" as="p" hint-placeholder-count="4">
+        <div onClick="{{ p.open }}" style="display:flex;flex-direction:column;gap:5px;cursor:pointer;min-width:0">
+          <div style="position:relative;aspect-ratio:4/5;border-radius:22px;background:{{ p.ph }}">
+            <span style="position:absolute;left:12px;bottom:10px;font:500 9px ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">{{ p.phLabel }}</span>
+            <sc-if value="{{ p.isLot }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:10px;left:10px;padding:4px 10px;border-radius:999px;background:var(--color-text);color:var(--color-bg);font-size:11px;font-weight:700">Lot · {{ p.count }}</span></sc-if>
+            <button onClick="{{ p.toggleFav }}" style="position:absolute;top:8px;right:8px;width:34px;height:34px;border-radius:50%;border:none;background:var(--color-neutral-100);display:grid;place-items:center;cursor:pointer"><svg width="17" height="17" viewBox="0 0 24 24" fill="{{ p.heartFill }}" stroke="{{ p.heartStroke }}" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg></button>
+          </div>
+          <span style="font-weight:700;font-size:15px;padding-left:2px">{{ p.priceF }}</span>
+          <div style="font-size:13px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:2px">{{ p.title }}</div>
+          <div style="font-size:12px;color:var(--color-neutral-700);padding-left:2px">{{ p.size }} · {{ p.condition }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- HOME 1b -->
+<sc-if value="{{ home1b }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:26px;padding:4px 0 24px">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 20px">
+    <span style="font-family:var(--font-heading);font-size:24px;color:var(--color-accent)">nidoo</span>
+    <div style="display:flex;gap:8px">
+      <button onClick="{{ goSearch }}" style="width:44px;height:44px;border-radius:50%;border:none;background:var(--color-surface);display:grid;place-items:center;cursor:pointer;color:var(--color-text)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></button>
+      <button onClick="{{ goNotifs }}" style="position:relative;width:44px;height:44px;border-radius:50%;border:none;background:var(--color-surface);display:grid;place-items:center;cursor:pointer;color:var(--color-text)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg><span style="position:absolute;top:10px;right:11px;width:8px;height:8px;border-radius:50%;background:var(--color-accent)"></span></button>
+      <button onClick="{{ goCart }}" style="position:relative;width:44px;height:44px;border-radius:50%;border:none;background:var(--color-surface);display:grid;place-items:center;cursor:pointer;color:var(--color-text)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg><sc-if value="{{ hasCart }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:2px;right:0;min-width:18px;height:18px;border-radius:999px;background:var(--color-accent);color:var(--color-bg);font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 4px">{{ cartCount }}</span></sc-if></button>
+    </div>
+  </div>
+  <h1 style="margin:0;padding:0 20px;font-size:40px;line-height:1.02;text-wrap:balance">Il grandit vite. Son dressing aussi.</h1>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px 8px;padding:0 20px">
+    <sc-for list="{{ ageBlobs }}" as="a" hint-placeholder-count="8">
+      <button onClick="{{ a.open }}" style="border:none;background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;color:var(--color-text)">
+        <span style="width:76px;height:76px;border-radius:{{ a.radius }};background:{{ a.bg }};display:grid;place-items:center;font-family:var(--font-heading);font-size:19px;color:{{ a.fg }}">{{ a.big }}</span>
+        <span style="font-size:12px;font-weight:600">{{ a.small }}</span>
+      </button>
+    </sc-for>
+  </div>
+  <div onClick="{{ spotlight.open }}" style="margin:0 20px;border-radius:36px;background:var(--color-accent);color:var(--color-bg);overflow:hidden;cursor:pointer">
+    <div style="height:190px;background:{{ spotlight.ph }};position:relative;border-radius:0 0 36px 36px"><span style="position:absolute;left:18px;bottom:14px;font:500 10px ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">{{ spotlight.phLabel }}</span></div>
+    <div style="padding:18px 22px 22px;display:flex;flex-direction:column;gap:6px">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Lot de la semaine · {{ spotlight.count }} pièces</div>
+      <div style="font-family:var(--font-heading);font-size:24px;line-height:1.1">{{ spotlight.title }}</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:20px;font-weight:700">{{ spotlight.priceF }}</span><span style="font-size:13px">soit {{ spotlight.perPiece }} la pièce</span></div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:6px;padding:0 20px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><h3 style="margin:0;font-size:21px">Pièces uniques</h3><button onClick="{{ seeUniques }}" style="border:none;background:none;color:var(--color-accent-700);font-weight:600;font-size:14px;cursor:pointer">Tout voir</button></div>
+    <sc-for list="{{ uniques }}" as="p" hint-placeholder-count="4">
+      <div onClick="{{ p.open }}" style="display:flex;gap:14px;align-items:center;padding:10px 0;cursor:pointer">
+        <div style="width:76px;height:76px;flex:none;border-radius:50%;background:{{ p.ph }}"></div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+          <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.title }}</div>
+          <div style="font-size:13px;color:var(--color-neutral-700)">{{ p.brand }} · {{ p.size }}</div>
+          <div style="font-size:12px;color:var(--color-accent-2-700);font-weight:600">{{ p.condition }}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+          <span style="font-weight:700">{{ p.priceF }}</span>
+          <button onClick="{{ p.toggleFav }}" style="width:32px;height:32px;border-radius:50%;border:none;background:var(--color-surface);display:grid;place-items:center;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="{{ p.heartFill }}" stroke="{{ p.heartStroke }}" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg></button>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<!-- HOME 1c -->
+<sc-if value="{{ home1c }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:20px;padding:4px 0 24px">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 20px">
+    <div style="font-family:var(--font-heading);font-size:26px">Pour qui aujourd'hui ?</div>
+    <button onClick="{{ goCart }}" style="position:relative;width:44px;height:44px;border-radius:50%;border:none;background:var(--color-surface);display:grid;place-items:center;cursor:pointer;color:var(--color-text)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg><sc-if value="{{ hasCart }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:2px;right:0;min-width:18px;height:18px;border-radius:999px;background:var(--color-accent);color:var(--color-bg);font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 4px">{{ cartCount }}</span></sc-if></button>
+  </div>
+  <div style="display:flex;gap:10px;padding:0 20px;overflow-x:auto">
+    <sc-for list="{{ kidTabs }}" as="k" hint-placeholder-count="2">
+      <button onClick="{{ k.pick }}" style="flex:none;display:flex;align-items:center;gap:10px;height:60px;padding:0 18px 0 8px;border-radius:999px;border:none;background:{{ k.bg }};color:{{ k.fg }};cursor:pointer">
+        <span style="width:44px;height:44px;border-radius:50%;background:{{ k.avatar }};display:grid;place-items:center;font-family:var(--font-heading);font-size:18px;color:var(--color-text)">{{ k.init }}</span>
+        <span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.15"><span style="font-weight:700;font-size:15px">{{ k.name }}</span><span style="font-size:12px">{{ k.age }}</span></span>
+      </button>
+    </sc-for>
+    <button onClick="{{ goKids }}" style="flex:none;width:60px;height:60px;border-radius:50%;border:2px dashed var(--color-neutral-400);background:none;display:grid;place-items:center;cursor:pointer;color:var(--color-neutral-700)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></button>
+  </div>
+  <div style="margin:0 20px;display:grid;grid-template-columns:repeat(3,1fr);padding:4px;border-radius:999px;background:var(--color-surface)">
+    <sc-for list="{{ homeTypes }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.pick }}" style="height:40px;border:none;border-radius:999px;background:{{ t.bg }};color:var(--color-text);font-weight:600;font-size:14px;cursor:pointer;box-shadow:{{ t.shadow }}">{{ t.label }}</button></sc-for>
+  </div>
+  <div style="padding:0 20px;font-size:14px;color:var(--color-neutral-800)">{{ kidFeedLabel }}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 12px;padding:0 20px">
+    <sc-for list="{{ kidFeed }}" as="p" hint-placeholder-count="4">
+      <div onClick="{{ p.open }}" style="display:flex;flex-direction:column;gap:5px;cursor:pointer;min-width:0">
+        <div style="position:relative;aspect-ratio:1/1;border-radius:50% 50% 24px 24px;background:{{ p.ph }}">
+          <span style="position:absolute;left:14px;bottom:12px;font:500 9px ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">{{ p.phLabel }}</span>
+          <sc-if value="{{ p.isLot }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;bottom:10px;right:10px;padding:4px 10px;border-radius:999px;background:var(--color-accent-2-700);color:var(--color-neutral-100);font-size:11px;font-weight:700">Lot · {{ p.count }}</span></sc-if>
+          <button onClick="{{ p.toggleFav }}" style="position:absolute;top:4px;right:4px;width:34px;height:34px;border-radius:50%;border:none;background:var(--color-neutral-100);display:grid;place-items:center;cursor:pointer;box-shadow:var(--shadow-sm)"><svg width="17" height="17" viewBox="0 0 24 24" fill="{{ p.heartFill }}" stroke="{{ p.heartStroke }}" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg></button>
+        </div>
+        <span style="font-weight:700;font-size:15px;padding-left:2px">{{ p.priceF }}</span>
+        <div style="font-size:13px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:2px">{{ p.title }}</div>
+        <div style="font-size:12px;color:var(--color-neutral-700);padding-left:2px">{{ p.brand }} · {{ p.condition }}</div>
+      </div>
+    </sc-for>
+  </div>
+  <sc-if value="{{ kidFeedEmpty }}" hint-placeholder-val="{{ false }}"><div style="margin:0 20px;padding:24px;border-radius:28px;background:var(--color-surface);text-align:center;color:var(--color-neutral-800)">Rien pour l'instant dans cette catégorie. Active une alerte dans la recherche.</div></sc-if>
+  <div style="margin:0 20px;border-radius:32px;background:var(--color-accent-100);padding:20px;display:flex;gap:16px;align-items:center">
+    <div style="width:64px;height:64px;flex:none;border-radius:50%;background:var(--color-accent-300);display:grid;place-items:center;color:var(--color-accent-800)"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 10 5-10 5L2 7z"></path><path d="m2 17 10 5 10-5"></path><path d="m2 12 10 5 10-5"></path></svg></div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+      <div style="font-family:var(--font-heading);font-size:18px;line-height:1.15">{{ outgrownTitle }}</div>
+      <button onClick="{{ sellLot }}" style="align-self:flex-start;border:none;background:none;padding:0;color:var(--color-accent-700);font-weight:700;font-size:14px;cursor:pointer">Revendre en lot →</button>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- SEARCH -->
+<sc-if value="{{ scr.search }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:14px;padding:4px 0 24px">
+  <h2 style="margin:0;padding:0 20px;font-size:28px">Rechercher</h2>
+  <div style="display:flex;gap:8px;padding:0 20px">
+    <div style="flex:1;height:50px;border-radius:999px;background:var(--color-neutral-100);display:flex;align-items:center;gap:10px;padding:0 16px;box-shadow:var(--shadow-sm);color:var(--color-neutral-700)">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      <input value="{{ q }}" onChange="{{ onQ }}" placeholder="Body, robe, Petit Bateau…" style="flex:1;border:none;background:none;outline:none;font-size:15px;color:var(--color-text);min-width:0">
+    </div>
+    <button onClick="{{ openSheet }}" style="position:relative;width:50px;height:50px;border-radius:50%;border:none;background:var(--color-text);color:var(--color-bg);display:grid;place-items:center;cursor:pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"></path></svg><sc-if value="{{ hasFilters }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;border-radius:999px;background:var(--color-accent);color:var(--color-bg);font-size:11px;font-weight:700;display:grid;place-items:center;border:2px solid var(--color-bg)">{{ filterCount }}</span></sc-if></button>
+  </div>
+  <div style="margin:0 20px;display:grid;grid-template-columns:repeat(3,1fr);padding:4px;border-radius:999px;background:var(--color-surface)">
+    <sc-for list="{{ typeSeg }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.pick }}" style="height:38px;border:none;border-radius:999px;background:{{ t.bg }};color:var(--color-text);font-weight:600;font-size:13px;cursor:pointer;box-shadow:{{ t.shadow }}">{{ t.label }}</button></sc-for>
+  </div>
+  <sc-if value="{{ hasFilters }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;gap:8px;overflow-x:auto;padding:0 20px">
+      <sc-for list="{{ activeChips }}" as="c" hint-placeholder-count="2"><button onClick="{{ c.remove }}" style="flex:none;height:34px;padding:0 10px 0 14px;border-radius:999px;border:none;background:var(--color-accent-2-200);color:var(--color-accent-2-800);font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap">{{ c.label }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></sc-for>
+    </div>
+  </sc-if>
+  <div style="padding:0 20px;font-size:13px;color:var(--color-neutral-700)">{{ resultsLabel }}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 12px;padding:0 20px">
+    <sc-for list="{{ results }}" as="p" hint-placeholder-count="4">
+      <div onClick="{{ p.open }}" style="display:flex;flex-direction:column;gap:5px;cursor:pointer;min-width:0">
+        <div style="position:relative;aspect-ratio:4/5;border-radius:22px;background:{{ p.ph }}">
+          <span style="position:absolute;left:12px;bottom:10px;font:500 9px ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">{{ p.phLabel }}</span>
+          <sc-if value="{{ p.isLot }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:10px;left:10px;padding:4px 10px;border-radius:999px;background:var(--color-text);color:var(--color-bg);font-size:11px;font-weight:700">Lot · {{ p.count }}</span></sc-if>
+          <button onClick="{{ p.toggleFav }}" style="position:absolute;top:8px;right:8px;width:34px;height:34px;border-radius:50%;border:none;background:var(--color-neutral-100);display:grid;place-items:center;cursor:pointer"><svg width="17" height="17" viewBox="0 0 24 24" fill="{{ p.heartFill }}" stroke="{{ p.heartStroke }}" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg></button>
+        </div>
+        <span style="font-weight:700;font-size:15px;padding-left:2px">{{ p.priceF }}</span>
+        <div style="font-size:13px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:2px">{{ p.title }}</div>
+        <div style="font-size:12px;color:var(--color-neutral-700);padding-left:2px">{{ p.size }} · {{ p.condition }}</div>
+      </div>
+    </sc-for>
+  </div>
+  <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+    <div style="margin:0 20px;padding:28px 20px;border-radius:28px;background:var(--color-surface);display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+      <div style="font-family:var(--font-heading);font-size:20px">Aucun article pour l'instant</div>
+      <div style="font-size:14px;color:var(--color-neutral-800)">Élargis tes filtres ou crée une alerte, on te prévient dès qu'un article correspond.</div>
+      <button onClick="{{ clearFilters }}" style="height:44px;padding:0 20px;border-radius:999px;border:1px solid var(--color-divider);background:none;font-family:var(--font-heading);font-size:15px;cursor:pointer;color:var(--color-text)">Effacer les filtres</button>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<!-- PRODUCT -->
+<sc-if value="{{ scr.product }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:18px;padding:0 0 24px">
+  <div style="position:relative;margin:0 12px;height:400px;border-radius:36px;background:{{ prod.ph }}">
+    <span style="position:absolute;left:20px;bottom:44px;font:500 10px ui-monospace,Menlo,monospace;color:var(--color-neutral-700)">{{ prod.photoLabel }}</span>
+    <button onClick="{{ back }}" style="position:absolute;top:12px;left:12px;width:44px;height:44px;border-radius:50%;border:none;background:var(--color-neutral-100);display:grid;place-items:center;cursor:pointer;color:var(--color-text)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></button>
+    <button onClick="{{ prod.toggleFav }}" style="position:absolute;top:12px;right:12px;width:44px;height:44px;border-radius:50%;border:none;background:var(--color-neutral-100);display:grid;place-items:center;cursor:pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="{{ prod.heartFill }}" stroke="{{ prod.heartStroke }}" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg></button>
+    <button onClick="{{ prevPhoto }}" style="position:absolute;left:0;top:70px;bottom:60px;width:40%;border:none;background:none;cursor:pointer"></button>
+    <button onClick="{{ nextPhoto }}" style="position:absolute;right:0;top:70px;bottom:60px;width:40%;border:none;background:none;cursor:pointer"></button>
+    <div style="position:absolute;bottom:18px;left:0;right:0;display:flex;justify-content:center;gap:6px">
+      <sc-for list="{{ photoDots }}" as="d" hint-placeholder-count="4"><span style="width:{{ d.w }};height:7px;border-radius:999px;background:{{ d.bg }};transition:width .2s"></span></sc-for>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px;padding:0 20px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <sc-if value="{{ prod.isLot }}" hint-placeholder-val="{{ false }}"><span style="padding:4px 12px;border-radius:999px;background:var(--color-text);color:var(--color-bg);font-size:12px;font-weight:700">Lot de {{ prod.count }} pièces</span></sc-if>
+      <sc-if value="{{ prod.isUnique }}" hint-placeholder-val="{{ false }}"><span style="padding:4px 12px;border-radius:999px;background:var(--color-accent-100);color:var(--color-accent-800);font-size:12px;font-weight:700">Pièce unique</span></sc-if>
+      <span style="padding:4px 12px;border-radius:999px;background:var(--color-accent-2-100);color:var(--color-accent-2-800);font-size:12px;font-weight:600">{{ prod.condition }}</span>
+    </div>
+    <h2 style="margin:0;font-size:26px;text-wrap:balance">{{ prod.title }}</h2>
+    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:26px;font-weight:700">{{ prod.priceF }}</span><sc-if value="{{ prod.isLot }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;color:var(--color-accent-2-700);font-weight:600">soit {{ prod.perPiece }} la pièce</span></sc-if></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 20px">
+    <sc-for list="{{ prodSpecs }}" as="s" hint-placeholder-count="6"><div style="padding:12px 16px;border-radius:20px;background:var(--color-surface)"><div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-700)">{{ s.k }}</div><div style="font-weight:600;font-size:14px">{{ s.v }}</div></div></sc-for>
+  </div>
+  <sc-if value="{{ prod.isLot }}" hint-placeholder-val="{{ false }}">
+    <div style="margin:0 20px;padding:18px 20px;border-radius:28px;background:var(--color-neutral-100);display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:8px;font-family:var(--font-heading);font-size:18px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 10 5-10 5L2 7z"></path><path d="m2 17 10 5 10-5"></path><path d="m2 12 10 5 10-5"></path></svg>Contenu du lot</div>
+      <sc-for list="{{ prod.contents }}" as="c" hint-placeholder-count="4"><div style="display:flex;justify-content:space-between;font-size:14px;padding:6px 0;border-bottom:1px solid var(--color-divider)"><span>{{ c.n }}</span><span style="color:var(--color-neutral-700)">× {{ c.q }}</span></div></sc-for>
+      <div style="font-size:13px;color:var(--color-neutral-700)">Vendu en une seule fois, à prix fixe.</div>
+    </div>
+  </sc-if>
+  <p style="margin:0;padding:0 20px;font-size:15px;color:var(--color-neutral-800);text-wrap:pretty">{{ prod.desc }}</p>
+  <div onClick="{{ prod.openSeller }}" style="margin:0 20px;padding:14px;border-radius:28px;background:var(--color-surface);display:flex;align-items:center;gap:12px;cursor:pointer">
+    <span style="width:48px;height:48px;border-radius:50%;background:var(--color-accent-2-300);display:grid;place-items:center;font-family:var(--font-heading);font-size:20px">{{ prod.seller.init }}</span>
+    <div style="flex:1"><div style="font-weight:700">{{ prod.seller.name }}</div><div style="font-size:13px;color:var(--color-neutral-700)">★ {{ prod.seller.rating }} · {{ prod.seller.reviews }} avis · {{ prod.seller.city }}</div></div>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+  </div>
+  <div style="margin:0 20px;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;gap:12px;align-items:center;font-size:14px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-2-700)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="m9 12 2 2 4-4"></path></svg>Paiement protégé, versé au vendeur après réception</div>
+    <div style="display:flex;gap:12px;align-items:center;font-size:14px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-2-700)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"></path><path d="M15 18H9"></path><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"></path><circle cx="17" cy="18" r="2"></circle><circle cx="7" cy="18" r="2"></circle></svg>{{ prod.deliveryText }}</div>
+  </div>
+  <sc-if value="{{ hasSimilar }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <h3 style="margin:0;padding:0 20px;font-size:20px">Dans la même taille</h3>
+    <div style="display:flex;gap:12px;overflow-x:auto;padding:0 20px">
+      <sc-for list="{{ similar }}" as="p" hint-placeholder-count="3">
+        <div onClick="{{ p.open }}" style="flex:none;width:140px;display:flex;flex-direction:column;gap:4px;cursor:pointer">
+          <div style="height:170px;border-radius:22px;background:{{ p.ph }}"></div>
+          <span style="font-weight:700;font-size:14px">{{ p.priceF }}</span>
+          <div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.title }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<!-- SELLER -->
+<sc-if value="{{ scr.seller }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:18px;padding:0 0 24px">
+  <div style="padding:4px 16px"><button onClick="{{ back }}" style="width:44px;height:44px;border-radius:50%;border:none;background:var(--color-surface);display:grid;place-items:center;cursor:pointer;color:var(--color-text)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></button></div>
+  <div style="display:flex;gap:16px;align-items:center;padding:0 20px">
+    <span style="width:84px;height:84px;border-radius:50%;background:var(--color-accent-2-300);display:grid;place-items:center;font-family:var(--font-heading);font-size:34px">{{ sel.init }}</span>
+    <div style="display:flex;flex-direction:column;gap:2px"><h2 style="margin:0;font-size:26px">{{ sel.name }}</h2><div style="font-size:14px;color:var(--color-neutral-700)">{{ sel.city }} · membre depuis {{ sel.since }}</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 20px">
+    <div style="padding:12px;border-radius:22px;background:var(--color-surface);text-align:center"><div style="font-family:var(--font-heading);font-size:22px">★ {{ sel.rating }}</div><div style="font-size:12px;color:var(--color-neutral-700)">{{ sel.reviews }} avis</div></div>
+    <div style="padding:12px;border-radius:22px;background:var(--color-surface);text-align:center"><div style="font-family:var(--font-heading);font-size:22px">{{ sel.sales }}</div><div style="font-size:12px;color:var(--color-neutral-700)">ventes</div></div>
+    <div style="padding:12px;border-radius:22px;background:var(--color-surface);text-align:center"><div style="font-family:var(--font-heading);font-size:22px">{{ sel.ship }}</div><div style="font-size:12px;color:var(--color-neutral-700)">pour expédier</div></div>
+  </div>
+  <div style="display:flex;gap:8px;padding:0 20px">
+    <button onClick="{{ toggleFollow }}" style="flex:1;height:48px;border-radius:999px;border:none;background:{{ followBg }};color:{{ followFg }};font-family:var(--font-heading);font-size:16px;cursor:pointer">{{ followLabel }}</button>
+    <button onClick="{{ chatSeller }}" style="flex:1;height:48px;border-radius:999px;border:1px solid var(--color-divider);background:none;font-family:var(--font-heading);font-size:16px;cursor:pointer;color:var(--color-text)">Message</button>
+  </div>
+  <div style="margin:0 20px;display:grid;grid-template-columns:1fr 1fr;padding:4px;border-radius:999px;background:var(--color-surface)">
+    <sc-for list="{{ sellerTabs }}" as="t" hint-placeholder-count="2"><button onClick="{{ t.pick }}" style="height:38px;border:none;border-radius:999px;background:{{ t.bg }};color:var(--color-text);font-weight:600;font-size:14px;cursor:pointer;box-shadow:{{ t.shadow }}">{{ t.label }}</button></sc-for>
+  </div>
+  <sc-if value="{{ sellerShowItems }}" hint-placeholder-val="{{ true }}">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 12px;padding:0 20px">
+    <sc-for list="{{ sellerItems }}" as="p" hint-placeholder-count="4">
+      <div onClick="{{ p.open }}" style="display:flex;flex-direction:column;gap:5px;cursor:pointer;min-width:0">
+        <div style="position:relative;aspect-ratio:4/5;border-radius:22px;background:{{ p.ph }}">
+          <sc-if value="{{ p.isLot }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:10px;left:10px;padding:4px 10px;border-radius:999px;background:var(--color-text);color:var(--color-bg);font-size:11px;font-weight:700">Lot · {{ p.count }}</span></sc-if>
+        </div>
+        <span style="font-weight:700;font-size:15px;padding-left:2px">{{ p.priceF }}</span>
+        <div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:2px">{{ p.title }}</div>
+        <div style="font-size:12px;color:var(--color-neutral-700);padding-left:2px">{{ p.size }}</div>
+      </div>
+    </sc-for>
+  </div>
+  </sc-if>
+  <sc-if value="{{ sellerShowReviews }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;flex-direction:column;gap:10px;padding:0 20px">
+    <sc-for list="{{ reviews }}" as="r" hint-placeholder-count="3"><div style="padding:16px;border-radius:24px;background:var(--color-neutral-100);display:flex;flex-direction:column;gap:4px"><div style="display:flex;justify-content:space-between"><span style="font-weight:700">{{ r.who }}</span><span style="color:var(--color-accent-700);font-size:13px">{{ r.stars }}</span></div><div style="font-size:14px;color:var(--color-neutral-800)">{{ r.text }}</div><div style="font-size:12px;color:var(--color-neutral-600)">{{ r.when }}</div></div></sc-for>
+  </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<!-- SELL -->
+<sc-if value="{{ scr.sell }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:20px;padding:4px 20px 24px">
+  <div style="display:flex;align-items:center;gap:12px">
+    <button onClick="{{ sellClose }}" style="width:44px;height:44px;border-radius:50%;border:none;background:var(--color-surface);display:grid;place-items:center;cursor:pointer;color:var(--color-text)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+    <div style="flex:1;height:8px;border-radius:999px;background:var(--color-surface);overflow:hidden"><div style="height:100%;width:{{ sellPct }};background:var(--color-accent);border-radius:999px;transition:width .3s"></div></div>
+    <span style="font-size:13px;font-weight:600;color:var(--color-neutral-700)">{{ sellStepLabel }}</span>
+  </div>
+
+  <sc-if value="{{ sellS0 }}" hint-placeholder-val="{{ true }}">
+    <h2 style="margin:0;font-size:30px">Qu'est-ce que tu vends ?</h2>
+    <sc-for list="{{ sellTypes }}" as="t" hint-placeholder-count="2">
+      <button onClick="{{ t.pick }}" style="text-align:left;border:2px solid {{ t.border }};background:{{ t.bg }};border-radius:32px;padding:20px;display:flex;gap:16px;align-items:center;cursor:pointer;color:var(--color-text)">
+        <span style="width:64px;height:64px;flex:none;border-radius:50%;background:{{ t.iconBg }};display:grid;place-items:center;color:var(--color-text)">
+          <sc-if value="{{ t.isLot }}" hint-placeholder-val="{{ false }}"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 10 5-10 5L2 7z"></path><path d="m2 17 10 5 10-5"></path><path d="m2 12 10 5 10-5"></path></svg></sc-if>
+          <sc-if value="{{ t.isUnique }}" hint-placeholder-val="{{ true }}"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path></svg></sc-if>
+        </span>
+        <span style="display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--font-heading);font-size:20px">{{ t.title }}</span><span style="font-size:14px;color:var(--color-neutral-800)">{{ t.text }}</span></span>
+      </button>
+    </sc-for>
+  </sc-if>
+
+  <sc-if value="{{ sellS1 }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:6px"><h2 style="margin:0;font-size:30px">Ajoute des photos</h2><p style="margin:0;color:var(--color-neutral-800);font-size:14px">{{ photoHint }}</p></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      <sc-for list="{{ photoSlots }}" as="ph" hint-placeholder-count="6">
+        <button onClick="{{ ph.add }}" style="aspect-ratio:1/1;border-radius:24px;border:{{ ph.border }};background:{{ ph.bg }};display:grid;place-items:center;cursor:pointer;color:var(--color-neutral-700);font:500 9px ui-monospace,Menlo,monospace">{{ ph.label }}</button>
+      </sc-for>
+    </div>
+    <div style="padding:14px 18px;border-radius:24px;background:var(--color-accent-2-100);color:var(--color-accent-2-800);font-size:13px">Lumière du jour, fond uni, vêtement à plat : tes photos se vendent mieux.</div>
+  </sc-if>
+
+  <sc-if value="{{ sellS2 }}" hint-placeholder-val="{{ false }}">
+    <h2 style="margin:0;font-size:30px">Décris {{ sellWhat }}</h2>
+    <div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;font-weight:600">Titre</label><input value="{{ sell.title }}" onChange="{{ onSellTitle }}" placeholder="{{ titlePh }}" style="height:50px;border-radius:999px;border:1px solid var(--color-divider);background:var(--color-neutral-100);padding:0 18px;font-size:15px;outline:none;color:var(--color-text)"></div>
+    <sc-if value="{{ sellIsLot }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 12px 12px 18px;border-radius:999px;background:var(--color-surface)"><span style="font-weight:600">Nombre de pièces</span><div style="display:flex;align-items:center;gap:14px"><button onClick="{{ countDown }}" style="width:40px;height:40px;border-radius:50%;border:none;background:var(--color-neutral-100);font-size:20px;cursor:pointer;color:var(--color-text)">−</button><span style="font-family:var(--font-heading);font-size:22px;min-width:24px;text-align:center">{{ sell.count }}</span><button onClick="{{ countUp }}" style="width:40px;height:40px;border-radius:50%;border:none;background:var(--color-neutral-100);font-size:20px;cursor:pointer;color:var(--color-text)">+</button></div></div>
+      <div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;font-weight:600">Contenu du lot</label><textarea value="{{ sell.contents }}" onChange="{{ onSellContents }}" placeholder="ex. 3 bodies, 2 pyjamas, 1 gilet…" style="min-height:80px;border-radius:24px;border:1px solid var(--color-divider);background:var(--color-neutral-100);padding:14px 18px;font-size:15px;outline:none;resize:none;color:var(--color-text)"></textarea></div>
+    </sc-if>
+    <div style="display:flex;flex-direction:column;gap:8px"><label style="font-size:13px;font-weight:600">Âge / taille</label><div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ sellAges }}" as="c" hint-placeholder-count="7"><button onClick="{{ c.pick }}" style="height:38px;padding:0 14px;border-radius:999px;border:none;background:{{ c.bg }};color:{{ c.fg }};font-size:14px;font-weight:600;cursor:pointer">{{ c.label }}</button></sc-for></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><label style="font-size:13px;font-weight:600">Pour</label><div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ sellGenders }}" as="c" hint-placeholder-count="3"><button onClick="{{ c.pick }}" style="height:38px;padding:0 14px;border-radius:999px;border:none;background:{{ c.bg }};color:{{ c.fg }};font-size:14px;font-weight:600;cursor:pointer">{{ c.label }}</button></sc-for></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><label style="font-size:13px;font-weight:600">Saison</label><div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ sellSeasons }}" as="c" hint-placeholder-count="5"><button onClick="{{ c.pick }}" style="height:38px;padding:0 14px;border-radius:999px;border:none;background:{{ c.bg }};color:{{ c.fg }};font-size:14px;font-weight:600;cursor:pointer">{{ c.label }}</button></sc-for></div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><label style="font-size:13px;font-weight:600">État</label><div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ sellConds }}" as="c" hint-placeholder-count="4"><button onClick="{{ c.pick }}" style="height:38px;padding:0 14px;border-radius:999px;border:none;background:{{ c.bg }};color:{{ c.fg }};font-size:14px;font-weight:600;cursor:pointer">{{ c.label }}</button></sc-for></div></div>
+    <div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;font-weight:600">Marque (facultatif)</label><input value="{{ sell.brand }}" onChange="{{ onSellBrand }}" placeholder="ex. Petit Bateau" style="height:50px;border-radius:999px;border:1px solid var(--color-divider);background:var(--color-neutral-100);padding:0 18px;font-size:15px;outline:none;color:var(--color-text)"></div>
+  </sc-if>
+
+  <sc-if value="{{ sellS3 }}" hint-placeholder-val="{{ false }}">
+    <h2 style="margin:0;font-size:30px">Ton prix</h2>
+    <div style="display:flex;align-items:center;gap:8px;height:84px;padding:0 24px;border-radius:32px;background:var(--color-neutral-100);border:2px solid var(--color-accent)">
+      <input value="{{ sell.price }}" onChange="{{ onSellPrice }}" inputmode="decimal" placeholder="0" style="flex:1;min-width:0;border:none;background:none;outline:none;font-family:var(--font-heading);font-size:40px;color:var(--color-text)">
+      <span style="font-family:var(--font-heading);font-size:32px">€</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;padding:16px 20px;border-radius:28px;background:var(--color-surface);font-size:14px">
+      <div style="display:flex;justify-content:space-between"><span>Prix affiché</span><span>{{ sellPriceF }}</span></div>
+      <div style="display:flex;justify-content:space-between;color:var(--color-neutral-700)"><span>Commission Nidoo ({{ commissionPct }})</span><span>− {{ sellFeeF }}</span></div>
+      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:16px;padding-top:8px;border-top:1px solid var(--color-divider)"><span>Tu recevras</span><span style="color:var(--color-accent-2-700)">{{ sellNetF }}</span></div>
+      <sc-if value="{{ sellIsLot }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--color-neutral-700)">Soit {{ sellPerPiece }} la pièce pour l'acheteur.</div></sc-if>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px"><label style="font-size:13px;font-weight:600">Modes de livraison acceptés</label>
+      <sc-for list="{{ sellDel }}" as="d" hint-placeholder-count="3">
+        <button onClick="{{ d.toggle }}" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:24px;border:2px solid {{ d.border }};background:var(--color-neutral-100);cursor:pointer;text-align:left;color:var(--color-text)">
+          <span style="flex:1;display:flex;flex-direction:column"><span style="font-weight:700">{{ d.title }}</span><span style="font-size:13px;color:var(--color-neutral-700)">{{ d.sub }}</span></span>
+          <span style="width:26px;height:26px;border-radius:8px;background:{{ d.box }};display:grid;place-items:center;color:var(--color-bg)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<!-- SELL DONE -->
+<sc-if value="{{ scr.sellDone }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:20px;padding:24px">
+  <div style="width:96px;height:96px;border-radius:50%;background:var(--color-accent-2-500);display:grid;place-items:center;color:var(--color-neutral-100)"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></div>
+  <h1 style="margin:0;font-size:36px">C'est en ligne !</h1>
+  <p style="margin:0;color:var(--color-neutral-800)">Ton annonce « {{ lastMine.title }} » est visible par les parents qui cherchent du {{ lastMine.size }}. Tu recevras {{ lastMine.netF }} à la vente.</p>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <button onClick="{{ lastMine.open }}" style="height:54px;border:none;border-radius:999px;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-heading);font-size:17px;cursor:pointer">Voir mon annonce</button>
+    <button onClick="{{ sellAgain }}" style="height:54px;border:1px solid var(--color-divider);border-radius:999px;background:none;font-family:var(--font-heading);font-size:17px;cursor:pointer;color:var(--color-text)">Vendre autre chose</button>
+  </div>
+</div>
+</sc-if>
+
+<!-- CART -->
+<sc-if value="{{ scr.cart }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:16px;padding:4px 20px 24px">
+  <div style="display:flex;align-items:center;gap:12px"><button onClick="{{ back }}" style="width:44px;height:44px;border-radius:50%;border:none;background:var(--color-surface);display:grid;place-items:center;cursor:pointer;color:var(--color-text)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></button><h2 style="margin:0;font-size:26px">Panier</h2></div>
+  <sc-for list="{{ cartGroups }}" as="g" hint-placeholder-count="1">
+    <div style="padding:16px;border-radius:30px;background:var(--color-neutral-100);display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="width:32px;height:32px;border-radius:50%;background:var(--color-accent-2-300);display:grid;place-items:center;font-family:var(--font-heading);font-size:14px">{{ g.seller.init }}</span><span style="font-weight:700;font-size:14px">{{ g.seller.name }}</span><span style="margin-left:auto;font-size:12px;color:var(--color-neutral-700)">1 colis</span></div>
+      <sc-for list="{{ g.items }}" as="p" hint-placeholder-count="1">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div onClick="{{ p.open }}" style="width:72px;height:72px;flex:none;border-radius:20px;background:{{ p.ph }};cursor:pointer"></div>
+          <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.title }}</div><div style="font-size:13px;color:var(--color-neutral-700)">{{ p.size }} · {{ p.typeLabel }}</div><div style="font-weight:700">{{ p.priceF }}</div></div>
+          <button onClick="{{ p.removeCart }}" style="width:36px;height:36px;border-radius:50%;border:none;background:var(--color-surface);display:grid;place-items:center;cursor:pointer;color:var(--color-neutral-700)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+        </div>
+      </sc-for>
+    </div>
+  </sc-for>
+  <sc-if value="{{ cartEmpty }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:40px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center">
+      <div style="width:110px;height:110px;border-radius:50%;background:var(--color-surface);display:grid;place-items:center;color:var(--color-neutral-600)"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg></div>
+      <div style="font-family:var(--font-heading);font-size:22px">Ton panier est vide</div>
+      <div style="font-size:14px;color:var(--color-neutral-800)">Ajoute une pièce ou un lot pour commencer.</div>
+      <button onClick="{{ goSearch }}" style="height:48px;padding:0 24px;border:none;border-radius:999px;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-heading);font-size:16px;cursor:pointer">Explorer</button>
+    </div>
+  </sc-if>
+  <sc-if value="{{ hasCart }}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:space-between;font-size:14px;padding:0 4px"><span style="color:var(--color-neutral-800)">Sous-total</span><span style="font-weight:700">{{ subtotalF }}</span></div></sc-if>
+</div>
+</sc-if>
+
+<!-- CHECKOUT -->
+<sc-if value="{{ scr.checkout }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:18px;padding:4px 20px 24px">
+  <div style="display:flex;align-items:center;gap:12px"><button onClick="{{ back }}" style="width:44px;height:44px;border-radius:50%;border:none;background:var(--color-surface);display:grid;place-items:center;cursor:pointer;color:var(--color-text)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></button><h2 style="margin:0;font-size:26px">Paiement</h2></div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <h4 style="margin:0;font-size:18px">Livraison</h4>
+    <sc-for list="{{ delOpts }}" as="d" hint-placeholder-count="3">
+      <button onClick="{{ d.pick }}" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:24px;border:2px solid {{ d.border }};background:var(--color-neutral-100);cursor:pointer;text-align:left;color:var(--color-text)">
+        <span style="width:22px;height:22px;flex:none;border-radius:50%;border:2px solid {{ d.ring }};box-shadow:inset 0 0 0 4px var(--color-neutral-100);background:{{ d.dot }}"></span>
+        <span style="flex:1;display:flex;flex-direction:column"><span style="font-weight:700">{{ d.title }}</span><span style="font-size:13px;color:var(--color-neutral-700)">{{ d.sub }}</span></span>
+        <span style="font-weight:700">{{ d.priceF }}</span>
+      </button>
+    </sc-for>
+    <div style="display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:24px;background:var(--color-accent-2-100);color:var(--color-accent-2-800);font-size:13px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+      <span style="flex:1">{{ delDetail }}</span>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <h4 style="margin:0;font-size:18px">Moyen de paiement</h4>
+    <sc-for list="{{ payOpts }}" as="d" hint-placeholder-count="2">
+      <button onClick="{{ d.pick }}" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:24px;border:2px solid {{ d.border }};background:var(--color-neutral-100);cursor:pointer;text-align:left;color:var(--color-text)">
+        <span style="width:22px;height:22px;flex:none;border-radius:50%;border:2px solid {{ d.ring }};box-shadow:inset 0 0 0 4px var(--color-neutral-100);background:{{ d.dot }}"></span>
+        <span style="flex:1;font-weight:700">{{ d.title }}</span>
+        <span style="font-size:13px;color:var(--color-neutral-700)">{{ d.sub }}</span>
+      </button>
+    </sc-for>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px;padding:16px 20px;border-radius:28px;background:var(--color-surface);font-size:14px">
+    <div style="display:flex;justify-content:space-between"><span>Articles ({{ cartCount }})</span><span>{{ subtotalF }}</span></div>
+    <div style="display:flex;justify-content:space-between"><span>{{ shipLabel }}</span><span>{{ shipF }}</span></div>
+    <div style="display:flex;justify-content:space-between;color:var(--color-neutral-700)"><span>Protection acheteur</span><span>Offerte</span></div>
+    <div style="display:flex;justify-content:space-between;font-weight:700;font-size:17px;padding-top:8px;border-top:1px solid var(--color-divider)"><span>Total</span><span>{{ totalF }}</span></div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ORDER DONE -->
+<sc-if value="{{ scr.orderDone }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:20px;padding:24px">
+  <div style="width:96px;height:96px;border-radius:50%;background:var(--color-accent);display:grid;place-items:center;color:var(--color-bg)"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></div>
+  <h1 style="margin:0;font-size:36px">Commande confirmée</h1>
+  <p style="margin:0;color:var(--color-neutral-800)">Le vendeur a 3 jours pour expédier. Ton paiement reste protégé jusqu'à ce que tu confirmes la réception.</p>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <button onClick="{{ trackLast }}" style="height:54px;border:none;border-radius:999px;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-heading);font-size:17px;cursor:pointer">Suivre ma commande</button>
+    <button onClick="{{ goHome }}" style="height:54px;border:1px solid var(--color-divider);border-radius:999px;background:none;font-family:var(--font-heading);font-size:17px;cursor:pointer;color:var(--color-text)">Retour à l'accueil</button>
+  </div>
+</div>
+</sc-if>
+
+<!-- MESSAGES -->
+<sc-if value="{{ scr.messages }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:8px;padding:4px 20px 24px">
+  <h2 style="margin:0 0 8px;font-size:28px">Messages</h2>
+  <sc-for list="{{ convos }}" as="c" hint-placeholder-count="3">
+    <div onClick="{{ c.open }}" style-hover="background:var(--color-neutral-100)" style="display:flex;gap:12px;align-items:center;padding:12px;margin:0 -12px;border-radius:24px;cursor:pointer">
+      <div style="position:relative;flex:none"><span style="width:54px;height:54px;border-radius:50%;background:var(--color-accent-2-300);display:grid;place-items:center;font-family:var(--font-heading);font-size:20px">{{ c.seller.init }}</span><span style="position:absolute;right:-4px;bottom:-4px;width:28px;height:28px;border-radius:10px;border:2px solid var(--color-bg);background:{{ c.prod.ph }}"></span></div>
+      <div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between"><span style="font-weight:700">{{ c.seller.name }}</span><span style="font-size:12px;color:var(--color-neutral-700)">{{ c.when }}</span></div><div style="font-size:12px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.prod.title }}</div><div style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:{{ c.weight }}">{{ c.last }}</div></div>
+      <sc-if value="{{ c.unread }}" hint-placeholder-val="{{ false }}"><span style="width:10px;height:10px;flex:none;border-radius:50%;background:var(--color-accent)"></span></sc-if>
+    </div>
+  </sc-for>
+</div>
+</sc-if>
+
+<!-- CHAT -->
+<sc-if value="{{ scr.chat }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:12px;padding:0 16px 16px">
+  <div style="display:flex;align-items:center;gap:10px;position:sticky;top:0;background:var(--color-bg);padding:4px 0 8px;z-index:2">
+    <button onClick="{{ back }}" style="width:44px;height:44px;border-radius:50%;border:none;background:var(--color-surface);display:grid;place-items:center;cursor:pointer;color:var(--color-text)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></button>
+    <span style="width:40px;height:40px;border-radius:50%;background:var(--color-accent-2-300);display:grid;place-items:center;font-family:var(--font-heading)">{{ chat.seller.init }}</span>
+    <div style="flex:1"><div style="font-weight:700">{{ chat.seller.name }}</div><div style="font-size:12px;color:var(--color-accent-2-700)">Répond en général en 1 h</div></div>
+  </div>
+  <div onClick="{{ chat.prod.open }}" style="display:flex;gap:12px;align-items:center;padding:10px;border-radius:22px;background:var(--color-surface);cursor:pointer">
+    <div style="width:52px;height:52px;flex:none;border-radius:16px;background:{{ chat.prod.ph }}"></div>
+    <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ chat.prod.title }}</div><div style="font-size:14px;font-weight:700">{{ chat.prod.priceF }}</div></div>
+    <button onClick="{{ chat.buy }}" style="height:38px;padding:0 16px;border:none;border-radius:999px;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-heading);font-size:14px;cursor:pointer">Acheter</button>
+  </div>
+  <div style="text-align:center;font-size:12px;color:var(--color-neutral-600);padding:4px 0">Aujourd'hui</div>
+  <sc-for list="{{ chatMsgs }}" as="m" hint-placeholder-count="3">
+    <div style="align-self:{{ m.side }};max-width:78%;padding:10px 14px;border-radius:{{ m.radius }};background:{{ m.bg }};color:{{ m.fg }};font-size:15px">{{ m.t }}</div>
+  </sc-for>
+  <sc-if value="{{ typing }}" hint-placeholder-val="{{ false }}"><div style="align-self:flex-start;padding:10px 14px;border-radius:22px;background:var(--color-surface);font-size:13px;color:var(--color-neutral-700)">{{ chat.seller.name }} écrit…</div></sc-if>
+</div>
+</sc-if>
+
+<!-- PROFILE -->
+<sc-if value="{{ scr.profile }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:18px;padding:4px 20px 24px">
+  <div style="display:flex;gap:16px;align-items:center">
+    <span style="width:76px;height:76px;border-radius:50%;background:var(--color-accent-300);display:grid;place-items:center;font-family:var(--font-heading);font-size:30px">É</span>
+    <div><h2 style="margin:0;font-size:26px">Élodie</h2><div style="font-size:14px;color:var(--color-neutral-700)">Paris 11e · ★ 4,9 (12 avis)</div></div>
+  </div>
+  <div style="padding:20px;border-radius:32px;background:var(--color-accent-2-500);color:var(--color-neutral-100);display:flex;align-items:center;justify-content:space-between">
+    <div><div style="font-size:13px">Porte-monnaie</div><div style="font-family:var(--font-heading);font-size:30px">{{ walletF }}</div></div>
+    <button onClick="{{ withdraw }}" style="height:44px;padding:0 18px;border:none;border-radius:999px;background:var(--color-neutral-100);color:var(--color-accent-2-800);font-family:var(--font-heading);font-size:15px;cursor:pointer">Virer</button>
+  </div>
+  <div style="display:flex;flex-direction:column;border-radius:30px;background:var(--color-neutral-100);overflow:hidden">
+    <sc-for list="{{ profileRows }}" as="r" hint-placeholder-count="6">
+      <button onClick="{{ r.open }}" style-hover="background:var(--color-neutral-200)" style="display:flex;align-items:center;gap:14px;padding:16px 18px;border:none;background:none;cursor:pointer;text-align:left;color:var(--color-text);font-size:15px;border-bottom:1px solid var(--color-divider)">
+        <span style="flex:1;font-weight:600">{{ r.label }}</span>
+        <span style="font-size:13px;color:var(--color-neutral-700)">{{ r.meta }}</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+      </button>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<!-- FAVORITES -->
+<sc-if value="{{ scr.favorites }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:16px;padding:4px 20px 24px">
+  <div style="display:flex;align-items:center;gap:12px"><button onClick="{{ back }}" style="width:44px;height:44px;border-radius:50%;border:none;background:var(--color-surface);display:grid;place-items:center;cursor:pointer;color:var(--color-text)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></button><h2 style="margin:0;font-size:26px">Favoris</h2></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 12px">
+    <sc-for list="{{ favItems }}" as="p" hint-placeholder-count="2">
+      <div onClick="{{ p.open }}" style="display:flex;flex-direction:column;gap:5px;cursor:pointer;min-width:0">
+        <div style="position:relative;aspect-ratio:4/5;border-radius:22px;background:{{ p.ph }}">
+          <sc-if value="{{ p.isLot }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:10px;left:10px;padding:4px 10px;border-radius:999px;background:var(--color-text);color:var(--color-bg);font-size:11px;font-weight:700">Lot · {{ p.count }}</span></sc-if>
+          <button onClick="{{ p.toggleFav }}" style="position:absolute;top:8px;right:8px;width:34px;height:34px;border-radius:50%;border:none;background:var(--color-neutral-100);display:grid;place-items:center;cursor:pointer"><svg width="17" height="17" viewBox="0 0 24 24" fill="{{ p.heartFill }}" stroke="{{ p.heartStroke }}" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg></button>
+        </div>
+        <span style="font-weight:700;font-size:15px;padding-left:2px">{{ p.priceF }}</span>
+        <div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:2px">{{ p.title }}</div>
+        <div style="font-size:12px;color:var(--color-neutral-700);padding-left:2px">{{ p.size }} · {{ p.condition }}</div>
+      </div>
+    </sc-for>
+  </div>
+  <sc-if value="{{ favEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:32px 20px;border-radius:28px;background:var(--color-surface);text-align:center;color:var(--color-neutral-800)">Touche le cœur d'un article pour le retrouver ici.</div></sc-if>
+</div>
+</sc-if>
+
+<!-- ORDERS -->
+<sc-if value="{{ scr.orders }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:16px;padding:4px 20px 24px">
+  <div style="display:flex;align-items:center;gap:12px"><button onClick="{{ back }}" style="width:44px;height:44px;border-radius:50%;border:none;background:var(--color-surface);display:grid;place-items:center;cursor:pointer;color:var(--color-text)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></button><h2 style="margin:0;font-size:26px">Mes commandes</h2></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;padding:4px;border-radius:999px;background:var(--color-surface)">
+    <sc-for list="{{ orderTabs }}" as="t" hint-placeholder-count="2"><button onClick="{{ t.pick }}" style="height:40px;border:none;border-radius:999px;background:{{ t.bg }};color:var(--color-text);font-weight:600;font-size:14px;cursor:pointer;box-shadow:{{ t.shadow }}">{{ t.label }}</button></sc-for>
+  </div>
+  <sc-for list="{{ orderList }}" as="o" hint-placeholder-count="2">
+    <div onClick="{{ o.open }}" style="display:flex;gap:12px;align-items:center;padding:12px;border-radius:26px;background:var(--color-neutral-100);cursor:pointer">
+      <div style="width:68px;height:68px;flex:none;border-radius:20px;background:{{ o.prod.ph }}"></div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+        <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ o.prod.title }}</div>
+        <div style="font-size:13px;color:var(--color-neutral-700)">{{ o.sub }}</div>
+        <span style="align-self:flex-start;padding:3px 10px;border-radius:999px;background:{{ o.tagBg }};color:{{ o.tagFg }};font-size:12px;font-weight:700">{{ o.status }}</span>
+      </div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+    </div>
+  </sc-for>
+  <sc-if value="{{ orderEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:32px 20px;border-radius:28px;background:var(--color-surface);text-align:center;color:var(--color-neutral-800)">Rien ici pour le moment.</div></sc-if>
+</div>
+</sc-if>
+
+<!-- TRACKING -->
+<sc-if value="{{ scr.tracking }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:18px;padding:4px 20px 24px">
+  <div style="display:flex;align-items:center;gap:12px"><button onClick="{{ back }}" style="width:44px;height:44px;border-radius:50%;border:none;background:var(--color-surface);display:grid;place-items:center;cursor:pointer;color:var(--color-text)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></button><h2 style="margin:0;font-size:26px">Suivi</h2></div>
+  <div style="display:flex;gap:12px;align-items:center;padding:12px;border-radius:26px;background:var(--color-neutral-100)">
+    <div style="width:64px;height:64px;flex:none;border-radius:20px;background:{{ trk.prod.ph }}"></div>
+    <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ trk.prod.title }}</div><div style="font-size:13px;color:var(--color-neutral-700)">{{ trk.who }} · {{ trk.delivery }}</div><div style="font-weight:700">{{ trk.amountF }}</div></div>
+  </div>
+  <div style="display:flex;flex-direction:column;padding:4px 4px 0">
+    <sc-for list="{{ trkSteps }}" as="s" hint-placeholder-count="4">
+      <div style="display:flex;gap:14px">
+        <div style="display:flex;flex-direction:column;align-items:center">
+          <span style="width:26px;height:26px;flex:none;border-radius:50%;background:{{ s.dot }};border:3px solid {{ s.ring }};display:grid;place-items:center;color:var(--color-bg)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+          <span style="flex:1;width:3px;min-height:30px;background:{{ s.line }};border-radius:2px"></span>
+        </div>
+        <div style="padding:2px 0 18px"><div style="font-weight:700;color:{{ s.fg }}">{{ s.label }}</div><div style="font-size:13px;color:var(--color-neutral-700)">{{ s.sub }}</div></div>
+      </div>
+    </sc-for>
+  </div>
+  <sc-if value="{{ trk.canConfirm }}" hint-placeholder-val="{{ false }}"><button onClick="{{ trk.confirm }}" style="height:54px;border:none;border-radius:999px;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-heading);font-size:17px;cursor:pointer">J'ai bien reçu le colis</button></sc-if>
+  <sc-if value="{{ trk.canShip }}" hint-placeholder-val="{{ false }}"><button onClick="{{ trk.ship }}" style="height:54px;border:none;border-radius:999px;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-heading);font-size:17px;cursor:pointer">Imprimer le bordereau</button></sc-if>
+  <sc-if value="{{ trk.canRate }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:18px;border-radius:28px;background:var(--color-surface);display:flex;flex-direction:column;align-items:center;gap:10px">
+      <div style="font-family:var(--font-heading);font-size:18px">Note {{ trk.sellerName }}</div>
+      <div style="display:flex;gap:6px"><sc-for list="{{ trkStars }}" as="st" hint-placeholder-count="5"><button onClick="{{ st.pick }}" style="border:none;background:none;cursor:pointer;padding:2px"><svg width="32" height="32" viewBox="0 0 24 24" fill="{{ st.fill }}" stroke="var(--color-accent)" stroke-width="2.25" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"></path></svg></button></sc-for></div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ trk.canAdvance }}" hint-placeholder-val="{{ false }}"><button onClick="{{ trk.advance }}" style="border:none;background:none;color:var(--color-neutral-600);font-size:12px;cursor:pointer;text-decoration:underline">Démo : passer à l'étape suivante</button></sc-if>
+</div>
+</sc-if>
+
+<!-- NOTIFICATIONS -->
+<sc-if value="{{ scr.notifs }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:6px;padding:4px 20px 24px">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><button onClick="{{ back }}" style="width:44px;height:44px;border-radius:50%;border:none;background:var(--color-surface);display:grid;place-items:center;cursor:pointer;color:var(--color-text)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></button><h2 style="margin:0;font-size:26px">Notifications</h2></div>
+  <sc-for list="{{ notifs }}" as="n" hint-placeholder-count="4">
+    <div onClick="{{ n.open }}" style-hover="background:var(--color-neutral-100)" style="display:flex;gap:12px;align-items:flex-start;padding:12px;margin:0 -12px;border-radius:24px;cursor:pointer">
+      <span style="width:44px;height:44px;flex:none;border-radius:50%;background:{{ n.bg }};display:grid;place-items:center;font-family:var(--font-heading);font-size:16px">{{ n.init }}</span>
+      <div style="flex:1"><div style="font-size:14px">{{ n.text }}</div><div style="font-size:12px;color:var(--color-neutral-700)">{{ n.when }}</div></div>
+      <sc-if value="{{ n.unread }}" hint-placeholder-val="{{ false }}"><span style="width:10px;height:10px;margin-top:6px;border-radius:50%;background:var(--color-accent)"></span></sc-if>
+    </div>
+  </sc-for>
+</div>
+</sc-if>
+
+</div>
+
+<!-- BOTTOM BARS -->
+<sc-if value="{{ scr.product }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;gap:10px;padding:12px 20px 34px;background:var(--color-bg);box-shadow:0 -1px 0 var(--color-divider)">
+  <sc-if value="{{ prodIsMine }}" hint-placeholder-val="{{ false }}"><div style="flex:1;height:54px;display:grid;place-items:center;border-radius:999px;background:var(--color-surface);font-weight:600">C'est ton annonce</div></sc-if>
+  <sc-if value="{{ prodNotMine }}" hint-placeholder-val="{{ true }}">
+    <button onClick="{{ prodChat }}" style="width:54px;height:54px;flex:none;border-radius:50%;border:1px solid var(--color-divider);background:none;display:grid;place-items:center;cursor:pointer;color:var(--color-text)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path></svg></button>
+    <button onClick="{{ prodCta }}" style-hover="background:var(--color-accent-600)" style="flex:1;height:54px;border:none;border-radius:999px;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-heading);font-size:17px;cursor:pointer">{{ prodCtaLabel }}</button>
+  </sc-if>
+</div>
+</sc-if>
+<sc-if value="{{ scr.sell }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;gap:10px;padding:12px 20px 34px;background:var(--color-bg);box-shadow:0 -1px 0 var(--color-divider)">
+  <sc-if value="{{ sellCanBack }}" hint-placeholder-val="{{ false }}"><button onClick="{{ sellBack }}" style="height:54px;padding:0 22px;border-radius:999px;border:1px solid var(--color-divider);background:none;font-family:var(--font-heading);font-size:16px;cursor:pointer;color:var(--color-text)">Retour</button></sc-if>
+  <button onClick="{{ sellNext }}" style="flex:1;height:54px;border:none;border-radius:999px;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-heading);font-size:17px;cursor:pointer;opacity:{{ sellNextOpacity }}">{{ sellNextLabel }}</button>
+</div>
+</sc-if>
+<sc-if value="{{ cartBar }}" hint-placeholder-val="{{ false }}">
+<div style="padding:12px 20px 34px;background:var(--color-bg);box-shadow:0 -1px 0 var(--color-divider)"><button onClick="{{ goCheckout }}" style="width:100%;height:54px;border:none;border-radius:999px;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-heading);font-size:17px;cursor:pointer">Commander · {{ subtotalF }}</button></div>
+</sc-if>
+<sc-if value="{{ scr.checkout }}" hint-placeholder-val="{{ false }}">
+<div style="padding:12px 20px 34px;background:var(--color-bg);box-shadow:0 -1px 0 var(--color-divider)"><button onClick="{{ pay }}" style="width:100%;height:54px;border:none;border-radius:999px;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-heading);font-size:17px;cursor:pointer">Payer {{ totalF }}</button></div>
+</sc-if>
+<sc-if value="{{ scr.chat }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:8px;padding:10px 16px 34px;background:var(--color-bg);box-shadow:0 -1px 0 var(--color-divider)">
+  <div style="display:flex;gap:6px;overflow-x:auto"><sc-for list="{{ quickReplies }}" as="r" hint-placeholder-count="3"><button onClick="{{ r.send }}" style="flex:none;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--color-divider);background:var(--color-neutral-100);font-size:13px;cursor:pointer;white-space:nowrap;color:var(--color-text)">{{ r.t }}</button></sc-for></div>
+  <div style="display:flex;gap:8px">
+    <input value="{{ draft }}" onChange="{{ onDraft }}" onKeyDown="{{ onDraftKey }}" placeholder="Écris ton message…" style="flex:1;min-width:0;height:48px;border-radius:999px;border:1px solid var(--color-divider);background:var(--color-neutral-100);padding:0 18px;font-size:15px;outline:none;color:var(--color-text)">
+    <button onClick="{{ sendDraft }}" style="width:48px;height:48px;flex:none;border-radius:50%;border:none;background:var(--color-accent);color:var(--color-bg);display:grid;place-items:center;cursor:pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path></svg></button>
+  </div>
+</div>
+</sc-if>
+
+<!-- TAB BAR -->
+<sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+<div style="display:grid;grid-template-columns:repeat(5,1fr);align-items:center;padding:8px 8px 30px;background:var(--color-neutral-100);border-radius:28px 28px 0 0;box-shadow:var(--shadow-md)">
+  <button onClick="{{ tabHome }}" style="border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:{{ tabC.home }};font-size:11px;font-weight:600;padding:6px 0"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Accueil</button>
+  <button onClick="{{ tabSearch }}" style="border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:{{ tabC.search }};font-size:11px;font-weight:600;padding:6px 0"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>Rechercher</button>
+  <button onClick="{{ tabSell }}" style="border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:var(--color-text);font-size:11px;font-weight:600;padding:0"><span style="width:52px;height:52px;margin-top:-26px;border-radius:50%;background:var(--color-accent);color:var(--color-bg);display:grid;place-items:center;box-shadow:var(--shadow-md);border:4px solid var(--color-neutral-100)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></span>Vendre</button>
+  <button onClick="{{ tabMessages }}" style="position:relative;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:{{ tabC.messages }};font-size:11px;font-weight:600;padding:6px 0"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path></svg>Messages<sc-if value="{{ hasUnread }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:2px;left:50%;margin-left:6px;min-width:18px;height:18px;border-radius:999px;background:var(--color-accent);color:var(--color-bg);font-size:11px;font-weight:700;display:grid;place-items:center">{{ unreadCount }}</span></sc-if></button>
+  <button onClick="{{ tabProfile }}" style="border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:{{ tabC.profile }};font-size:11px;font-weight:600;padding:6px 0"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>Profil</button>
+</div>
+</sc-if>
+
+<!-- FILTER SHEET -->
+<sc-if value="{{ sheet }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;justify-content:flex-end">
+  <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:color-mix(in srgb, var(--color-neutral-900) 45%, transparent)"></div>
+  <div style="position:relative;max-height:86%;display:flex;flex-direction:column;background:var(--color-bg);border-radius:36px 36px 0 0;box-shadow:var(--shadow-lg)">
+    <div style="display:flex;justify-content:center;padding:10px"><span style="width:40px;height:5px;border-radius:999px;background:var(--color-neutral-400)"></span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 20px 8px"><h3 style="margin:0;font-size:24px">Filtres</h3><button onClick="{{ closeSheet }}" style="width:40px;height:40px;border-radius:50%;border:none;background:var(--color-surface);display:grid;place-items:center;cursor:pointer;color:var(--color-text)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></div>
+    <div style="flex:1;overflow-y:auto;padding:4px 20px 16px;display:flex;flex-direction:column;gap:18px">
+      <sc-for list="{{ filterGroups }}" as="g" hint-placeholder-count="4">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="font-weight:700;font-size:15px">{{ g.title }}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <sc-for list="{{ g.chips }}" as="c" hint-placeholder-count="4">
+              <button onClick="{{ c.toggle }}" style="height:38px;padding:0 14px;border-radius:999px;border:none;background:{{ c.bg }};color:{{ c.fg }};font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px">
+                <sc-if value="{{ c.hasDot }}" hint-placeholder-val="{{ false }}"><span style="width:16px;height:16px;border-radius:50%;background:{{ c.dot }};box-shadow:inset 0 0 0 1px var(--color-divider)"></span></sc-if>{{ c.label }}
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:10px;padding:12px 20px 34px;box-shadow:0 -1px 0 var(--color-divider)">
+      <button onClick="{{ clearFilters }}" style="height:54px;padding:0 22px;border-radius:999px;border:1px solid var(--color-divider);background:none;font-family:var(--font-heading);font-size:16px;cursor:pointer;color:var(--color-text)">Effacer</button>
+      <button onClick="{{ closeSheet }}" style="flex:1;height:54px;border:none;border-radius:999px;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-heading);font-size:17px;cursor:pointer">Voir {{ resultsCount }} articles</button>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:20px;right:20px;bottom:118px;z-index:40;padding:14px 18px;border-radius:999px;background:var(--color-text);color:var(--color-bg);font-size:14px;font-weight:600;text-align:center;box-shadow:var(--shadow-lg)">{{ toast }}</div>
+</sc-if>
+</div>
+</x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:920},&quot;home&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;1a&quot;,&quot;1b&quot;,&quot;1c&quot;],&quot;default&quot;:&quot;1a&quot;,&quot;tsType&quot;:&quot;'1a'|'1b'|'1c'&quot;},&quot;start&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;onboarding&quot;,&quot;home&quot;],&quot;default&quot;:&quot;onboarding&quot;,&quot;tsType&quot;:&quot;'onboarding'|'home'&quot;},&quot;commission&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:20,&quot;step&quot;:1,&quot;unit&quot;:&quot;%&quot;,&quot;default&quot;:8,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  static D = (() => {
+    const AGES = ['0-6 mois','6-12 mois','1-2 ans','2-4 ans','4-6 ans','6-8 ans','8-10 ans'];
+    const GENDERS = ['Fille','Garçon','Mixte'];
+    const SEASONS = ['Printemps','Été','Automne','Hiver','Toutes saisons'];
+    const CONDS = ['Neuf avec étiquette','Très bon état','Bon état','Satisfaisant'];
+    const COLORS = { Blanc:'#f4efe6', Rose:'#e9b9a8', Bleu:'#9fb3c8', Vert:'#aebf92', Jaune:'#e8c46a', Beige:'#d9c6a5', Marine:'#4a5670', Multicolore:'conic-gradient(#e9b9a8,#e8c46a,#aebf92,#9fb3c8,#e9b9a8)' };
+    const TONES = { Blanc:['#eee7db','#f9f4ed'], Rose:['#ffe1d0','#fff2eb'], Bleu:['#dcd3c4','#eee7db'], Vert:['#e1eecc','#f0fae1'], Jaune:['#ffc6a5','#ffe1d0'], Beige:['#eee7db','#f9f4ed'], Marine:['#c0b6a5','#dcd3c4'], Multicolore:['#ccdbb2','#e1eecc'] };
+    const PRICES = [{l:'Moins de 10 €',min:0,max:10},{l:'10 – 20 €',min:10,max:20},{l:'20 – 30 €',min:20,max:30},{l:'Plus de 30 €',min:30,max:1e9}];
+    const SELLERS = {
+      s1:{id:'s1',name:'Camille R.',city:'Lyon 6e',rating:'4,9',reviews:86,sales:128,init:'C',since:'2024',ship:'24 h'},
+      s2:{id:'s2',name:'Julie M.',city:'Nantes',rating:'4,8',reviews:41,sales:64,init:'J',since:'2025',ship:'48 h'},
+      s3:{id:'s3',name:'Sophie & Marc',city:'Bordeaux',rating:'5,0',reviews:19,sales:22,init:'S',since:'2025',ship:'24 h'},
+      s4:{id:'s4',name:'Inès B.',city:'Lille',rating:'4,7',reviews:33,sales:41,init:'I',since:'2023',ship:'72 h'},
+      me:{id:'me',name:'Élodie',city:'Paris 11e',rating:'4,9',reviews:12,sales:18,init:'É',since:'2025',ship:'24 h'}
+    };
+    const P = (id,type,title,brand,age,gender,season,condition,price,color,sid,extra={}) => ({id,type,title,brand,age,size:age,gender,season,condition,price,color,sid,...extra});
+    const PRODUCTS = [
+      P(1,'lot','Lot naissance 10 bodies & pyjamas','Petit Bateau','0-6 mois','Mixte','Toutes saisons','Très bon état',28,'Blanc','s1',{count:10,contents:[{n:'Bodies manches longues',q:5},{n:'Pyjamas velours',q:3},{n:'Bonnets',q:2}],ph:'photo · lot plié à plat'}),
+      P(2,'unique','Robe en lin smockée','Jacadi','2-4 ans','Fille','Été','Neuf avec étiquette',18,'Rose','s2',{ph:'photo · robe de face'}),
+      P(3,'lot','Lot rentrée garçon 7 pièces','Okaïdi','4-6 ans','Garçon','Automne','Bon état',32,'Marine','s3',{count:7,contents:[{n:'Pantalons',q:2},{n:'Sweats',q:2},{n:'T-shirts manches longues',q:3}],ph:'photo · lot rentrée'}),
+      P(4,'unique','Doudoune légère sans manches','Cyrillus','4-6 ans','Mixte','Hiver','Très bon état',22,'Bleu','s1',{ph:'photo · doudoune'}),
+      P(5,'lot','Lot 4 pyjamas d\'hiver','Petit Bateau','1-2 ans','Mixte','Hiver','Bon état',16,'Beige','s4',{count:4,contents:[{n:'Pyjamas une pièce',q:4}],ph:'photo · pyjamas'}),
+      P(6,'unique','Salopette en velours côtelé','Bonton','1-2 ans','Fille','Automne','Très bon état',14,'Vert','s2',{ph:'photo · salopette'}),
+      P(7,'lot','Lot été fille 9 pièces','Tape à l\'œil','8-10 ans','Fille','Été','Bon état',25,'Multicolore','s4',{count:9,contents:[{n:'Shorts',q:3},{n:'T-shirts',q:4},{n:'Robes',q:2}],ph:'photo · lot été'}),
+      P(8,'unique','Gigoteuse 6-18 mois','Jacadi','6-12 mois','Mixte','Hiver','Très bon état',15,'Beige','s3',{ph:'photo · gigoteuse'}),
+      P(9,'unique','Ciré jaune doublé','Petit Bateau','6-8 ans','Mixte','Printemps','Très bon état',20,'Jaune','s1',{ph:'photo · ciré'}),
+      P(10,'lot','Lot hiver 12 pièces','Kiabi','6-12 mois','Mixte','Hiver','Bon état',30,'Bleu','s2',{count:12,contents:[{n:'Bodies',q:4},{n:'Pantalons',q:3},{n:'Pulls',q:3},{n:'Combinaisons',q:2}],ph:'photo · lot hiver'}),
+      P(11,'unique','Chemise à carreaux','Cyrillus','6-8 ans','Garçon','Printemps','Neuf avec étiquette',12,'Bleu','s3',{ph:'photo · chemise'}),
+      P(12,'unique','Gilet en maille écru','Bonton','2-4 ans','Mixte','Automne','Très bon état',16,'Blanc','s4',{ph:'photo · gilet'}),
+      P(13,'lot','Lot fille 6 pièces mi-saison','Jacadi','2-4 ans','Fille','Printemps','Très bon état',26,'Rose','s1',{count:6,contents:[{n:'Robes',q:2},{n:'Leggings',q:2},{n:'Gilets',q:2}],ph:'photo · lot mi-saison'}),
+      P(14,'unique','Combinaison pilote','Petit Bateau','6-12 mois','Garçon','Hiver','Bon état',19,'Marine','s4',{ph:'photo · combinaison'}),
+      P(15,'unique','Pantalon en velours','Cyrillus','2-4 ans','Garçon','Automne','Bon état',9,'Beige','s2',{ph:'photo · pantalon'}),
+      P(16,'lot','Lot sport garçon 5 pièces','Kiabi','8-10 ans','Garçon','Toutes saisons','Satisfaisant',12,'Marine','s3',{count:5,contents:[{n:'Joggings',q:2},{n:'T-shirts techniques',q:3}],ph:'photo · lot sport'})
+    ];
+    const REVIEWS = [
+      {who:'Marion L.',stars:'★★★★★',text:'Lot conforme, tout était plié et lavé. Envoi rapide.',when:'il y a 3 jours'},
+      {who:'Thomas D.',stars:'★★★★★',text:'Vendeuse très arrangeante pour la remise en main propre.',when:'il y a 2 semaines'},
+      {who:'Aïcha K.',stars:'★★★★☆',text:'Bon état comme décrit, un petit bouton à recoudre.',when:'le mois dernier'}
+    ];
+    return {AGES,GENDERS,SEASONS,CONDS,COLORS,TONES,PRICES,SELLERS,PRODUCTS,REVIEWS};
+  })();
+
+  scrollRef = React.createRef();
+  blankSell(type = null) { return {step: type ? 1 : 0, type, photos: 0, title:'', age:null, gender:'Mixte', season:null, brand:'', cond:null, count:5, contents:'', price:'', d:{relais:true,domicile:false,main:true}}; }
+  state = {
+    screen: this.props.start ?? 'onboarding', hist: [], onb: 0, onbFromProfile: false,
+    kidAges: ['2-4 ans','6-12 mois'], kidIdx: 0, homeType: 'all',
+    pid: null, sid: null, photoIdx: 0, favs: [2,7], cart: [], following: [],
+    q: '', ftype: 'all', f: {ages:[],genders:[],seasons:[],brands:[],conds:[],colors:[],price:[]}, sheet: false,
+    sell: this.blankSell(), mine: [], lastMineId: null,
+    del: 'relais', pay: 'card',
+    chats: {
+      c1:{sid:'s2',pid:2,when:'10:42',unread:true,msgs:[{me:true,t:'Bonjour, la robe taille plutôt grand ?'},{me:false,t:'Bonjour ! Plutôt normal, ma fille l\'a portée à 3 ans.'}]},
+      c2:{sid:'s1',pid:1,when:'Hier',unread:false,msgs:[{me:true,t:'Est-ce que les bodies sont sans taches ?'},{me:false,t:'Oui, tout a été lavé et vérifié.'},{me:true,t:'Super, merci !'}]},
+      c3:{sid:'s3',pid:3,when:'Lun.',unread:true,msgs:[{me:false,t:'Je peux vous le remettre en main propre samedi si vous êtes sur Bordeaux.'}]}
+    },
+    cid: null, draft: '', typing: false,
+    orderTab: 'achats',
+    purchases: [{id:'o1',pid:3,status:2,del:'Point relais',rating:0},{id:'o2',pid:6,status:3,del:'Domicile',rating:5}],
+    sales: [{id:'v1',pid:101,status:0,del:'Point relais',buyer:'Marion L.'},{id:'v2',pid:102,status:3,del:'Main propre',buyer:'Thomas D.'}],
+    oid: null, sellerTab: 'items', wallet: 46, toast: null
+  };
+
+  get comm() { return (this.props.commission ?? 8) / 100; }
+  fmt(n) { return (Math.round(n * 100) / 100).toFixed(2).replace('.', ',') + ' €'; }
+  top = () => { const el = this.scrollRef.current; if (el) el.scrollTop = 0; };
+  go(screen, patch = {}) { this.setState(s => ({hist: [...s.hist, {screen: s.screen, pid: s.pid, sid: s.sid, cid: s.cid, oid: s.oid}], screen, ...patch}), this.top); }
+  back = () => this.setState(s => { const h = [...s.hist]; const prev = h.pop() || {screen:'home'}; return {hist: h, ...prev, typing:false}; }, this.top);
+  tab(screen, patch = {}) { this.setState({screen, hist: [], sheet:false, ...patch}, this.top); }
+  toast(msg) { clearTimeout(this._t); this.setState({toast: msg}); this._t = setTimeout(() => this.setState({toast:null}), 2200); }
+  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._r); }
+
+  extraProducts() {
+    return [
+      {id:101,type:'unique',title:'Gilet en maille rose',brand:'Bonton',age:'2-4 ans',size:'2-4 ans',gender:'Fille',season:'Automne',condition:'Très bon état',price:14,color:'Rose',sid:'me',ph:'photo · gilet'},
+      {id:102,type:'lot',title:'Lot 5 bodies 3 mois',brand:'Petit Bateau',age:'0-6 mois',size:'0-6 mois',gender:'Mixte',season:'Toutes saisons',condition:'Bon état',price:12,color:'Blanc',sid:'me',count:5,contents:[{n:'Bodies',q:5}],ph:'photo · bodies'},
+      ...this.state.mine
+    ];
+  }
+  all() { return [...this.state.mine, ...Component.D.PRODUCTS]; }
+  byId(id) { return [...Component.D.PRODUCTS, ...this.extraProducts()].find(p => p.id === id); }
+  seller(id) { return Component.D.SELLERS[id]; }
+  toggleFav(id) { this.setState(s => ({favs: s.favs.includes(id) ? s.favs.filter(x => x !== id) : [...s.favs, id]})); }
+
+  enrich = (p) => {
+    if (!p) return {};
+    const D = Component.D, fav = this.state.favs.includes(p.id);
+    const [a, b] = D.TONES[p.color] || D.TONES.Beige;
+    const isLot = p.type === 'lot';
+    return {...p, isLot, isUnique: !isLot, typeLabel: isLot ? `Lot de ${p.count}` : 'Pièce unique',
+      priceF: this.fmt(p.price), perPiece: isLot ? this.fmt(p.price / p.count) : '',
+      ph: `repeating-linear-gradient(135deg, ${a} 0 10px, ${b} 10px 20px)`, phLabel: p.ph || 'photo',
+      seller: this.seller(p.sid), heartFill: fav ? 'var(--color-accent)' : 'none', heartStroke: fav ? 'var(--color-accent)' : 'var(--color-text)',
+      open: () => this.go('product', {pid: p.id, photoIdx: 0}),
+      toggleFav: (e) => { e && e.stopPropagation(); this.toggleFav(p.id); },
+      removeCart: () => this.setState(s => ({cart: s.cart.filter(x => x !== p.id)})),
+      openSeller: () => this.go('seller', {sid: p.sid, sellerTab:'items'})};
+  };
+
+  filtered() {
+    const {f, q, ftype} = this.state, D = Component.D;
+    const ql = q.trim().toLowerCase();
+    return this.all().filter(p =>
+      (ftype === 'all' || p.type === ftype) &&
+      (!ql || (p.title + ' ' + p.brand).toLowerCase().includes(ql)) &&
+      (!f.ages.length || f.ages.includes(p.age)) && (!f.genders.length || f.genders.includes(p.gender)) &&
+      (!f.seasons.length || f.seasons.includes(p.season)) && (!f.brands.length || f.brands.includes(p.brand)) &&
+      (!f.conds.length || f.conds.includes(p.condition)) && (!f.colors.length || f.colors.includes(p.color)) &&
+      (!f.price.length || f.price.some(l => { const r = D.PRICES.find(x => x.l === l); return p.price >= r.min && p.price < r.max; })));
+  }
+  toggleF(key, val) { this.setState(s => { const arr = s.f[key]; return {f: {...s.f, [key]: arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val]}}; }); }
+  searchWith(patch) { this.tab('search', {f: {ages:[],genders:[],seasons:[],brands:[],conds:[],colors:[],price:[], ...(patch.f || {})}, ftype: patch.ftype || 'all', q: ''}); }
+
+  seg(opts, cur, onPick) { return opts.map(([v, l]) => ({label: l, bg: v === cur ? 'var(--color-neutral-100)' : 'transparent', shadow: v === cur ? 'var(--shadow-sm)' : 'none', pick: () => onPick(v)})); }
+  pill(on) { return {bg: on ? 'var(--color-text)' : 'var(--color-neutral-100)', fg: on ? 'var(--color-bg)' : 'var(--color-text)'}; }
+  setSell(patch) { this.setState(s => ({sell: {...s.sell, ...patch}})); }
+
+  openChatFor(sid, pid) {
+    const entry = Object.entries(this.state.chats).find(([, c]) => c.sid === sid && (pid == null || c.pid === pid));
+    if (entry) { this.setState(s => ({chats: {...s.chats, [entry[0]]: {...entry[1], unread:false}}})); this.go('chat', {cid: entry[0]}); return; }
+    const id = 'c' + Date.now();
+    this.setState(s => ({chats: {...s.chats, [id]: {sid, pid: pid ?? this.all().find(p => p.sid === sid).id, when:'Maintenant', unread:false, msgs: []}}}));
+    this.go('chat', {cid: id});
+  }
+  send(text) {
+    const t = (text || '').trim(); if (!t) return;
+    const cid = this.state.cid;
+    this.setState(s => ({draft:'', typing:true, chats: {...s.chats, [cid]: {...s.chats[cid], when:'Maintenant', msgs: [...s.chats[cid].msgs, {me:true, t}]}}}), () => { const el = this.scrollRef.current; if (el) el.scrollTop = el.scrollHeight; });
+    clearTimeout(this._r);
+    this._r = setTimeout(() => {
+      const replies = ['Oui, toujours disponible !', 'Avec plaisir, je peux l\'envoyer dès demain.', 'Bien sûr, dis-moi ce qui t\'arrange.'];
+      this.setState(s => ({typing:false, chats: {...s.chats, [cid]: {...s.chats[cid], msgs: [...s.chats[cid].msgs, {me:false, t: replies[s.chats[cid].msgs.length % 3]}]}}}), () => { const el = this.scrollRef.current; if (el) el.scrollTop = el.scrollHeight; });
+    }, 1400);
+  }
+
+  renderVals() {
+    const D = Component.D, s = this.state, S = s.screen, hv = this.props.home ?? '1a';
+    const scr = {}; ['onboarding','home','search','product','seller','sell','sellDone','cart','checkout','orderDone','messages','chat','profile','favorites','orders','tracking','notifs'].forEach(k => scr[k] = S === k);
+    const E = this.enrich, all = this.all();
+
+    // onboarding
+    const slides = [
+      {title:'Bienvenue sur Nidoo', text:'Le vide-dressing des 0-10 ans, entre parents. Achète malin, revends ce qui ne sert plus.', label:'illustration · bienvenue', ph:'repeating-linear-gradient(135deg,#ffe1d0 0 10px,#fff2eb 10px 20px)'},
+      {title:'Une pièce ou tout un lot', text:'Vends ce qui ne lui va plus à l\'unité, ou d\'un coup en lot par taille, à prix fixe.', label:'illustration · pièce vs lot', ph:'repeating-linear-gradient(135deg,#e1eecc 0 10px,#f0fae1 10px 20px)'},
+      {title:'Simple et protégé', text:'Paiement sécurisé, versé au vendeur après réception. Point relais, domicile ou main propre.', label:'illustration · colis', ph:'repeating-linear-gradient(135deg,#eee7db 0 10px,#f9f4ed 10px 20px)'}
+    ];
+    const finishOnb = () => s.onbFromProfile ? this.setState({screen:'profile', onbFromProfile:false, hist:[]}) : this.tab('home');
+
+    // home
+    const kidAgesOrAll = s.kidAges.length ? s.kidAges : D.AGES;
+    const forYou = all.filter(p => kidAgesOrAll.includes(p.age)).slice(0, 6).map(E);
+    const kids = [{name:'Léa', age:'2-4 ans', g:'Fille', init:'L', avatar:'var(--color-accent-300)', prev:'1-2 ans'}, {name:'Tom', age:'6-12 mois', g:'Garçon', init:'T', avatar:'var(--color-accent-2-300)', prev:'0-6 mois'}];
+    const kid = kids[s.kidIdx];
+    const kidFeedRaw = all.filter(p => p.age === kid.age && (p.gender === kid.g || p.gender === 'Mixte') && (s.homeType === 'all' || p.type === s.homeType));
+    const blobColors = [['var(--color-accent-200)','var(--color-accent-800)'],['var(--color-accent-2-200)','var(--color-accent-2-800)'],['var(--color-neutral-300)','var(--color-neutral-900)'],['var(--color-accent-300)','var(--color-accent-900)']];
+    const radii = ['50%','50% 50% 50% 18px','42% 58% 50% 50% / 50% 45% 55% 50%','50% 18px 50% 50%'];
+    const ageBlobs = [...D.AGES.map((a, i) => { const [n, u] = a.split(' '); return {big: n, small: u, bg: blobColors[i % 4][0], fg: blobColors[i % 4][1], radius: radii[i % 4], open: () => this.searchWith({f:{ages:[a]}})}; }),
+      {big:'Lots', small:'tous âges', bg:'var(--color-text)', fg:'var(--color-bg)', radius:'50%', open: () => this.searchWith({ftype:'lot'})}];
+    const lotsAll = all.filter(p => p.type === 'lot');
+
+    // search / filters
+    const results = this.filtered();
+    const brands = [...new Set(D.PRODUCTS.map(p => p.brand))].sort();
+    const mk = (key, opts, dots) => opts.map(o => ({label:o, ...this.pill(s.f[key].includes(o)), hasDot: !!dots, dot: dots ? dots[o] : '', toggle: () => this.toggleF(key, o)}));
+    const filterGroups = [
+      {title:'Âge / taille', chips: mk('ages', D.AGES)}, {title:'Pour', chips: mk('genders', D.GENDERS)},
+      {title:'Saison', chips: mk('seasons', D.SEASONS)}, {title:'État', chips: mk('conds', D.CONDS)},
+      {title:'Prix', chips: mk('price', D.PRICES.map(p => p.l))}, {title:'Marque', chips: mk('brands', brands)},
+      {title:'Couleur', chips: mk('colors', Object.keys(D.COLORS), D.COLORS)}
+    ];
+    const activeChips = Object.entries(s.f).flatMap(([k, arr]) => arr.map(v => ({label: v, remove: () => this.toggleF(k, v)})));
+
+    // product
+    const prodRaw = this.byId(s.pid), prod = E(prodRaw);
+    const nPhotos = prodRaw && prodRaw.type === 'lot' ? 5 : 3;
+    const photoNames = prodRaw && prodRaw.type === 'lot' ? ['vue d\'ensemble du lot', ...(prodRaw.contents || []).map(c => c.n.toLowerCase()), 'étiquettes'] : ['vue de face', 'vue de dos', 'étiquette'];
+    if (prodRaw) {
+      prod.photoLabel = `photo ${s.photoIdx + 1}/${nPhotos} · ${photoNames[s.photoIdx] || 'détail'}`;
+      prod.desc = prodRaw.type === 'lot' ? `Lot complet en ${prodRaw.size}, lavé et plié. Non fumeur, sans animaux. Vendu en une fois uniquement.` : `Portée quelques fois, sans tache ni accroc. Taille ${prodRaw.size}, coupe normale.`;
+      prod.deliveryText = 'Point relais 3,90 € · Domicile 5,90 € · Main propre';
+      prod.contents = prodRaw.contents || [];
+    }
+    const inCart = prodRaw && s.cart.includes(prodRaw.id);
+    const prodIsMine = !!prodRaw && prodRaw.sid === 'me';
+    const similar = prodRaw ? all.filter(p => p.age === prodRaw.age && p.id !== prodRaw.id).slice(0, 6).map(E) : [];
+
+    // seller
+    const sel = this.seller(s.sid) || {};
+    const following = s.following.includes(s.sid);
+
+    // sell
+    const sl = s.sell, isLotSell = sl.type === 'lot';
+    const priceNum = parseFloat(String(sl.price).replace(',', '.')) || 0;
+    const canNext = [!!sl.type, sl.photos > 0, !!sl.title.trim() && !!sl.age && !!sl.cond, priceNum > 0 && Object.values(sl.d).some(Boolean)][sl.step];
+    const sellNext = () => {
+      if (!canNext) { this.toast(['Choisis un type d\'annonce', 'Ajoute au moins une photo', 'Ajoute un titre, un âge et l\'état', 'Indique un prix et un mode de livraison'][sl.step]); return; }
+      if (sl.step < 3) { this.setSell({step: sl.step + 1}); this.top(); return; }
+      const id = 1000 + s.mine.length;
+      const np = {id, type: sl.type, title: sl.title.trim(), brand: sl.brand.trim() || 'Sans marque', age: sl.age, size: sl.age, gender: sl.gender, season: sl.season || 'Toutes saisons', condition: sl.cond, price: priceNum, color: isLotSell ? 'Multicolore' : 'Beige', sid:'me', ph:'ta photo', count: isLotSell ? sl.count : undefined, contents: isLotSell ? [{n: sl.contents.trim() || 'Pièces assorties', q: sl.count}] : undefined};
+      this.setState(st => ({mine: [np, ...st.mine], lastMineId: id, screen:'sellDone', hist: [], sell: this.blankSell()}), this.top);
+    };
+    const lastMineRaw = s.mine.find(p => p.id === s.lastMineId);
+    const lastMine = lastMineRaw ? {...E(lastMineRaw), netF: this.fmt(lastMineRaw.price * (1 - this.comm))} : {};
+    const chipPick = (key, list) => list.map(o => ({label: o, ...this.pill(sl[key] === o), pick: () => this.setSell({[key]: o})}));
+    const delDefs = [['relais','Point relais','Tu déposes le colis, l\'étiquette est générée'],['domicile','Domicile','Livré chez l\'acheteur'],['main','Remise en main propre','Rendez-vous fixé par message']];
+
+    // cart / checkout
+    const cartItems = s.cart.map(id => E(this.byId(id)));
+    const groupsMap = {}; cartItems.forEach(p => { (groupsMap[p.sid] = groupsMap[p.sid] || {seller: p.seller, items: []}).items.push(p); });
+    const cartGroups = Object.values(groupsMap);
+    const subtotal = cartItems.reduce((a, p) => a + p.price, 0);
+    const rate = {relais: 3.9, domicile: 5.9, main: 0}[s.del];
+    const ship = rate * cartGroups.length;
+    const delOpts = [['relais','Point relais','2 à 4 jours',3.9],['domicile','À domicile','2 à 3 jours',5.9],['main','Main propre','Rendez-vous avec le vendeur',0]].map(([id, t, sub, pr]) => {
+      const on = s.del === id; return {title: t, sub, priceF: pr ? this.fmt(pr) : 'Gratuit', border: on ? 'var(--color-accent)' : 'transparent', ring: on ? 'var(--color-accent)' : 'var(--color-neutral-400)', dot: on ? 'var(--color-accent)' : 'transparent', pick: () => this.setState({del: id})};
+    });
+    const delDetail = {relais:'Relais Tabac du Parc, 12 rue Oberkampf, Paris 11e · Modifier', domicile:'Élodie Martin, 34 avenue Parmentier, 75011 Paris', main:'Tu fixeras le lieu et l\'heure avec le vendeur dans la messagerie.'}[s.del];
+    const payOpts = [['card','Carte bancaire','•••• 4242'],['apple','Apple Pay','']].map(([id, t, sub]) => { const on = s.pay === id; return {title: t, sub, border: on ? 'var(--color-accent)' : 'transparent', ring: on ? 'var(--color-accent)' : 'var(--color-neutral-400)', dot: on ? 'var(--color-accent)' : 'transparent', pick: () => this.setState({pay: id})}; });
+    const pay = () => {
+      const delName = {relais:'Point relais', domicile:'Domicile', main:'Main propre'}[s.del];
+      const newOrders = s.cart.map((pid, i) => ({id: 'o' + Date.now() + i, pid, status: 0, del: delName, rating: 0}));
+      this.setState(st => ({purchases: [...newOrders, ...st.purchases], cart: [], screen:'orderDone', hist: [], oid: newOrders[0].id}), this.top);
+    };
+
+    // messages
+    const convos = Object.entries(s.chats).map(([id, c]) => ({seller: this.seller(c.sid), prod: E(this.byId(c.pid)), when: c.when, unread: c.unread, weight: c.unread ? 700 : 400, last: c.msgs.length ? (c.msgs[c.msgs.length - 1].me ? 'Toi : ' : '') + c.msgs[c.msgs.length - 1].t : 'Nouvelle conversation',
+      open: () => { this.setState(st => ({chats: {...st.chats, [id]: {...st.chats[id], unread:false}}})); this.go('chat', {cid: id}); }}));
+    const unreadCount = Object.values(s.chats).filter(c => c.unread).length;
+    const chatRaw = s.chats[s.cid];
+    const chat = chatRaw ? {seller: this.seller(chatRaw.sid), prod: E(this.byId(chatRaw.pid)), buy: () => { if (!s.cart.includes(chatRaw.pid)) this.setState(st => ({cart: [...st.cart, chatRaw.pid]})); this.go('cart'); }} : {seller:{}, prod:{}};
+    const chatMsgs = chatRaw ? chatRaw.msgs.map(m => ({t: m.t, side: m.me ? 'flex-end' : 'flex-start', bg: m.me ? 'var(--color-accent)' : 'var(--color-surface)', fg: m.me ? 'var(--color-bg)' : 'var(--color-text)', radius: m.me ? '22px 22px 6px 22px' : '22px 22px 22px 6px'})) : [];
+
+    // orders / tracking
+    const isSalesTab = s.orderTab === 'ventes';
+    const statusNames = ['Payée','Expédiée','En point relais','Reçue'];
+    const tagStyle = st => st >= 3 ? ['var(--color-accent-2-100)','var(--color-accent-2-800)'] : ['var(--color-accent-100)','var(--color-accent-800)'];
+    const orderList = (isSalesTab ? s.sales : s.purchases).map(o => {
+      const p = E(this.byId(o.pid)); const [tb, tf] = tagStyle(o.status);
+      const status = isSalesTab ? (['À expédier','Expédiée','En point relais','Vendue · versé'][o.status]) : (o.del === 'Main propre' && o.status === 2 ? 'Rendez-vous fixé' : statusNames[o.status]);
+      return {prod: p, status, tagBg: tb, tagFg: tf, sub: isSalesTab ? `${o.buyer} · tu reçois ${this.fmt(p.price * (1 - this.comm))}` : `${p.seller.name} · ${o.del}`, open: () => this.go('tracking', {oid: o.id})};
+    });
+    const trkSale = s.sales.find(o => o.id === s.oid), trkBuy = s.purchases.find(o => o.id === s.oid), trkO = trkSale || trkBuy;
+    const updOrder = (patch) => this.setState(st => trkSale ? {sales: st.sales.map(o => o.id === s.oid ? {...o, ...patch} : o)} : {purchases: st.purchases.map(o => o.id === s.oid ? {...o, ...patch} : o)});
+    let trk = {prod:{}}, trkSteps = [], trkStars = [];
+    if (trkO) {
+      const p = E(this.byId(trkO.pid));
+      trk = {prod: p, who: trkSale ? 'Acheteur : ' + trkO.buyer : p.seller.name, sellerName: p.seller.name, delivery: trkO.del, amountF: trkSale ? 'Tu reçois ' + this.fmt(p.price * (1 - this.comm)) : this.fmt(p.price),
+        canConfirm: !trkSale && trkO.status === 2, canShip: !!trkSale && trkO.status === 0, canRate: !trkSale && trkO.status === 3, canAdvance: trkO.status < 2 && !(trkSale && trkO.status === 0),
+        confirm: () => { updOrder({status: 3}); this.toast('Merci ! Le vendeur reçoit son paiement.'); },
+        ship: () => { updOrder({status: 1}); this.toast('Bordereau envoyé par e-mail'); },
+        advance: () => updOrder({status: trkO.status + 1})};
+      const subs = trkO.del === 'Main propre' ? ['Paiement protégé par Nidoo', 'Le vendeur a confirmé le rendez-vous', 'Rendez-vous samedi 10 h', 'Paiement versé au vendeur'] : ['Paiement protégé par Nidoo', 'Colis pris en charge par le transporteur', trkO.del === 'Domicile' ? 'En cours de livraison' : 'Relais Tabac du Parc · retrait 7 jours', 'Paiement versé au vendeur'];
+      const labels = trkO.del === 'Domicile' ? ['Commande payée','Colis expédié','En livraison','Reçu'] : trkO.del === 'Main propre' ? ['Commande payée','Rendez-vous accepté','Rendez-vous fixé','Remis en main propre'] : ['Commande payée','Colis expédié','Disponible en point relais','Récupéré'];
+      trkSteps = labels.map((l, i) => { const done = i <= trkO.status, cur = i === trkO.status; return {label: l, sub: subs[i], dot: done ? 'var(--color-accent-2-600)' : 'var(--color-bg)', ring: done ? 'var(--color-accent-2-600)' : 'var(--color-neutral-400)', line: i === 3 ? 'transparent' : (i < trkO.status ? 'var(--color-accent-2-600)' : 'var(--color-neutral-300)'), fg: done || cur ? 'var(--color-text)' : 'var(--color-neutral-600)'}; });
+      trkStars = [1,2,3,4,5].map(n => ({fill: n <= (trkO.rating || 0) ? 'var(--color-accent)' : 'none', pick: () => { updOrder({rating: n}); this.toast('Merci pour ton avis'); }}));
+    }
+
+    const favItems = all.filter(p => s.favs.includes(p.id)).map(E);
+    const notifs = [
+      {init:'J', bg:'var(--color-accent-2-300)', text:'Julie M. a répondu à propos de « Robe en lin smockée »', when:'il y a 12 min', unread:true, open: () => this.openChatFor('s2', 2)},
+      {init:'%', bg:'var(--color-accent-200)', text:'Baisse de prix sur un favori : Lot été fille 9 pièces passe à 25,00 €', when:'il y a 2 h', unread:true, open: () => this.go('product', {pid: 7, photoIdx:0})},
+      {init:'⌂', bg:'var(--color-neutral-300)', text:'Ton colis « Lot rentrée garçon » est disponible en point relais', when:'Hier', unread:false, open: () => this.go('tracking', {oid:'o1'})},
+      {init:'+', bg:'var(--color-accent-100)', text:'3 nouveaux lots en 2-4 ans près de chez toi', when:'Lun.', unread:false, open: () => this.searchWith({f:{ages:['2-4 ans']}, ftype:'lot'})}
+    ];
+    const tabFor = {home:'home', search:'search', messages:'messages', profile:'profile'};
+    const tabC = {}; ['home','search','messages','profile'].forEach(k => tabC[k] = tabFor[S] === k ? 'var(--color-accent)' : 'var(--color-neutral-600)');
+
+    return {
+      scrollRef: this.scrollRef, scr, back: this.back,
+      home1a: scr.home && hv === '1a', home1b: scr.home && hv === '1b', home1c: scr.home && hv === '1c',
+      showTabs: ['home','search','messages','profile'].includes(S), tabC,
+      tabHome: () => this.tab('home'), tabSearch: () => this.tab('search'), tabMessages: () => this.tab('messages'), tabProfile: () => this.tab('profile'),
+      tabSell: () => this.go('sell', {sell: this.blankSell()}),
+      goNotifs: () => this.go('notifs'), goCart: () => this.go('cart'), goSearch: () => this.tab('search'), goHome: () => this.tab('home'),
+      goKids: () => this.go('onboarding', {onb: 3, onbFromProfile: true}),
+      goCheckout: () => this.go('checkout'),
+      sellLot: () => this.go('sell', {sell: this.blankSell('lot')}),
+      seeLots: () => this.searchWith({ftype:'lot'}), seeUniques: () => this.searchWith({ftype:'unique'}),
+      cartCount: s.cart.length, hasCart: s.cart.length > 0, cartEmpty: s.cart.length === 0, cartBar: scr.cart && s.cart.length > 0,
+
+      onbShowSkip: s.onb < 3 && !s.onbFromProfile, onbIsSlide: s.onb < 3, onbIsKids: s.onb === 3, onbSlide: slides[Math.min(s.onb, 2)],
+      onbDots: [0,1,2].map(i => ({w: i === s.onb ? '28px' : '8px', bg: i === s.onb ? 'var(--color-accent)' : 'var(--color-neutral-400)'})),
+      onbNext: () => this.setState({onb: s.onb + 1}), onbSkip: () => this.setState({onb: 3}),
+      onbFinish: finishOnb, onbFinishLabel: s.onbFromProfile ? 'Enregistrer' : 'C\'est parti',
+      kidAgeChips: D.AGES.map(a => { const on = s.kidAges.includes(a); return {label: a, border: on ? 'var(--color-accent)' : 'transparent', bg: on ? 'var(--color-accent-100)' : 'var(--color-neutral-100)', dot: on ? 'var(--color-accent)' : 'var(--color-neutral-300)', toggle: () => this.setState(st => ({kidAges: on ? st.kidAges.filter(x => x !== a) : [...st.kidAges, a]}))}; }),
+
+      ageShortcuts: D.AGES.map(a => ({label: a, open: () => this.searchWith({f:{ages:[a]}})})),
+      lots: lotsAll.slice(0, 5).map(E), forYou,
+      ageBlobs, spotlight: E(lotsAll.find(p => p.id === 10)), uniques: all.filter(p => p.type === 'unique').slice(0, 5).map(E),
+      kidTabs: kids.map((k, i) => ({...k, bg: i === s.kidIdx ? 'var(--color-text)' : 'var(--color-neutral-100)', fg: i === s.kidIdx ? 'var(--color-bg)' : 'var(--color-text)', pick: () => this.setState({kidIdx: i})})),
+      homeTypes: this.seg([['all','Tout'],['unique','Pièces'],['lot','Lots']], s.homeType, v => this.setState({homeType: v})),
+      kidFeed: kidFeedRaw.map(E), kidFeedEmpty: kidFeedRaw.length === 0,
+      kidFeedLabel: `${kidFeedRaw.length} article${kidFeedRaw.length > 1 ? 's' : ''} en ${kid.age} pour ${kid.name}`,
+      outgrownTitle: `${kid.name} ne rentre plus dans le ${kid.prev} ?`,
+
+      q: s.q, onQ: e => this.setState({q: e.target.value}),
+      openSheet: () => this.setState({sheet: true}), closeSheet: () => this.setState({sheet: false}), sheet: s.sheet,
+      typeSeg: this.seg([['all','Tout'],['unique','Pièces uniques'],['lot','Lots']], s.ftype, v => this.setState({ftype: v})),
+      filterGroups, activeChips, hasFilters: activeChips.length > 0, filterCount: activeChips.length,
+      results: results.map(E), resultsCount: results.length, noResults: results.length === 0,
+      resultsLabel: `${results.length} article${results.length > 1 ? 's' : ''}`,
+      clearFilters: () => this.setState({f: {ages:[],genders:[],seasons:[],brands:[],conds:[],colors:[],price:[]}, q:'', ftype:'all'}),
+
+      prod, prodIsMine, prodNotMine: !prodIsMine,
+      prodSpecs: prodRaw ? [{k:'Âge / taille', v: prodRaw.size}, {k:'Pour', v: prodRaw.gender}, {k:'Marque', v: prodRaw.brand}, {k:'Saison', v: prodRaw.season}, {k:'Couleur', v: prodRaw.color}, {k:'État', v: prodRaw.condition}] : [],
+      photoDots: Array.from({length: nPhotos}, (_, i) => ({w: i === s.photoIdx ? '22px' : '7px', bg: i === s.photoIdx ? 'var(--color-text)' : 'var(--color-neutral-400)'})),
+      nextPhoto: () => this.setState({photoIdx: (s.photoIdx + 1) % nPhotos}), prevPhoto: () => this.setState({photoIdx: (s.photoIdx - 1 + nPhotos) % nPhotos}),
+      prodCtaLabel: inCart ? 'Voir le panier' : (prodRaw && prodRaw.type === 'lot' ? 'Acheter le lot' : 'Ajouter au panier'),
+      prodCta: () => { if (inCart) { this.go('cart'); return; } this.setState(st => ({cart: [...st.cart, prodRaw.id]})); this.toast('Ajouté au panier'); },
+      prodChat: () => prodRaw && this.openChatFor(prodRaw.sid, prodRaw.id),
+      similar, hasSimilar: similar.length > 0,
+
+      sel, followLabel: following ? 'Abonné·e' : 'Suivre', followBg: following ? 'var(--color-surface)' : 'var(--color-accent)', followFg: following ? 'var(--color-text)' : 'var(--color-bg)',
+      toggleFollow: () => this.setState(st => ({following: st.following.includes(st.sid) ? st.following.filter(x => x !== st.sid) : [...st.following, st.sid]})),
+      chatSeller: () => this.openChatFor(s.sid, null),
+      sellerTabs: this.seg([['items','Dressing'],['reviews','Avis']], s.sellerTab, v => this.setState({sellerTab: v})),
+      sellerShowItems: s.sellerTab === 'items', sellerShowReviews: s.sellerTab === 'reviews',
+      sellerItems: (s.sid === 'me' ? this.extraProducts() : all.filter(p => p.sid === s.sid)).map(E), reviews: D.REVIEWS,
+
+      sell: sl, sellIsLot: isLotSell, sellS0: sl.step === 0, sellS1: sl.step === 1, sellS2: sl.step === 2, sellS3: sl.step === 3,
+      sellPct: ((sl.step + 1) / 4 * 100) + '%', sellStepLabel: `${sl.step + 1}/4`, sellCanBack: sl.step > 0,
+      sellBack: () => { this.setSell({step: sl.step - 1}); this.top(); }, sellNext, sellNextOpacity: canNext ? 1 : 0.45,
+      sellNextLabel: sl.step === 3 ? 'Publier l\'annonce' : 'Continuer',
+      sellClose: this.back,
+      sellTypes: [['unique','Une pièce unique','Un vêtement, une annonce. Idéal pour les belles pièces.'],['lot','Un lot','Plusieurs vêtements d\'une même taille, vendus ensemble à prix fixe.']].map(([v, t, x]) => {
+        const on = sl.type === v; return {title: t, text: x, isLot: v === 'lot', isUnique: v === 'unique', border: on ? 'var(--color-accent)' : 'transparent', bg: on ? 'var(--color-accent-100)' : 'var(--color-neutral-100)', iconBg: v === 'lot' ? 'var(--color-accent-2-300)' : 'var(--color-accent-300)', pick: () => this.setSell({type: v})};
+      }),
+      photoHint: isLotSell ? 'Commence par une photo de tout le lot étalé, puis une par pièce. Jusqu\'à 12 photos.' : 'De face, de dos et l\'étiquette. Jusqu\'à 6 photos.',
+      photoSlots: Array.from({length: 6}, (_, i) => { const filled = i < sl.photos; const [a, b] = ['#ffe1d0','#fff2eb'];
+        return {label: filled ? (i === 0 ? 'couverture' : 'photo ' + (i + 1)) : (i === sl.photos ? '+ ajouter' : ''), bg: filled ? `repeating-linear-gradient(135deg, ${a} 0 10px, ${b} 10px 20px)` : 'var(--color-neutral-100)', border: filled ? '2px solid transparent' : (i === sl.photos ? '2px dashed var(--color-accent)' : '2px dashed var(--color-neutral-300)'),
+          add: () => this.setSell({photos: filled ? i : Math.min(6, sl.photos + 1)})}; }),
+      sellWhat: isLotSell ? 'ton lot' : 'ta pièce', titlePh: isLotSell ? 'ex. Lot hiver 18 mois garçon' : 'ex. Robe en lin rose',
+      onSellTitle: e => this.setSell({title: e.target.value}), onSellBrand: e => this.setSell({brand: e.target.value}),
+      onSellContents: e => this.setSell({contents: e.target.value}), onSellPrice: e => this.setSell({price: e.target.value.replace(/[^0-9.,]/g, '')}),
+      countDown: () => this.setSell({count: Math.max(2, sl.count - 1)}), countUp: () => this.setSell({count: Math.min(40, sl.count + 1)}),
+      sellAges: chipPick('age', D.AGES), sellGenders: chipPick('gender', D.GENDERS), sellSeasons: chipPick('season', D.SEASONS), sellConds: chipPick('cond', D.CONDS),
+      commissionPct: Math.round(this.comm * 100) + ' %', sellPriceF: this.fmt(priceNum), sellFeeF: this.fmt(priceNum * this.comm), sellNetF: this.fmt(priceNum * (1 - this.comm)),
+      sellPerPiece: this.fmt(sl.count ? priceNum / sl.count : 0),
+      sellDel: delDefs.map(([k, t, sub]) => { const on = sl.d[k]; return {title: t, sub, border: on ? 'var(--color-accent)' : 'transparent', box: on ? 'var(--color-accent)' : 'var(--color-neutral-300)', toggle: () => this.setSell({d: {...sl.d, [k]: !on}})}; }),
+      lastMine, sellAgain: () => this.setState({screen:'sell', hist:[], sell: this.blankSell()}, this.top),
+
+      cartGroups, subtotalF: this.fmt(subtotal), shipF: ship ? this.fmt(ship) : 'Gratuit', totalF: this.fmt(subtotal + ship),
+      shipLabel: `Livraison (${cartGroups.length} colis)`, delOpts, delDetail, payOpts, pay,
+      trackLast: () => this.go('tracking', {oid: s.oid}),
+
+      convos, unreadCount, hasUnread: unreadCount > 0, chat, chatMsgs, typing: s.typing,
+      draft: s.draft, onDraft: e => this.setState({draft: e.target.value}), onDraftKey: e => { if (e.key === 'Enter') this.send(s.draft); },
+      sendDraft: () => this.send(s.draft),
+      quickReplies: ['Est-ce toujours disponible ?', 'Remise en main propre possible ?', 'Tu as d\'autres pièces dans cette taille ?'].map(t => ({t, send: () => this.send(t)})),
+
+      walletF: this.fmt(s.wallet), withdraw: () => { if (!s.wallet) { this.toast('Rien à virer pour le moment'); return; } this.setState({wallet: 0}); this.toast('Virement envoyé vers ton compte'); },
+      profileRows: [
+        {label:'Mes achats', meta: s.purchases.length + '', open: () => this.go('orders', {orderTab:'achats'})},
+        {label:'Mes ventes', meta: s.sales.length + '', open: () => this.go('orders', {orderTab:'ventes'})},
+        {label:'Favoris', meta: s.favs.length + '', open: () => this.go('favorites')},
+        {label:'Mes enfants', meta: s.kidAges.join(', ') || '—', open: () => this.go('onboarding', {onb: 3, onbFromProfile: true})},
+        {label:'Notifications', meta:'2 nouvelles', open: () => this.go('notifs')},
+        {label:'Mon dressing public', meta: (s.mine.length + 2) + ' annonces', open: () => this.go('seller', {sid:'me', sellerTab:'items'})}
+      ],
+      favItems, favEmpty: favItems.length === 0,
+      orderTabs: this.seg([['achats','Achats'],['ventes','Ventes']], s.orderTab, v => this.setState({orderTab: v})),
+      orderList, orderEmpty: orderList.length === 0, trk, trkSteps, trkStars,
+      notifs, toast: s.toast, hasToast: !!s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>
