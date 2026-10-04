@@ -1,0 +1,44 @@
+import { router } from 'expo-router';
+import { Pressable, View } from 'react-native';
+
+import { useSearchWith } from '../components/home/shared';
+import { BackHeader, Screen } from '../components/Screen';
+import { H, Txt } from '../components/ui';
+import { useStore } from '../store/useStore';
+import { colors } from '../theme/tokens';
+
+export default function Notifications() {
+  const openChatFor = useStore((s) => s.openChatFor);
+  const searchWith = useSearchWith();
+
+  const items = [
+    { init: 'J', bg: colors.accent2_300, text: 'Julie M. a répondu à propos de « Robe en lin smockée »', when: 'il y a 12 min', unread: true, open: () => router.push(`/chat/${openChatFor('s2', 2)}`) },
+    { init: '%', bg: colors.accent200, text: 'Baisse de prix sur un favori : Lot été fille 9 pièces passe à 25,00 €', when: 'il y a 2 h', unread: true, open: () => router.push('/product/7') },
+    { init: '⌂', bg: colors.neutral300, text: 'Ton colis « Lot rentrée garçon » est disponible en point relais', when: 'Hier', unread: false, open: () => router.push('/tracking/o1') },
+    { init: '+', bg: colors.accent100, text: '3 nouveaux lots en 2-4 ans près de chez toi', when: 'Lun.', unread: false, open: () => { router.back(); searchWith({ f: { ages: ['2-4 ans'] }, ftype: 'lot' }); } },
+  ];
+
+  return (
+    <Screen contentStyle={{ paddingHorizontal: 20 }}>
+      <View style={{ gap: 6, paddingTop: 4 }}>
+        <BackHeader title="Notifications" style={{ marginBottom: 8 }} />
+        {items.map((n) => (
+          <Pressable
+            key={n.text}
+            onPress={n.open}
+            style={({ pressed }) => ({ flexDirection: 'row', gap: 12, alignItems: 'flex-start', padding: 12, marginHorizontal: -12, borderRadius: 24, backgroundColor: pressed ? colors.neutral100 : 'transparent' })}
+          >
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: n.bg, alignItems: 'center', justifyContent: 'center' }}>
+              <H size={16}>{n.init}</H>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Txt size={14}>{n.text}</Txt>
+              <Txt size={12} color={colors.neutral700}>{n.when}</Txt>
+            </View>
+            {n.unread && <View style={{ width: 10, height: 10, marginTop: 6, borderRadius: 5, backgroundColor: colors.accent }} />}
+          </Pressable>
+        ))}
+      </View>
+    </Screen>
+  );
+}

@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Nidoo",
+    "slug": "nidoo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.nidoo.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#f5ead8",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.nidoo.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
+    "scheme": "nidoo",
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
