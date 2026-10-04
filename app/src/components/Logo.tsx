@@ -17,11 +17,11 @@ export function Sprig({ size = 22 }: { size?: number }) {
   );
 }
 
-/** "pimoo" wordmark in Caprasimo with the sprig tucked against the last "o". */
+/** "pimou" wordmark in Caprasimo with the sprig tucked against the last letter. */
 export function Logo({ size = 24 }: { size?: number }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-end' }} accessibilityRole="header" accessibilityLabel="pimoo">
-      <H size={size} color={colors.accent} lh={1.1}>pimoo</H>
+    <View style={{ flexDirection: 'row', alignItems: 'flex-end' }} accessibilityRole="header" accessibilityLabel="pimou">
+      <H size={size} color={colors.accent} lh={1.1}>pimou</H>
       <View style={{ marginLeft: 1, marginBottom: size * 0.28 }}>
         <Sprig size={Math.round(size * 1.05)} />
       </View>

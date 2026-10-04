@@ -12,7 +12,7 @@ import { colors } from '../theme/tokens';
 type Step = { kicker: string; title: string; text: string; tryIt?: string; Demo?: ComponentType<{ onDone: () => void }> };
 
 const STEPS: Step[] = [
-  { kicker: '1 · Ton accueil', title: 'Un flux pour chaque enfant', text: "Chaque enfant a son passeport. Pimoo te montre d'abord les vêtements à sa taille, dans ses couleurs préférées.", tryIt: 'Touche Tom pour voir son flux.', Demo: KidDemo },
+  { kicker: '1 · Ton accueil', title: 'Un flux pour chaque enfant', text: "Chaque enfant a son passeport. Pimou te montre d'abord les vêtements à sa taille, dans ses couleurs préférées.", tryIt: 'Touche Tom pour voir son flux.', Demo: KidDemo },
   { kicker: '2 · Acheter', title: 'Une pièce ou tout un lot', text: "Les lots regroupent plusieurs vêtements d'une même taille. Pratique et souvent moins cher à la pièce.", tryIt: 'Touche « Un lot » pour comparer.', Demo: LotDemo },
   { kicker: '3 · Négocier', title: 'Fais une offre', text: "C'est de la seconde main : propose ton prix. Le vendeur accepte ou te fait une contre-offre, directement dans la messagerie.", tryIt: 'Choisis un prix et regarde la réponse.', Demo: OfferDemo },
   { kicker: '4 · En confiance', title: 'Ton paiement est protégé', text: "Le vendeur n'est payé qu'une fois que tu as reçu ta commande et confirmé que tout va bien.", tryIt: 'Avance la commande étape par étape.', Demo: SafeDemo },
@@ -36,7 +36,7 @@ export default function Guide() {
   const bottom = (
     <BottomBar>
       {i > 0 && <OutlineButton label="Retour" size={16} onPress={() => go(i - 1)} />}
-      <PrimaryButton label={last ? (first ? 'Découvrir Pimoo' : 'Terminer') : 'Suivant'} onPress={() => (last ? close() : go(i + 1))} style={{ flex: 1 }} />
+      <PrimaryButton label={last ? (first ? 'Découvrir Pimou' : 'Terminer') : 'Suivant'} onPress={() => (last ? close() : go(i + 1))} style={{ flex: 1 }} />
     </BottomBar>
   );
 

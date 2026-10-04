@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "Pimoo",
-    "slug": "pimoo",
+    "name": "Pimou",
+    "slug": "pimou",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.pimoo.app"
+      "bundleIdentifier": "com.pimou.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.pimoo.app"
+      "package": "com.pimou.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -27,7 +27,7 @@
       "expo-router",
       "expo-font"
     ],
-    "scheme": "pimoo",
+    "scheme": "pimou",
     "experiments": {
       "typedRoutes": true
     }

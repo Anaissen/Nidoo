@@ -12,7 +12,7 @@ const Pill = ({ icon, label, bg, fg, small }: { icon: React.ReactNode; label: st
   </View>
 );
 
-/** "Parent vérifié": identity and phone number checked by Pimoo. */
+/** "Parent vérifié": identity and phone number checked by Pimou. */
 export const VerifiedBadge = ({ small }: { small?: boolean }) => (
   <Pill small={small} label="Parent vérifié" bg={colors.accent2_100} fg={colors.accent2_800} icon={<BadgeCheck size={small ? 12 : 14} strokeWidth={2.75} color={colors.accent2_800} />} />
 );

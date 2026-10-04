@@ -150,7 +150,7 @@ export function OfferDemo({ onDone }: DemoProps) {
 // 4 · Protected payment ─────────────────────────────────────────────────────
 
 const SAFE_STEPS = [
-  ['Tu paies', 'Ton argent est mis de côté par Pimoo'],
+  ['Tu paies', 'Ton argent est mis de côté par Pimou'],
   ['Le vendeur expédie', 'Point relais, domicile ou main propre'],
   ['Tu reçois et tu confirmes', 'Tu vérifies que tout est conforme'],
   ['Le vendeur est payé', 'Seulement maintenant'],

@@ -12,15 +12,15 @@ import { colors } from '../../theme/tokens';
 function stepsFor(del: string) {
   if (del === 'Domicile') return {
     labels: ['Commande payée', 'Colis expédié', 'En livraison', 'Reçu'],
-    subs: ['Paiement protégé par Pimoo', 'Colis pris en charge par le transporteur', 'En cours de livraison', 'Paiement versé au vendeur'],
+    subs: ['Paiement protégé par Pimou', 'Colis pris en charge par le transporteur', 'En cours de livraison', 'Paiement versé au vendeur'],
   };
   if (del === 'Main propre') return {
     labels: ['Commande payée', 'Rendez-vous accepté', 'Rendez-vous fixé', 'Remis en main propre'],
-    subs: ['Paiement protégé par Pimoo', 'Le vendeur a confirmé le rendez-vous', 'Rendez-vous samedi 10 h', 'Paiement versé au vendeur'],
+    subs: ['Paiement protégé par Pimou', 'Le vendeur a confirmé le rendez-vous', 'Rendez-vous samedi 10 h', 'Paiement versé au vendeur'],
   };
   return {
     labels: ['Commande payée', 'Colis expédié', 'Disponible en point relais', 'Récupéré'],
-    subs: ['Paiement protégé par Pimoo', 'Colis pris en charge par le transporteur', 'Relais Tabac du Parc · retrait 7 jours', 'Paiement versé au vendeur'],
+    subs: ['Paiement protégé par Pimou', 'Colis pris en charge par le transporteur', 'Relais Tabac du Parc · retrait 7 jours', 'Paiement versé au vendeur'],
   };
 }
 

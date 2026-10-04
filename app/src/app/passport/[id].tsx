@@ -47,7 +47,7 @@ export default function Passport() {
             </View>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Txt size={11} weight="bold" color={colors.ink} style={{ letterSpacing: 1.1, textTransform: 'uppercase', opacity: 0.75 }}>Passeport Pimoo</Txt>
+                <Txt size={11} weight="bold" color={colors.ink} style={{ letterSpacing: 1.1, textTransform: 'uppercase', opacity: 0.75 }}>Passeport Pimou</Txt>
                 <Sprig size={14} />
               </View>
               <H size={34} lh={1.05} color={colors.ink}>{kid.name}</H>
