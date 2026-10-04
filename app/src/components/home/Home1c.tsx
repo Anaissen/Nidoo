@@ -7,6 +7,7 @@ import { ageLabel, birthdayNote, nextSize, prevSize } from '../../lib/kids';
 import { allProducts, useStore } from '../../store/useStore';
 import { colors, GUTTER, ICON_STROKE, shadows } from '../../theme/tokens';
 import { KidAvatar } from '../KidAvatar';
+import { GrowAlertCard, WardrobeCard } from '../KidCards';
 import { Logo } from '../Logo';
 import { HeartButton, LotBadge, openProduct, ProductGrid, tonesFor } from '../products';
 import { ellipsis, H, LinkButton, PrimaryButton, Segmented, Stripes, Txt } from '../ui';
@@ -121,6 +122,9 @@ export function Home1c() {
           </Txt>
         )}
       </Pressable>
+
+      <GrowAlertCard kid={kid} />
+      <WardrobeCard kid={kid} />
 
       <View style={{ gap: 10, paddingHorizontal: GUTTER }}>
         <Segmented options={[['all', 'Tout'], ['unique', 'Pièces'], ['lot', 'Lots']]} value={homeType} onChange={(v) => set({ homeType: v })} />

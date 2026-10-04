@@ -68,7 +68,7 @@ export default function PassportEdit() {
         </View>
 
         <Field label="Prénom">
-          <TextInput value={k.name} onChangeText={(t) => patch({ name: t })} placeholder="ex. Léa" placeholderTextColor={colors.neutral600} style={input} autoCapitalize="words" />
+          <TextInput value={k.name} onChangeText={(t) => patch({ name: t })} placeholder="ex. Léa" placeholderTextColor={colors.neutral600} style={input()} autoCapitalize="words" />
         </Field>
 
         <Field label="Son avatar">
@@ -113,12 +113,12 @@ export default function PassportEdit() {
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <View style={{ flex: 1 }}>
             <Field label="Taille (cm)">
-              <TextInput value={k.heightCm ? String(k.heightCm) : ''} onChangeText={(t) => patch({ heightCm: num(t) })} keyboardType="decimal-pad" placeholder="ex. 94" placeholderTextColor={colors.neutral600} style={input} />
+              <TextInput value={k.heightCm ? String(k.heightCm) : ''} onChangeText={(t) => patch({ heightCm: num(t) })} keyboardType="decimal-pad" placeholder="ex. 94" placeholderTextColor={colors.neutral600} style={input()} />
             </Field>
           </View>
           <View style={{ flex: 1 }}>
             <Field label="Pointure">
-              <TextInput value={k.shoeSize ? String(k.shoeSize) : ''} onChangeText={(t) => patch({ shoeSize: num(t) })} keyboardType="decimal-pad" placeholder="ex. 25" placeholderTextColor={colors.neutral600} style={input} />
+              <TextInput value={k.shoeSize ? String(k.shoeSize) : ''} onChangeText={(t) => patch({ shoeSize: num(t) })} keyboardType="decimal-pad" placeholder="ex. 25" placeholderTextColor={colors.neutral600} style={input()} />
             </Field>
           </View>
         </View>
@@ -138,7 +138,7 @@ export default function PassportEdit() {
         <Field label="Petits mots" hint="Ce qu'il faut savoir : matières à éviter, coupes qu'il ou elle adore…">
           <TextInput
             value={k.notes} onChangeText={(t) => patch({ notes: t })} multiline placeholder="ex. Adore les poches, pas de laine qui gratte" placeholderTextColor={colors.neutral600}
-            style={[input, { height: undefined, minHeight: 90, borderRadius: 24, paddingTop: 14, paddingBottom: 14, textAlignVertical: 'top' }]}
+            style={[input(), { height: undefined, minHeight: 90, borderRadius: 24, paddingTop: 14, paddingBottom: 14, textAlignVertical: 'top' }]}
           />
         </Field>
 
@@ -156,10 +156,10 @@ export default function PassportEdit() {
   );
 }
 
-const input = {
+const input = () => ({
   height: 50, borderRadius: 999, borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.neutral100,
   paddingHorizontal: 18, fontFamily: fonts.body, fontSize: 15, color: colors.text, outlineWidth: 0,
-} as const;
+} as const);
 
 const Field = ({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) => (
   <View style={{ gap: 10 }}>

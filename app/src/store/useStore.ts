@@ -3,13 +3,16 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import {
-  DEFAULT_COMMISSION, DeliveryId, DELIVERY, MY_PAST_LISTINGS, PRICES, Product, PRODUCTS, SELLERS,
+  DEFAULT_COMMISSION, DeliveryId, DELIVERY, DISTANCES, MY_PAST_LISTINGS, PRICES, Product, PRODUCTS, SELLERS,
+  WARDROBE_TEMPLATES, WardrobeLine,
 } from '../data/catalog';
 import { fmt } from '../lib/format';
 import { DEMO_KIDS, Kid } from '../lib/kids';
 
 export type TypeFilter = 'all' | 'unique' | 'lot';
-export type FilterKey = 'ages' | 'genders' | 'seasons' | 'brands' | 'conds' | 'colors' | 'price';
+export type FilterKey = 'ages' | 'genders' | 'seasons' | 'brands' | 'conds' | 'colors' | 'price' | 'distance';
+export type ThemeMode = 'auto' | 'light' | 'dark';
+export type Wardrobe = { season: keyof typeof WARDROBE_TEMPLATES; lines: WardrobeLine[] };
 export type Filters = Record<FilterKey, string[]>;
 
 /** A chat message; `offer` turns it into a price-offer card. */
@@ -18,9 +21,19 @@ export type Msg = { me: boolean; t: string; offer?: { amount: number; kind: 'off
 export type Offer = { amount: number; status: 'pending' | 'countered' | 'accepted'; counter?: number; cid: string };
 export type Chat = { sid: string; pid: number; when: string; unread: boolean; msgs: Msg[] };
 // status: 0 payée · 1 expédiée · 2 en relais / rdv fixé · 3 reçue
-export type Order = { id: string; pid: number; status: number; del: string; rating?: number; buyer?: string; price?: number };
+export type Order = { id: string; pid: number; status: number; del: string; rating?: number; buyer?: string; price?: number; washedOk?: boolean };
 
-export const emptyFilters = (): Filters => ({ ages: [], genders: [], seasons: [], brands: [], conds: [], colors: [], price: [] });
+export const emptyFilters = (): Filters => ({ ages: [], genders: [], seasons: [], brands: [], conds: [], colors: [], price: [], distance: [] });
+
+/** Season to prepare for: from August the autumn-winter list, from February spring-summer. */
+export const currentWardrobeSeason = (now = new Date()): Wardrobe['season'] => {
+  const m = now.getMonth() + 1;
+  return m >= 8 || m <= 1 ? 'hiver' : 'ete';
+};
+/** Season starter list (used as-is for display until the parent edits it). */
+export const newWardrobe = (season = currentWardrobeSeason()): Wardrobe => {
+  return { season, lines: WARDROBE_TEMPLATES[season].lines.map((l) => ({ ...l, got: 0 })) };
+};
 
 type State = {
   // persisted settings
@@ -28,6 +41,12 @@ type State = {
   commission: number;
   kids: Kid[];
   activeKidId: string | null;
+  theme: ThemeMode;
+  textScale: number;
+  meVerified: boolean;
+  wardrobes: Record<string, Wardrobe>;
+  /** Screen to come back to after the app re-renders for a theme / text-size change. */
+  returnTo: string | null;
 
   homeType: TypeFilter;
   favs: number[];
@@ -61,13 +80,20 @@ type Actions = {
   /** Reset search to the given filters (used by home shortcuts). Caller navigates to the search tab. */
   searchWith: (patch: { f?: Partial<Filters>; ftype?: TypeFilter }) => void;
   saveKid: (k: Kid) => void;
+  /** Garde-robe of a child, created from the season template on first use. */
+  wardrobeFor: (kidId: string) => Wardrobe;
+  setWardrobeGot: (kidId: string, lineId: string, got: number) => void;
+  addWardrobeLine: (kidId: string, label: string) => void;
+  removeWardrobeLine: (kidId: string, lineId: string) => void;
+  resetWardrobe: (kidId: string, season?: Wardrobe['season']) => void;
   removeKid: (id: string) => void;
   /** Send a price offer to the seller; returns the conversation id. */
   makeOffer: (pid: number, amount: number) => string;
   acceptCounter: (pid: number) => void;
   toggleFollow: (sid: string) => void;
   publish: (p: Omit<Product, 'id'>) => number;
-  placeOrder: () => string;
+  /** Returns the new order id and how many wardrobe lines got ticked. */
+  placeOrder: () => { oid: string; ticked: number };
   /** Returns the conversation id for this seller/article, creating it if needed. */
   openChatFor: (sid: string, pid: number | null) => string;
   markRead: (cid: string) => void;
@@ -87,6 +113,11 @@ export const useStore = create<State & Actions>()(
       commission: DEFAULT_COMMISSION,
       kids: DEMO_KIDS,
       activeKidId: DEMO_KIDS[0].id,
+      theme: 'auto',
+      textScale: 1,
+      meVerified: false,
+      wardrobes: {},
+      returnTo: null,
 
       homeType: 'all',
       favs: [2, 7],
@@ -102,7 +133,7 @@ export const useStore = create<State & Actions>()(
       chats: {
         c1: { sid: 's2', pid: 2, when: '10:42', unread: true, msgs: [{ me: true, t: 'Bonjour, la robe taille plutôt grand ?' }, { me: false, t: "Bonjour ! Plutôt normal, ma fille l'a portée à 3 ans." }] },
         c2: { sid: 's1', pid: 1, when: 'Hier', unread: false, msgs: [{ me: true, t: 'Est-ce que les bodies sont sans taches ?' }, { me: false, t: 'Oui, tout a été lavé et vérifié.' }, { me: true, t: 'Super, merci !' }] },
-        c3: { sid: 's3', pid: 3, when: 'Lun.', unread: true, msgs: [{ me: false, t: 'Je peux vous le remettre en main propre samedi si vous êtes sur Bordeaux.' }] },
+        c3: { sid: 's3', pid: 3, when: 'Lun.', unread: true, msgs: [{ me: false, t: 'Je peux vous le remettre en main propre samedi si vous êtes vers Montreuil.' }] },
       },
       offers: {},
       typingCid: null,
@@ -137,6 +168,29 @@ export const useStore = create<State & Actions>()(
         kids: s.kids.some((x) => x.id === k.id) ? s.kids.map((x) => (x.id === k.id ? k : x)) : [...s.kids, k],
         activeKidId: s.activeKidId ?? k.id,
       })),
+      wardrobeFor: (kidId) => {
+        const w = get().wardrobes[kidId];
+        if (w) return w;
+        const fresh = newWardrobe();
+        set((s) => ({ wardrobes: { ...s.wardrobes, [kidId]: fresh } }));
+        return fresh;
+      },
+      setWardrobeGot: (kidId, lineId, got) => {
+        const w = get().wardrobeFor(kidId);
+        set((s) => ({ wardrobes: { ...s.wardrobes, [kidId]: { ...w, lines: w.lines.map((l) => (l.id === lineId ? { ...l, got: Math.max(0, Math.min(l.need, got)) } : l)) } } }));
+      },
+      addWardrobeLine: (kidId, label) => {
+        const w = get().wardrobeFor(kidId);
+        const t = label.trim();
+        if (!t) return;
+        const line = { id: 'l' + Date.now(), label: t, kw: t.toLowerCase().split(' ')[0], need: 1, got: 0 };
+        set((s) => ({ wardrobes: { ...s.wardrobes, [kidId]: { ...w, lines: [...w.lines, line] } } }));
+      },
+      removeWardrobeLine: (kidId, lineId) => {
+        const w = get().wardrobeFor(kidId);
+        set((s) => ({ wardrobes: { ...s.wardrobes, [kidId]: { ...w, lines: w.lines.filter((l) => l.id !== lineId) } } }));
+      },
+      resetWardrobe: (kidId, season) => set((s) => ({ wardrobes: { ...s.wardrobes, [kidId]: newWardrobe(season) } })),
       removeKid: (id) => set((s) => {
         const kids = s.kids.filter((k) => k.id !== id);
         return { kids, activeKidId: s.activeKidId === id ? kids[0]?.id ?? null : s.activeKidId };
@@ -182,8 +236,22 @@ export const useStore = create<State & Actions>()(
         const newOrders = s.cart.map((pid, i) => ({ id: `o${stamp}${i}`, pid, status: 0, del: delName, rating: 0, price: effectivePrice(s, pid) }));
         const offers = { ...s.offers };
         s.cart.forEach((pid) => delete offers[pid]);
-        set({ purchases: [...newOrders, ...s.purchases], cart: [], offers, lastOrderId: newOrders[0]?.id ?? null });
-        return newOrders[0]?.id ?? '';
+        // Tick the active child's garde-robe with what was just bought.
+        let ticked = 0;
+        const wardrobes = { ...s.wardrobes };
+        const kid = s.kids.find((k) => k.id === s.activeKidId);
+        const w = kid && s.wardrobes[kid.id];
+        if (kid && w) {
+          const lines = w.lines.map((l) => {
+            const found = s.cart.reduce((n, pid) => n + piecesMatching(productById(s.mine, pid), l.kw), 0);
+            const got = Math.min(l.need, l.got + found);
+            if (got > l.got) ticked++;
+            return { ...l, got };
+          });
+          wardrobes[kid.id] = { ...w, lines };
+        }
+        set({ purchases: [...newOrders, ...s.purchases], cart: [], offers, wardrobes, lastOrderId: newOrders[0]?.id ?? null });
+        return { oid: newOrders[0]?.id ?? '', ticked };
       },
       openChatFor: (sid, pid) => {
         const s = get();
@@ -223,14 +291,20 @@ export const useStore = create<State & Actions>()(
     }),
     {
       name: 'nidoo-settings',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => AsyncStorage),
       // v1 stored a home variant and bare ages; v2 keeps the children's passports instead.
-      migrate: (old) => {
-        const o = (old ?? {}) as { onboarded?: boolean; commission?: number };
-        return { onboarded: !!o.onboarded, commission: o.commission ?? DEFAULT_COMMISSION, kids: DEMO_KIDS, activeKidId: DEMO_KIDS[0].id } as Partial<State & Actions>;
+      migrate: (old, version) => {
+        const o = (old ?? {}) as Partial<State>;
+        const base = version < 2
+          ? { onboarded: !!o.onboarded, commission: o.commission ?? DEFAULT_COMMISSION, kids: DEMO_KIDS, activeKidId: DEMO_KIDS[0].id }
+          : o;
+        return { theme: 'auto', textScale: 1, meVerified: false, wardrobes: {}, ...base } as Partial<State & Actions>;
       },
-      partialize: (s) => ({ onboarded: s.onboarded, commission: s.commission, kids: s.kids, activeKidId: s.activeKidId }),
+      partialize: (s) => ({
+        onboarded: s.onboarded, commission: s.commission, kids: s.kids, activeKidId: s.activeKidId,
+        theme: s.theme, textScale: s.textScale, meVerified: s.meVerified, wardrobes: s.wardrobes,
+      }),
     },
   ),
 );
@@ -260,6 +334,7 @@ export const filterProducts = (s: Pick<State, 'mine' | 'f' | 'q' | 'ftype'>) => 
     (!f.brands.length || f.brands.includes(p.brand)) &&
     (!f.conds.length || f.conds.includes(p.condition)) &&
     (!f.colors.length || f.colors.includes(p.color)) &&
+    (!f.distance.length || f.distance.some((l) => SELLERS[p.sid].distanceKm <= DISTANCES.find((d) => d.l === l)!.km)) &&
     (!f.price.length || f.price.some((l) => {
       const r = PRICES.find((x) => x.l === l)!;
       return p.price >= r.min && p.price < r.max;
@@ -275,3 +350,32 @@ export const effectivePrice = (s: Pick<State, 'offers' | 'mine'>, pid: number) =
 };
 
 export const isNegotiable = (p: Product) => p.negotiable !== false && p.sid !== 'me';
+
+/** How many pieces of a product match a wardrobe keyword (a lot counts its matching contents). */
+function piecesMatching(p: Product | undefined, kw: string) {
+  if (!p) return 0;
+  const k = kw.toLowerCase();
+  if (p.type === 'lot') {
+    const n = (p.contents ?? []).filter((c) => c.n.toLowerCase().includes(k)).reduce((a, c) => a + c.q, 0);
+    return n || (p.title.toLowerCase().includes(k) ? 1 : 0);
+  }
+  return p.title.toLowerCase().includes(k) ? 1 : 0;
+}
+
+/** Pieces given a second life through the user's purchases and sales (a lot counts each piece). */
+export function impactStats(s: Pick<State, 'purchases' | 'sales' | 'mine'>) {
+  const pieces = [...s.purchases, ...s.sales].reduce((n, o) => {
+    const p = productById(s.mine, o.pid);
+    return n + (p?.type === 'lot' ? p.count ?? 1 : 1);
+  }, 0);
+  // Rough averages for a child's garment bought second hand instead of new.
+  return { pieces, co2Kg: pieces * IMPACT_PER_PIECE.co2Kg, waterL: pieces * IMPACT_PER_PIECE.waterL };
+}
+
+export const IMPACT_PER_PIECE = { co2Kg: 5, waterL: 1500 };
+
+/** Seller as shown to others: the user's own badge follows their verification. */
+export const sellerView = (s: Pick<State, 'meVerified'>, id: string | undefined) => {
+  const seller = sellerById(id);
+  return seller && seller.id === 'me' ? { ...seller, verified: s.meVerified } : seller;
+};

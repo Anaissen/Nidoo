@@ -4,7 +4,7 @@ import { Pressable, View } from 'react-native';
 
 import { Thumb } from '../../components/products';
 import { BackHeader, Screen } from '../../components/Screen';
-import { ellipsis, H, PrimaryButton, Txt } from '../../components/ui';
+import { ellipsis, H, OutlineButton, PrimaryButton, Txt } from '../../components/ui';
 import { fmt } from '../../lib/format';
 import { commissionRate, productById, sellerById, useStore } from '../../store/useStore';
 import { colors } from '../../theme/tokens';
@@ -81,6 +81,16 @@ export default function Tracking() {
 
         {canConfirm && <PrimaryButton label="J'ai bien reçu le colis" onPress={() => { updateOrder(o.id, { status: 3 }); showToast('Merci ! Le vendeur reçoit son paiement.'); }} />}
         {canShip && <PrimaryButton label="Imprimer le bordereau" onPress={() => { updateOrder(o.id, { status: 1 }); showToast('Bordereau envoyé par e-mail'); }} />}
+        {canRate && p.washed && o.washedOk === undefined && (
+          <View style={{ padding: 18, borderRadius: 28, backgroundColor: colors.accent100, gap: 10 }}>
+            <H size={18}>Le colis était-il lavé et plié ?</H>
+            <Txt size={13} color={colors.accent800}>{seller.name} l'a promis sur l'annonce. Ta réponse aide les autres parents.</Txt>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <PrimaryButton label="Oui 👍" height={44} size={15} onPress={() => { updateOrder(o.id, { washedOk: true }); showToast('Merci, badge confirmé !'); }} style={{ flex: 1 }} />
+              <OutlineButton label="Pas vraiment" height={44} size={15} onPress={() => { updateOrder(o.id, { washedOk: false }); showToast('Merci, on le signale au vendeur'); }} style={{ flex: 1 }} />
+            </View>
+          </View>
+        )}
         {canRate && (
           <View style={{ padding: 18, borderRadius: 28, backgroundColor: colors.surface, alignItems: 'center', gap: 10 }}>
             <H size={18}>Note {seller.name}</H>

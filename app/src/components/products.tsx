@@ -88,4 +88,3 @@ export const Thumb = ({ p, size, radius }: { p: Product; size: number; radius: n
   <Stripes tones={tonesFor(p)} style={{ width: size, height: size, borderRadius: radius }} />
 );
 
-export const softShadow = { boxShadow: shadows.sm } as const;

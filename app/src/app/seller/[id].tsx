@@ -2,11 +2,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
+import { DistancePill, VerifiedBadge, WashedBadge } from '../../components/Badges';
 import { ProductGrid, ProductTile } from '../../components/products';
 import { BackButton, Screen } from '../../components/Screen';
 import { Avatar, H, Segmented, Txt } from '../../components/ui';
 import { REVIEWS } from '../../data/catalog';
-import { allProducts, myListings, sellerById, useStore } from '../../store/useStore';
+import { allProducts, myListings, sellerView, useStore } from '../../store/useStore';
 import { colors, GUTTER } from '../../theme/tokens';
 
 export default function SellerScreen() {
@@ -17,7 +18,8 @@ export default function SellerScreen() {
   const toggleFollow = useStore((s) => s.toggleFollow);
   const openChatFor = useStore((s) => s.openChatFor);
 
-  const sel = sellerById(id);
+  const meVerified = useStore((s) => s.meVerified);
+  const sel = sellerView({ meVerified }, id);
   if (!sel) return <Screen><Txt style={{ padding: GUTTER }}>Vendeur introuvable.</Txt></Screen>;
   const isMe = id === 'me';
   const items = isMe ? myListings(mine) : allProducts(mine).filter((p) => p.sid === id);
@@ -34,6 +36,10 @@ export default function SellerScreen() {
           <View style={{ gap: 2, flex: 1 }}>
             <H size={26}>{sel.name}</H>
             <Txt size={14} color={colors.neutral700}>{sel.city} · membre depuis {sel.since}</Txt>
+            <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+              {sel.verified && <VerifiedBadge small />}
+              {!isMe && <DistancePill seller={sel} small />}
+            </View>
           </View>
         </View>
 
@@ -45,6 +51,13 @@ export default function SellerScreen() {
             </View>
           ))}
         </View>
+
+        {sel.washedConfirms > 0 && (
+          <View style={{ marginHorizontal: GUTTER, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 22, backgroundColor: colors.accent100 }}>
+            <WashedBadge />
+            <Txt size={13} color={colors.accent800} style={{ flex: 1 }}>Confirmé par {sel.washedConfirms} acheteurs à la réception</Txt>
+          </View>
+        )}
 
         {!isMe && (
           <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: GUTTER }}>

@@ -71,3 +71,18 @@ export function birthdayNote(k: Kid, now = new Date()) {
 }
 
 export const birthLabel = (k: Kid) => `${MONTHS_LONG[k.birthMonth - 1]} ${k.birthYear}`;
+
+// Age (in months) at which each size bucket starts, aligned with AGES.
+const SIZE_START = [0, 6, 12, 24, 48, 72, 96];
+/** Within this many months of the next size, Nidoo nudges the parent ("Il grandit"). */
+export const GROW_ALERT_MONTHS = 3;
+
+/** "Il grandit": the size coming up soon, or null when it's not close yet. */
+export function growthAlert(k: Kid) {
+  const i = idx(k.size);
+  if (i < 0 || i >= AGES.length - 1) return null;
+  const months = SIZE_START[i + 1] - ageInMonths(k);
+  if (months > GROW_ALERT_MONTHS) return null;
+  const when = months <= 0 ? 'a déjà l\'âge du' : months === 1 ? 'passe le mois prochain au' : `passe dans ${months} mois au`;
+  return { next: AGES[i + 1], months, text: `${k.name} ${when} ${AGES[i + 1]}` };
+}

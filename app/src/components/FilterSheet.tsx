@@ -2,7 +2,7 @@ import { X } from 'lucide-react-native';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AGES, COLORS, CONDS, GENDERS, PRICES, PRODUCTS, SEASONS } from '../data/catalog';
+import { AGES, COLORS, CONDS, DISTANCES, GENDERS, PRICES, PRODUCTS, SEASONS } from '../data/catalog';
 import { FilterKey, filterProducts, useStore } from '../store/useStore';
 import { colors, GUTTER, ICON_STROKE, shadows } from '../theme/tokens';
 import { Chip, CircleButton, H, OutlineButton, PrimaryButton, Txt } from './ui';
@@ -11,6 +11,7 @@ const BRANDS = [...new Set(PRODUCTS.map((p) => p.brand))].sort();
 
 const GROUPS: { title: string; key: FilterKey; opts: string[]; dots?: boolean }[] = [
   { title: 'Âge / taille', key: 'ages', opts: [...AGES] },
+  { title: 'Près de chez moi (main propre)', key: 'distance', opts: DISTANCES.map((d) => d.l) },
   { title: 'Pour', key: 'genders', opts: [...GENDERS] },
   { title: 'Saison', key: 'seasons', opts: [...SEASONS] },
   { title: 'État', key: 'conds', opts: [...CONDS] },

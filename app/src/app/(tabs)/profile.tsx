@@ -2,14 +2,16 @@ import { Href, router } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 
+import { VerifiedBadge } from '../../components/Badges';
 import { Screen } from '../../components/Screen';
 import { Avatar, H, Txt } from '../../components/ui';
-import { fmt } from '../../lib/format';
-import { myListings, useStore } from '../../store/useStore';
+import { fmt, fmtInt } from '../../lib/format';
+import { impactStats, myListings, useStore } from '../../store/useStore';
 import { colors, ICON_STROKE } from '../../theme/tokens';
 
 export default function Profile() {
   const s = useStore();
+  const impact = impactStats(s);
 
   const rows: { label: string; meta: string; href: Href }[] = [
     { label: 'Mes achats', meta: String(s.purchases.length), href: '/orders?tab=achats' },
@@ -18,8 +20,10 @@ export default function Profile() {
     { label: 'Passeports de mes enfants', meta: s.kids.map((k) => k.name).join(', ') || '—', href: '/kids' },
     { label: 'Notifications', meta: '2 nouvelles', href: '/notifications' },
     { label: 'Mon dressing public', meta: `${myListings(s.mine).length} annonces`, href: '/seller/me' },
+    { label: 'Mon impact', meta: `${impact.pieces} vêtements`, href: '/impact' },
     { label: 'Comment ça marche', meta: 'Guide', href: '/guide' },
-    { label: 'Réglages', meta: `Commission ${s.commission} %`, href: '/settings' },
+    { label: 'Guide des états', meta: 'Neuf, très bon…', href: '/conditions' },
+    { label: 'Réglages', meta: s.meVerified ? 'Affichage, compte' : 'Vérifier mon compte', href: '/settings' },
   ];
 
   return (
@@ -27,11 +31,21 @@ export default function Profile() {
       <View style={{ gap: 18, paddingTop: 4 }}>
         <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
           <Avatar init="É" size={76} bg={colors.accent300} font={30} />
-          <View>
+          <View style={{ gap: 4 }}>
             <H size={26}>Élodie</H>
             <Txt size={14} color={colors.neutral700}>Paris 11e · ★ 4,9 (12 avis)</Txt>
+            {s.meVerified && <VerifiedBadge small />}
           </View>
         </View>
+
+        <Pressable onPress={() => router.push('/impact')} style={({ pressed }) => ({ padding: 18, borderRadius: 28, backgroundColor: colors.accent2_100, flexDirection: 'row', alignItems: 'center', gap: 14, transform: [{ scale: pressed ? 0.98 : 1 }] })}>
+          <Txt size={34} lh={1.15}>🌱</Txt>
+          <View style={{ flex: 1 }}>
+            <H size={20} color={colors.accent2_800}>{impact.pieces} vêtements sauvés</H>
+            <Txt size={13} color={colors.accent2_800}>≈ {fmtInt(impact.co2Kg)} kg de CO₂ et {fmtInt(impact.waterL)} L d'eau économisés</Txt>
+          </View>
+          <ChevronRight size={18} strokeWidth={ICON_STROKE} color={colors.accent2_800} />
+        </Pressable>
 
         <View style={{ padding: 20, borderRadius: 32, backgroundColor: colors.accent2_500, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View>

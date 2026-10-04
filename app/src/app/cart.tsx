@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { ShoppingBag, X } from 'lucide-react-native';
+import { BadgeCheck, ShoppingBag, X } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 
 import { openProduct, Thumb, typeLabel } from '../components/products';
@@ -28,6 +28,7 @@ export default function Cart() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <Avatar init={g.seller.init} size={32} font={14} />
               <Txt size={14} weight="bold">{g.seller.name}</Txt>
+              {g.seller.verified && <BadgeCheck size={16} strokeWidth={2.75} color={colors.accent2_700} accessibilityLabel="Parent vérifié" />}
               <Txt size={12} color={colors.neutral700} style={{ marginLeft: 'auto' }}>1 colis</Txt>
             </View>
             {g.items.map((p) => (

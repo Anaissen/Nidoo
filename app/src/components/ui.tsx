@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import Svg, { Defs, Pattern, Rect } from 'react-native-svg';
 
-import { colors, fonts, shadows } from '../theme/tokens';
+import { colors, fonts, shadows, typeScale } from '../theme/tokens';
 
 // ─── Text ────────────────────────────────────────────────────────────────────
 
@@ -14,12 +14,17 @@ const family: Record<Weight, string> = { regular: fonts.body, semi: fonts.bodySe
 export type TxtProps = TextProps & { size?: number; weight?: Weight; color?: string; lh?: number };
 
 /** Body text in Figtree; `weight="heading"` switches to Caprasimo. Line-height defaults to the prototype's 1.45. */
-export function Txt({ size = 15, weight = 'regular', color = colors.text, lh, style, ...rest }: TxtProps) {
+export function Txt({ size: base = 15, weight = 'regular', color, lh, style, ...rest }: TxtProps) {
+  // `typeScale` is the in-app "Taille du texte" setting, on top of the phone's own font size.
+  const size = base * typeScale.value;
   const lineHeight = Math.round(size * (lh ?? (weight === 'heading' ? 1.12 : 1.45)));
-  return <Text {...rest} style={[{ fontFamily: family[weight], fontSize: size, lineHeight, color }, style]} />;
+  return <Text {...rest} style={[{ fontFamily: family[weight], fontSize: size, lineHeight, color: color ?? colors.text }, style]} />;
 }
 
 export const H = (p: TxtProps) => <Txt weight="heading" {...p} style={[{ letterSpacing: -0.015 * (p.size ?? 15) }, p.style]} />;
+
+// Placeholder stripes stay pastel in dark mode, so their label keeps a fixed dark tone.
+const PLACEHOLDER_INK = '#645c50';
 
 export const monoFont = Platform.select({ ios: 'Menlo', default: 'monospace' });
 
@@ -49,7 +54,7 @@ export function PrimaryButton({ label, height = 54, size = 17, style, disabledLo
         s.pill, { height, backgroundColor: pressed ? colors.accent700 : hovered ? colors.accent600 : colors.accent, opacity: disabledLook ? 0.45 : 1 }, style,
       ]}
     >
-      <H size={size} color={colors.bg} numberOfLines={1}>{label}</H>
+      <H size={size} color={colors.bg} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{label}</H>
     </Pressable>
   );
 }
@@ -58,7 +63,7 @@ export function PrimaryButton({ label, height = 54, size = 17, style, disabledLo
 export function OutlineButton({ label, height = 54, size = 17, style, ...rest }: BtnProps & { label: string; height?: number; size?: number }) {
   return (
     <Pressable {...rest} style={({ pressed }) => [s.pill, { height, borderWidth: 1, borderColor: colors.divider, backgroundColor: pressed ? colors.neutral200 : 'transparent' }, style]}>
-      <H size={size} numberOfLines={1}>{label}</H>
+      <H size={size} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{label}</H>
     </Pressable>
   );
 }
@@ -87,11 +92,11 @@ export function Segmented<T extends string>({ options, value, onChange, height =
   options: [T, string][]; value: T; onChange: (v: T) => void; height?: number; size?: number; style?: StyleProp<ViewStyle>;
 }) {
   return (
-    <View style={[s.segTrack, style]}>
+    <View style={[s.segTrack, { backgroundColor: colors.surface }, style]}>
       {options.map(([v, l]) => {
         const on = v === value;
         return (
-          <Pressable key={v} onPress={() => onChange(v)} style={[s.segOpt, { height }, on && { backgroundColor: colors.neutral100, boxShadow: shadows.sm }]}>
+          <Pressable key={v} onPress={() => onChange(v)} style={[s.segOpt, { height }, on && { backgroundColor: colors.raised, boxShadow: shadows.sm }]}>
             <Txt size={size} weight="semi" numberOfLines={1}>{l}</Txt>
           </Pressable>
         );
@@ -141,7 +146,7 @@ export function Stripes({ tones, style, children, label, labelPos = { left: 12, 
         <Rect x={0} y={0} width="100%" height="100%" fill={`url(#${id})`} />
       </Svg>
       {label ? (
-        <Text style={{ position: 'absolute', ...labelPos, fontFamily: monoFont, fontSize: labelSize, fontWeight: '500', color: colors.neutral700 }}>{label}</Text>
+        <Text style={{ position: 'absolute', ...labelPos, fontFamily: monoFont, fontSize: labelSize, fontWeight: '500', color: PLACEHOLDER_INK }}>{label}</Text>
       ) : null}
       {children}
     </View>
@@ -160,13 +165,9 @@ export function Card({ style, children, bg = colors.surface, radius = 28, pad = 
 
 export const ellipsis: Partial<TextProps> = { numberOfLines: 1, ellipsizeMode: 'tail' };
 
-export const textStyles = StyleSheet.create({
-  muted: { color: colors.neutral700 } as TextStyle,
-});
-
 const s = StyleSheet.create({
   pill: { borderRadius: 999, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 22 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, borderRadius: 999 },
-  segTrack: { flexDirection: 'row', padding: 4, borderRadius: 999, backgroundColor: colors.surface },
+  segTrack: { flexDirection: 'row', padding: 4, borderRadius: 999 },
   segOpt: { flex: 1, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
 });

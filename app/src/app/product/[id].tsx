@@ -1,14 +1,16 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronRight, HandCoins, Layers, MessageCircle, ShieldCheck, Truck } from 'lucide-react-native';
+import { ChevronRight, HandCoins, Handshake, Layers, MessageCircle, ShieldCheck, Truck } from 'lucide-react-native';
 import { useState } from 'react';
 import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 
+import { DistancePill, formatKm, VerifiedBadge, WashedBadge } from '../../components/Badges';
 import { OfferSheet } from '../../components/OfferSheet';
 import { HeartButton, openProduct, perPiece, tonesFor } from '../../components/products';
 import { BackButton, BottomBar, Screen } from '../../components/Screen';
 import { Avatar, ellipsis, H, OutlineButton, PrimaryButton, Stripes, Tag, Txt } from '../../components/ui';
+import { HANDOVER_MAX_KM } from '../../data/catalog';
 import { fmt } from '../../lib/format';
-import { allProducts, isNegotiable, productById, sellerById, useStore } from '../../store/useStore';
+import { allProducts, isNegotiable, productById, sellerView, useStore } from '../../store/useStore';
 import { colors, GUTTER, ICON_STROKE } from '../../theme/tokens';
 
 export default function ProductScreen() {
@@ -19,6 +21,7 @@ export default function ProductScreen() {
   const openChatFor = useStore((s) => s.openChatFor);
   const showToast = useStore((s) => s.showToast);
   const offer = useStore((s) => s.offers[Number(id)]);
+  const meVerified = useStore((s) => s.meVerified);
   const acceptCounter = useStore((s) => s.acceptCounter);
   const [offerOpen, setOfferOpen] = useState(false);
   const { width } = useWindowDimensions();
@@ -27,7 +30,8 @@ export default function ProductScreen() {
   const p = productById(mine, Number(id));
   if (!p) return <Screen><Txt style={{ padding: GUTTER }}>Annonce introuvable.</Txt></Screen>;
 
-  const seller = sellerById(p.sid)!;
+  const seller = sellerView({ meVerified }, p.sid)!;
+  const nearby = seller.distanceKm <= HANDOVER_MAX_KM;
   const isLot = p.type === 'lot';
   const isMine = p.sid === 'me';
   const negotiable = isNegotiable(p);
@@ -116,7 +120,10 @@ export default function ProductScreen() {
             {isLot
               ? <Tag label={`Lot de ${p.count} pièces`} bg={colors.text} fg={colors.bg} size={12} style={{ paddingHorizontal: 12 }} />
               : <Tag label="Pièce unique" bg={colors.accent100} fg={colors.accent800} size={12} style={{ paddingHorizontal: 12 }} />}
-            <Tag label={p.condition} bg={colors.accent2_100} fg={colors.accent2_800} size={12} weight="semi" style={{ paddingHorizontal: 12 }} />
+            <Pressable onPress={() => router.push(`/conditions?focus=${encodeURIComponent(p.condition)}`)} accessibilityHint="Ouvre le guide des états">
+              <Tag label={`${p.condition}  ⓘ`} bg={colors.accent2_100} fg={colors.accent2_800} size={12} weight="semi" style={{ paddingHorizontal: 12 }} />
+            </Pressable>
+            {p.washed && <WashedBadge />}
           </View>
           <H size={26}>{p.title}</H>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
@@ -181,6 +188,12 @@ export default function ProductScreen() {
           <View style={{ flex: 1 }}>
             <Txt weight="bold">{seller.name}</Txt>
             <Txt size={13} color={colors.neutral700}>★ {seller.rating} · {seller.reviews} avis · {seller.city}</Txt>
+            {(seller.verified || !isMine) && (
+              <View style={{ flexDirection: 'row', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                {seller.verified && <VerifiedBadge small />}
+                {!isMine && <DistancePill seller={seller} small />}
+              </View>
+            )}
           </View>
           <ChevronRight size={20} strokeWidth={ICON_STROKE} color={colors.text} />
         </Pressable>
@@ -192,8 +205,16 @@ export default function ProductScreen() {
           </View>
           <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
             <Truck size={20} strokeWidth={ICON_STROKE} color={colors.accent2_700} />
-            <Txt size={14} style={{ flex: 1 }}>Point relais 3,90 € · Domicile 5,90 € · Main propre</Txt>
+            <Txt size={14} style={{ flex: 1 }}>Point relais 3,90 € · Domicile 5,90 €{nearby ? ' · Main propre' : ''}</Txt>
           </View>
+          {!isMine && (
+            <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+              <Handshake size={20} strokeWidth={ICON_STROKE} color={colors.accent2_700} />
+              <Txt size={14} style={{ flex: 1 }}>
+                {nearby ? `Remise en main propre possible, à ${formatKm(seller.distanceKm)} de chez toi` : `Trop loin pour une remise en main propre (${formatKm(seller.distanceKm)})`}
+              </Txt>
+            </View>
+          )}
         </View>
 
         {similar.length > 0 && (

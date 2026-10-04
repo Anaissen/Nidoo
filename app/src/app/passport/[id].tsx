@@ -4,6 +4,7 @@ import { View } from 'react-native';
 
 import { ColorDot } from '../../components/FilterSheet';
 import { KidAvatar } from '../../components/KidAvatar';
+import { GrowAlertCard, WardrobeCard } from '../../components/KidCards';
 import { Sprig } from '../../components/Logo';
 import { BackButton, Screen } from '../../components/Screen';
 import { CircleButton, H, OutlineButton, PrimaryButton, Tag, Txt } from '../../components/ui';
@@ -46,10 +47,10 @@ export default function Passport() {
             </View>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Txt size={11} weight="bold" color={colors.neutral800} style={{ letterSpacing: 1.1, textTransform: 'uppercase' }}>Passeport Nidoo</Txt>
+                <Txt size={11} weight="bold" color={colors.ink} style={{ letterSpacing: 1.1, textTransform: 'uppercase', opacity: 0.75 }}>Passeport Nidoo</Txt>
                 <Sprig size={14} />
               </View>
-              <H size={34} lh={1.05}>{kid.name}</H>
+              <H size={34} lh={1.05} color={colors.ink}>{kid.name}</H>
             </View>
           </View>
 
@@ -93,6 +94,9 @@ export default function Passport() {
             )}
           </View>
         </View>
+
+        <GrowAlertCard kid={kid} inset={false} />
+        <WardrobeCard kid={kid} inset={false} />
 
         {birthday && (
           <View style={{ padding: 16, borderRadius: 24, backgroundColor: colors.accent2_100 }}>

@@ -5,7 +5,7 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 
 import { OptionCard } from '../components/OptionCard';
 import { BottomBar, Screen } from '../components/Screen';
-import { Chip, CircleButton, H, monoFont, OutlineButton, PrimaryButton, Stripes, Txt } from '../components/ui';
+import { Chip, CircleButton, H, LinkButton, monoFont, OutlineButton, PrimaryButton, Stripes, Txt } from '../components/ui';
 import { AGES, CONDS, DeliveryId, GENDERS, ListingType, SEASONS, SELL_DELIVERY } from '../data/catalog';
 import { fmt } from '../lib/format';
 import { commissionRate, useStore } from '../store/useStore';
@@ -13,13 +13,13 @@ import { colors, fonts, ICON_STROKE } from '../theme/tokens';
 
 type Draft = {
   step: number; type: ListingType | null; photos: number; title: string; age: string | null; gender: string;
-  season: string | null; brand: string; cond: string | null; count: number; contents: string; price: string; negotiable: boolean;
+  season: string | null; brand: string; cond: string | null; count: number; contents: string; price: string; negotiable: boolean; washed: boolean;
   d: Record<DeliveryId, boolean>;
 };
 
 const blank = (type: ListingType | null): Draft => ({
   step: type ? 1 : 0, type, photos: 0, title: '', age: null, gender: 'Mixte', season: null, brand: '', cond: null,
-  count: 5, contents: '', price: '', negotiable: true, d: { relais: true, domicile: false, main: true },
+  count: 5, contents: '', price: '', negotiable: true, washed: true, d: { relais: true, domicile: false, main: true },
 });
 
 const ERRORS = ["Choisis un type d'annonce", 'Ajoute au moins une photo', "Ajoute un titre, un âge et l'état", 'Indique un prix et un mode de livraison'];
@@ -51,7 +51,7 @@ export default function Sell() {
     const id = publish({
       type: d.type!, title: d.title.trim(), brand: d.brand.trim() || 'Sans marque', age: d.age!, size: d.age!, gender: d.gender,
       season: d.season || 'Toutes saisons', condition: d.cond!, price, color: isLot ? 'Multicolore' : 'Beige', sid: 'me', ph: 'ta photo',
-      negotiable: d.negotiable, count: isLot ? d.count : undefined, contents: isLot ? [{ n: d.contents.trim() || 'Pièces assorties', q: d.count }] : undefined,
+      negotiable: d.negotiable, washed: d.washed, count: isLot ? d.count : undefined, contents: isLot ? [{ n: d.contents.trim() || 'Pièces assorties', q: d.count }] : undefined,
     });
     router.replace(`/sell-done?id=${id}`);
   };
@@ -145,7 +145,7 @@ export default function Sell() {
           <>
             <H size={30}>Décris {isLot ? 'ton lot' : 'ta pièce'}</H>
             <Field label="Titre">
-              <TextInput value={d.title} onChangeText={(t) => patch({ title: t })} placeholder={isLot ? 'ex. Lot hiver 18 mois garçon' : 'ex. Robe en lin rose'} placeholderTextColor={colors.neutral600} style={input} />
+              <TextInput value={d.title} onChangeText={(t) => patch({ title: t })} placeholder={isLot ? 'ex. Lot hiver 18 mois garçon' : 'ex. Robe en lin rose'} placeholderTextColor={colors.neutral600} style={input()} />
             </Field>
             {isLot && (
               <>
@@ -158,16 +158,19 @@ export default function Sell() {
                   </View>
                 </View>
                 <Field label="Contenu du lot">
-                  <TextInput value={d.contents} onChangeText={(t) => patch({ contents: t })} multiline placeholder="ex. 3 bodies, 2 pyjamas, 1 gilet…" placeholderTextColor={colors.neutral600} style={[input, { minHeight: 80, height: undefined, borderRadius: 24, paddingTop: 14, paddingBottom: 14, textAlignVertical: 'top' }]} />
+                  <TextInput value={d.contents} onChangeText={(t) => patch({ contents: t })} multiline placeholder="ex. 3 bodies, 2 pyjamas, 1 gilet…" placeholderTextColor={colors.neutral600} style={[input(), { minHeight: 80, height: undefined, borderRadius: 24, paddingTop: 14, paddingBottom: 14, textAlignVertical: 'top' }]} />
                 </Field>
               </>
             )}
             <Field label="Âge / taille">{chips('age', AGES)}</Field>
             <Field label="Pour">{chips('gender', GENDERS)}</Field>
             <Field label="Saison">{chips('season', SEASONS)}</Field>
-            <Field label="État">{chips('cond', CONDS)}</Field>
+            <Field label="État">
+              {chips('cond', CONDS)}
+              <LinkButton label="Un doute ? Voir le guide des états →" size={13} onPress={() => router.push(`/conditions${d.cond ? `?focus=${encodeURIComponent(d.cond)}` : ''}`)} />
+            </Field>
             <Field label="Marque (facultatif)">
-              <TextInput value={d.brand} onChangeText={(t) => patch({ brand: t })} placeholder="ex. Petit Bateau" placeholderTextColor={colors.neutral600} style={input} />
+              <TextInput value={d.brand} onChangeText={(t) => patch({ brand: t })} placeholder="ex. Petit Bateau" placeholderTextColor={colors.neutral600} style={input()} />
             </Field>
           </>
         )}
@@ -197,6 +200,13 @@ export default function Sell() {
             </View>
             <OptionCard
               control="check"
+              on={d.washed}
+              title="Lavé et plié"
+              sub="Tu t'engages à envoyer des vêtements propres. Les acheteurs le confirment à la réception."
+              onPress={() => patch({ washed: !d.washed })}
+            />
+            <OptionCard
+              control="check"
               on={d.negotiable}
               title="J'accepte les offres"
               sub="Les acheteurs peuvent te proposer un prix, tu restes libre de dire non."
@@ -216,10 +226,10 @@ export default function Sell() {
   );
 }
 
-const input = {
+const input = () => ({
   height: 50, borderRadius: 999, borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.neutral100,
   paddingHorizontal: 18, fontFamily: fonts.body, fontSize: 15, color: colors.text, outlineWidth: 0,
-} as const;
+} as const);
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <View style={{ gap: 8 }}>

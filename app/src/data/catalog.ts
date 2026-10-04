@@ -39,14 +39,20 @@ export const PRICES = [
 export type Seller = {
   id: string; name: string; city: string; rating: string; reviews: number;
   sales: number; init: string; since: string; ship: string;
+  /** "Parent vérifié": ID + phone checked. */
+  verified: boolean;
+  /** Distance from the user (demo: the user lives in Paris 11e). */
+  distanceKm: number;
+  /** Buyers who confirmed the "lavé et plié" promise on reception. */
+  washedConfirms: number;
 };
 
 export const SELLERS: Record<string, Seller> = {
-  s1: { id: 's1', name: 'Camille R.', city: 'Lyon 6e', rating: '4,9', reviews: 86, sales: 128, init: 'C', since: '2024', ship: '24 h' },
-  s2: { id: 's2', name: 'Julie M.', city: 'Nantes', rating: '4,8', reviews: 41, sales: 64, init: 'J', since: '2025', ship: '48 h' },
-  s3: { id: 's3', name: 'Sophie & Marc', city: 'Bordeaux', rating: '5,0', reviews: 19, sales: 22, init: 'S', since: '2025', ship: '24 h' },
-  s4: { id: 's4', name: 'Inès B.', city: 'Lille', rating: '4,7', reviews: 33, sales: 41, init: 'I', since: '2023', ship: '72 h' },
-  me: { id: 'me', name: 'Élodie', city: 'Paris 11e', rating: '4,9', reviews: 12, sales: 18, init: 'É', since: '2025', ship: '24 h' },
+  s1: { id: 's1', name: 'Camille R.', city: 'Paris 11e', rating: '4,9', reviews: 86, sales: 128, init: 'C', since: '2024', ship: '24 h', verified: true, distanceKm: 1.2, washedConfirms: 64 },
+  s2: { id: 's2', name: 'Julie M.', city: 'Paris 12e', rating: '4,8', reviews: 41, sales: 64, init: 'J', since: '2025', ship: '48 h', verified: true, distanceKm: 3.4, washedConfirms: 27 },
+  s3: { id: 's3', name: 'Sophie & Marc', city: 'Montreuil', rating: '5,0', reviews: 19, sales: 22, init: 'S', since: '2025', ship: '24 h', verified: false, distanceKm: 6.8, washedConfirms: 15 },
+  s4: { id: 's4', name: 'Inès B.', city: 'Lyon 6e', rating: '4,7', reviews: 33, sales: 41, init: 'I', since: '2023', ship: '72 h', verified: true, distanceKm: 465, washedConfirms: 22 },
+  me: { id: 'me', name: 'Élodie', city: 'Paris 11e', rating: '4,9', reviews: 12, sales: 18, init: 'É', since: '2025', ship: '24 h', verified: false, distanceKm: 0, washedConfirms: 9 },
 };
 
 export type ListingType = 'lot' | 'unique';
@@ -58,6 +64,8 @@ export type Product = {
   count?: number; contents?: LotLine[]; ph?: string;
   /** Seller accepts price offers (default: yes, it's second hand). */
   negotiable?: boolean;
+  /** Seller promises the clothes are washed and folded. */
+  washed?: boolean;
 };
 
 const P = (
@@ -67,22 +75,22 @@ const P = (
 ): Product => ({ id, type, title, brand, age, size: age, gender, season, condition, price, color, sid, ...extra });
 
 export const PRODUCTS: Product[] = [
-  P(1, 'lot', 'Lot naissance 10 bodies & pyjamas', 'Petit Bateau', '0-6 mois', 'Mixte', 'Toutes saisons', 'Très bon état', 28, 'Blanc', 's1', { count: 10, contents: [{ n: 'Bodies manches longues', q: 5 }, { n: 'Pyjamas velours', q: 3 }, { n: 'Bonnets', q: 2 }], ph: 'photo · lot plié à plat' }),
-  P(2, 'unique', 'Robe en lin smockée', 'Jacadi', '2-4 ans', 'Fille', 'Été', 'Neuf avec étiquette', 18, 'Rose', 's2', { ph: 'photo · robe de face' }),
-  P(3, 'lot', 'Lot rentrée garçon 7 pièces', 'Okaïdi', '4-6 ans', 'Garçon', 'Automne', 'Bon état', 32, 'Marine', 's3', { count: 7, contents: [{ n: 'Pantalons', q: 2 }, { n: 'Sweats', q: 2 }, { n: 'T-shirts manches longues', q: 3 }], ph: 'photo · lot rentrée' }),
-  P(4, 'unique', 'Doudoune légère sans manches', 'Cyrillus', '4-6 ans', 'Mixte', 'Hiver', 'Très bon état', 22, 'Bleu', 's1', { ph: 'photo · doudoune' }),
-  P(5, 'lot', "Lot 4 pyjamas d'hiver", 'Petit Bateau', '1-2 ans', 'Mixte', 'Hiver', 'Bon état', 16, 'Beige', 's4', { count: 4, contents: [{ n: 'Pyjamas une pièce', q: 4 }], ph: 'photo · pyjamas' }),
+  P(1, 'lot', 'Lot naissance 10 bodies & pyjamas', 'Petit Bateau', '0-6 mois', 'Mixte', 'Toutes saisons', 'Très bon état', 28, 'Blanc', 's1', { washed: true, count: 10, contents: [{ n: 'Bodies manches longues', q: 5 }, { n: 'Pyjamas velours', q: 3 }, { n: 'Bonnets', q: 2 }], ph: 'photo · lot plié à plat' }),
+  P(2, 'unique', 'Robe en lin smockée', 'Jacadi', '2-4 ans', 'Fille', 'Été', 'Neuf avec étiquette', 18, 'Rose', 's2', { washed: true, ph: 'photo · robe de face' }),
+  P(3, 'lot', 'Lot rentrée garçon 7 pièces', 'Okaïdi', '4-6 ans', 'Garçon', 'Automne', 'Bon état', 32, 'Marine', 's3', { washed: true, count: 7, contents: [{ n: 'Pantalons', q: 2 }, { n: 'Sweats', q: 2 }, { n: 'T-shirts manches longues', q: 3 }], ph: 'photo · lot rentrée' }),
+  P(4, 'unique', 'Doudoune légère sans manches', 'Cyrillus', '4-6 ans', 'Mixte', 'Hiver', 'Très bon état', 22, 'Bleu', 's1', { washed: true, ph: 'photo · doudoune' }),
+  P(5, 'lot', "Lot 4 pyjamas d'hiver", 'Petit Bateau', '1-2 ans', 'Mixte', 'Hiver', 'Bon état', 16, 'Beige', 's4', { washed: true, count: 4, contents: [{ n: 'Pyjamas une pièce', q: 4 }], ph: 'photo · pyjamas' }),
   P(6, 'unique', 'Salopette en velours côtelé', 'Bonton', '1-2 ans', 'Fille', 'Automne', 'Très bon état', 14, 'Vert', 's2', { ph: 'photo · salopette' }),
-  P(7, 'lot', 'Lot été fille 9 pièces', "Tape à l'œil", '8-10 ans', 'Fille', 'Été', 'Bon état', 25, 'Multicolore', 's4', { count: 9, contents: [{ n: 'Shorts', q: 3 }, { n: 'T-shirts', q: 4 }, { n: 'Robes', q: 2 }], ph: 'photo · lot été' }),
+  P(7, 'lot', 'Lot été fille 9 pièces', "Tape à l'œil", '8-10 ans', 'Fille', 'Été', 'Bon état', 25, 'Multicolore', 's4', { washed: true, count: 9, contents: [{ n: 'Shorts', q: 3 }, { n: 'T-shirts', q: 4 }, { n: 'Robes', q: 2 }], ph: 'photo · lot été' }),
   P(8, 'unique', 'Gigoteuse 6-18 mois', 'Jacadi', '6-12 mois', 'Mixte', 'Hiver', 'Très bon état', 15, 'Beige', 's3', { ph: 'photo · gigoteuse' }),
-  P(9, 'unique', 'Ciré jaune doublé', 'Petit Bateau', '6-8 ans', 'Mixte', 'Printemps', 'Très bon état', 20, 'Jaune', 's1', { ph: 'photo · ciré' }),
-  P(10, 'lot', 'Lot hiver 12 pièces', 'Kiabi', '6-12 mois', 'Mixte', 'Hiver', 'Bon état', 30, 'Bleu', 's2', { count: 12, contents: [{ n: 'Bodies', q: 4 }, { n: 'Pantalons', q: 3 }, { n: 'Pulls', q: 3 }, { n: 'Combinaisons', q: 2 }], ph: 'photo · lot hiver' }),
+  P(9, 'unique', 'Ciré jaune doublé', 'Petit Bateau', '6-8 ans', 'Mixte', 'Printemps', 'Très bon état', 20, 'Jaune', 's1', { washed: true, ph: 'photo · ciré' }),
+  P(10, 'lot', 'Lot hiver 12 pièces', 'Kiabi', '6-12 mois', 'Mixte', 'Hiver', 'Bon état', 30, 'Bleu', 's2', { washed: true, count: 12, contents: [{ n: 'Bodies', q: 4 }, { n: 'Pantalons', q: 3 }, { n: 'Pulls', q: 3 }, { n: 'Combinaisons', q: 2 }], ph: 'photo · lot hiver' }),
   P(11, 'unique', 'Chemise à carreaux', 'Cyrillus', '6-8 ans', 'Garçon', 'Printemps', 'Neuf avec étiquette', 12, 'Bleu', 's3', { ph: 'photo · chemise' }),
-  P(12, 'unique', 'Gilet en maille écru', 'Bonton', '2-4 ans', 'Mixte', 'Automne', 'Très bon état', 16, 'Blanc', 's4', { ph: 'photo · gilet' }),
-  P(13, 'lot', 'Lot fille 6 pièces mi-saison', 'Jacadi', '2-4 ans', 'Fille', 'Printemps', 'Très bon état', 26, 'Rose', 's1', { count: 6, contents: [{ n: 'Robes', q: 2 }, { n: 'Leggings', q: 2 }, { n: 'Gilets', q: 2 }], ph: 'photo · lot mi-saison' }),
+  P(12, 'unique', 'Gilet en maille écru', 'Bonton', '2-4 ans', 'Mixte', 'Automne', 'Très bon état', 16, 'Blanc', 's4', { washed: true, ph: 'photo · gilet' }),
+  P(13, 'lot', 'Lot fille 6 pièces mi-saison', 'Jacadi', '2-4 ans', 'Fille', 'Printemps', 'Très bon état', 26, 'Rose', 's1', { washed: true, count: 6, contents: [{ n: 'Robes', q: 2 }, { n: 'Leggings', q: 2 }, { n: 'Gilets', q: 2 }], ph: 'photo · lot mi-saison' }),
   P(14, 'unique', 'Combinaison pilote', 'Petit Bateau', '6-12 mois', 'Garçon', 'Hiver', 'Bon état', 19, 'Marine', 's4', { ph: 'photo · combinaison' }),
   P(15, 'unique', 'Pantalon en velours', 'Cyrillus', '2-4 ans', 'Garçon', 'Automne', 'Bon état', 9, 'Beige', 's2', { ph: 'photo · pantalon' }),
-  P(16, 'lot', 'Lot sport garçon 5 pièces', 'Kiabi', '8-10 ans', 'Garçon', 'Toutes saisons', 'Satisfaisant', 12, 'Marine', 's3', { count: 5, contents: [{ n: 'Joggings', q: 2 }, { n: 'T-shirts techniques', q: 3 }], ph: 'photo · lot sport' }),
+  P(16, 'lot', 'Lot sport garçon 5 pièces', 'Kiabi', '8-10 ans', 'Garçon', 'Toutes saisons', 'Satisfaisant', 12, 'Marine', 's3', { washed: true, count: 5, contents: [{ n: 'Joggings', q: 2 }, { n: 'T-shirts techniques', q: 3 }], ph: 'photo · lot sport' }),
 ];
 
 // Listings already in Élodie's own dressing (sold, so not in the public feed).
@@ -118,3 +126,48 @@ export const SELL_DELIVERY: { id: DeliveryId; title: string; sub: string }[] = [
 ];
 
 export const DEFAULT_COMMISSION = 8;
+
+/** Remise en main propre: busy, public places suggested near the user. */
+export const SAFE_SPOTS = [
+  { id: 'boulangerie', name: 'Boulangerie Le Pain d\'Antan', addr: '28 rue Oberkampf', dist: '350 m' },
+  { id: 'mairie', name: 'Parvis de la mairie du 11e', addr: 'Place Léon-Blum', dist: '900 m' },
+  { id: 'relais', name: 'Relais Tabac du Parc', addr: '12 rue Oberkampf', dist: '400 m' },
+];
+
+export const DISTANCES = [
+  { l: 'Moins de 2 km', km: 2 },
+  { l: 'Moins de 5 km', km: 5 },
+  { l: 'Moins de 10 km', km: 10 },
+];
+
+/** Max distance for a hand-to-hand meeting to be offered. */
+export const HANDOVER_MAX_KM = 15;
+
+/** Guide des états: what each condition means, with what's accepted. */
+export const CONDITION_GUIDE: { name: string; short: string; ok: string[]; no: string[]; tones: [string, string] }[] = [
+  { name: 'Neuf avec étiquette', short: 'Jamais porté, étiquette encore attachée.', ok: ['Étiquette du magasin présente', 'Aucune trace de lavage'], no: ['Porté même une fois'], tones: ['#e1eecc', '#f0fae1'] },
+  { name: 'Très bon état', short: 'Porté quelques fois, comme neuf.', ok: ['Couleurs vives', 'Pas de bouloche visible', 'Aucune tache ni accroc'], no: ['Tache, même petite', 'Tissu détendu'], tones: ['#ccdbb2', '#e1eecc'] },
+  { name: 'Bon état', short: 'Bien porté, encore beau.', ok: ['Légère bouloche', 'Couleurs un peu passées', 'Petit défaut signalé en photo'], no: ['Trou', 'Tache visible', 'Fermeture cassée'], tones: ['#ffe1d0', '#fff2eb'] },
+  { name: 'Satisfaisant', short: 'Pour jouer, la crèche ou le jardin.', ok: ['Usure visible', 'Petite tache ou bouton à recoudre, en photo'], no: ['Vêtement troué ou déchiré', 'Odeur'], tones: ['#eee7db', '#f9f4ed'] },
+];
+
+/** Garde-robe de saison: a starter checklist per season. `kw` is what we search the catalogue with. */
+export type WardrobeLine = { id: string; label: string; kw: string; need: number; got: number };
+export const WARDROBE_TEMPLATES: Record<'hiver' | 'ete', { title: string; lines: Omit<WardrobeLine, 'got'>[] }> = {
+  hiver: { title: 'automne-hiver', lines: [
+    { id: 'bodies', label: 'Bodies ou t-shirts manches longues', kw: 'bod', need: 5 },
+    { id: 'pyjamas', label: 'Pyjamas', kw: 'pyjama', need: 3 },
+    { id: 'pulls', label: 'Pulls ou gilets', kw: 'gilet', need: 3 },
+    { id: 'pantalons', label: 'Pantalons', kw: 'pantalon', need: 3 },
+    { id: 'manteau', label: 'Manteau ou doudoune', kw: 'doudoune', need: 1 },
+    { id: 'bonnet', label: 'Bonnet', kw: 'bonnet', need: 1 },
+  ] },
+  ete: { title: 'printemps-été', lines: [
+    { id: 'tshirts', label: 'T-shirts', kw: 't-shirt', need: 5 },
+    { id: 'shorts', label: 'Shorts', kw: 'short', need: 3 },
+    { id: 'robes', label: 'Robes ou salopettes', kw: 'robe', need: 2 },
+    { id: 'pyjamas', label: 'Pyjamas légers', kw: 'pyjama', need: 2 },
+    { id: 'cire', label: 'Ciré ou coupe-vent', kw: 'ciré', need: 1 },
+    { id: 'chapeau', label: 'Chapeau', kw: 'chapeau', need: 1 },
+  ] },
+};

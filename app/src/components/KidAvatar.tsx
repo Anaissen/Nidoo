@@ -13,7 +13,7 @@ export function KidAvatar({ kid, size = 44 }: { kid: Pick<Kid, 'emoji' | 'name' 
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: kid.color, alignItems: 'center', justifyContent: 'center' }}>
       {kid.emoji
         ? <Txt size={Math.round(size * 0.5)} lh={1.15}>{kid.emoji}</Txt>
-        : <H size={Math.round(size * 0.41)} lh={1}>{kid.name.slice(0, 1).toUpperCase()}</H>}
+        : <H size={Math.round(size * 0.41)} lh={1} color={colors.ink}>{kid.name.slice(0, 1).toUpperCase()}</H>}
     </View>
   );
 }
