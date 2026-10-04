@@ -15,10 +15,10 @@ export default function Profile() {
     { label: 'Mes achats', meta: String(s.purchases.length), href: '/orders?tab=achats' },
     { label: 'Mes ventes', meta: String(s.sales.length), href: '/orders?tab=ventes' },
     { label: 'Favoris', meta: String(s.favs.length), href: '/favorites' },
-    { label: 'Mes enfants', meta: s.kidAges.join(', ') || '—', href: '/onboarding?kids=1' },
+    { label: 'Passeports de mes enfants', meta: s.kids.map((k) => k.name).join(', ') || '—', href: '/kids' },
     { label: 'Notifications', meta: '2 nouvelles', href: '/notifications' },
     { label: 'Mon dressing public', meta: `${myListings(s.mine).length} annonces`, href: '/seller/me' },
-    { label: 'Réglages', meta: `Accueil ${s.homeVariant}`, href: '/settings' },
+    { label: 'Réglages', meta: `Commission ${s.commission} %`, href: '/settings' },
   ];
 
   return (

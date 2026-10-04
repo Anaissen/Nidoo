@@ -5,27 +5,30 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import {
   DEFAULT_COMMISSION, DeliveryId, DELIVERY, MY_PAST_LISTINGS, PRICES, Product, PRODUCTS, SELLERS,
 } from '../data/catalog';
+import { fmt } from '../lib/format';
+import { DEMO_KIDS, Kid } from '../lib/kids';
 
-export type HomeVariant = '1a' | '1b' | '1c';
 export type TypeFilter = 'all' | 'unique' | 'lot';
 export type FilterKey = 'ages' | 'genders' | 'seasons' | 'brands' | 'conds' | 'colors' | 'price';
 export type Filters = Record<FilterKey, string[]>;
 
-export type Msg = { me: boolean; t: string };
+/** A chat message; `offer` turns it into a price-offer card. */
+export type Msg = { me: boolean; t: string; offer?: { amount: number; kind: 'offer' | 'counter' | 'accept' } };
+/** Price negotiation on one article (one at a time per article). */
+export type Offer = { amount: number; status: 'pending' | 'countered' | 'accepted'; counter?: number; cid: string };
 export type Chat = { sid: string; pid: number; when: string; unread: boolean; msgs: Msg[] };
 // status: 0 payée · 1 expédiée · 2 en relais / rdv fixé · 3 reçue
-export type Order = { id: string; pid: number; status: number; del: string; rating?: number; buyer?: string };
+export type Order = { id: string; pid: number; status: number; del: string; rating?: number; buyer?: string; price?: number };
 
 export const emptyFilters = (): Filters => ({ ages: [], genders: [], seasons: [], brands: [], conds: [], colors: [], price: [] });
 
 type State = {
   // persisted settings
   onboarded: boolean;
-  homeVariant: HomeVariant;
   commission: number;
-  kidAges: string[];
+  kids: Kid[];
+  activeKidId: string | null;
 
-  kidIdx: number;
   homeType: TypeFilter;
   favs: number[];
   cart: number[];
@@ -38,6 +41,7 @@ type State = {
   del: DeliveryId;
   pay: 'card' | 'apple';
   chats: Record<string, Chat>;
+  offers: Record<number, Offer>;
   typingCid: string | null;
   purchases: Order[];
   sales: Order[];
@@ -56,7 +60,11 @@ type Actions = {
   clearFilters: () => void;
   /** Reset search to the given filters (used by home shortcuts). Caller navigates to the search tab. */
   searchWith: (patch: { f?: Partial<Filters>; ftype?: TypeFilter }) => void;
-  toggleKidAge: (age: string) => void;
+  saveKid: (k: Kid) => void;
+  removeKid: (id: string) => void;
+  /** Send a price offer to the seller; returns the conversation id. */
+  makeOffer: (pid: number, amount: number) => string;
+  acceptCounter: (pid: number) => void;
   toggleFollow: (sid: string) => void;
   publish: (p: Omit<Product, 'id'>) => number;
   placeOrder: () => string;
@@ -76,11 +84,10 @@ export const useStore = create<State & Actions>()(
   persist(
     (set, get) => ({
       onboarded: false,
-      homeVariant: '1a',
       commission: DEFAULT_COMMISSION,
-      kidAges: ['2-4 ans', '6-12 mois'],
+      kids: DEMO_KIDS,
+      activeKidId: DEMO_KIDS[0].id,
 
-      kidIdx: 0,
       homeType: 'all',
       favs: [2, 7],
       cart: [],
@@ -97,6 +104,7 @@ export const useStore = create<State & Actions>()(
         c2: { sid: 's1', pid: 1, when: 'Hier', unread: false, msgs: [{ me: true, t: 'Est-ce que les bodies sont sans taches ?' }, { me: false, t: 'Oui, tout a été lavé et vérifié.' }, { me: true, t: 'Super, merci !' }] },
         c3: { sid: 's3', pid: 3, when: 'Lun.', unread: true, msgs: [{ me: false, t: 'Je peux vous le remettre en main propre samedi si vous êtes sur Bordeaux.' }] },
       },
+      offers: {},
       typingCid: null,
       purchases: [
         { id: 'o1', pid: 3, status: 2, del: 'Point relais', rating: 0 },
@@ -125,7 +133,42 @@ export const useStore = create<State & Actions>()(
       }),
       clearFilters: () => set({ f: emptyFilters(), q: '', ftype: 'all' }),
       searchWith: ({ f, ftype }) => set({ f: { ...emptyFilters(), ...f }, ftype: ftype ?? 'all', q: '' }),
-      toggleKidAge: (age) => set((s) => ({ kidAges: s.kidAges.includes(age) ? s.kidAges.filter((x) => x !== age) : [...s.kidAges, age] })),
+      saveKid: (k) => set((s) => ({
+        kids: s.kids.some((x) => x.id === k.id) ? s.kids.map((x) => (x.id === k.id ? k : x)) : [...s.kids, k],
+        activeKidId: s.activeKidId ?? k.id,
+      })),
+      removeKid: (id) => set((s) => {
+        const kids = s.kids.filter((k) => k.id !== id);
+        return { kids, activeKidId: s.activeKidId === id ? kids[0]?.id ?? null : s.activeKidId };
+      }),
+      makeOffer: (pid, amount) => {
+        const p = productById(get().mine, pid)!;
+        const cid = get().openChatFor(p.sid, pid);
+        const push = (m: Msg) => set((s) => ({ chats: { ...s.chats, [cid]: { ...s.chats[cid], when: 'Maintenant', msgs: [...s.chats[cid].msgs, m] } } }));
+        push({ me: true, t: `Je te propose ${fmt(amount)}`, offer: { amount, kind: 'offer' } });
+        set((s) => ({ typingCid: cid, offers: { ...s.offers, [pid]: { amount, status: 'pending', cid } } }));
+        // Demo seller: accepts from 85 % of the price, otherwise meets halfway.
+        clearTimeout(replyTimer);
+        replyTimer = setTimeout(() => {
+          if (amount >= p.price * 0.85) {
+            push({ me: false, t: `C'est d'accord pour ${fmt(amount)} !`, offer: { amount, kind: 'accept' } });
+            set((s) => ({ typingCid: null, offers: { ...s.offers, [pid]: { amount, status: 'accepted', cid } } }));
+          } else {
+            const counter = Math.round(((amount + p.price) / 2) * 2) / 2;
+            push({ me: false, t: `Je peux descendre à ${fmt(counter)}, ça te va ?`, offer: { amount: counter, kind: 'counter' } });
+            set((s) => ({ typingCid: null, offers: { ...s.offers, [pid]: { amount, status: 'countered', counter, cid } } }));
+          }
+        }, 1600);
+        return cid;
+      },
+      acceptCounter: (pid) => {
+        const o = get().offers[pid];
+        if (!o?.counter) return;
+        set((s) => ({
+          offers: { ...s.offers, [pid]: { ...o, amount: o.counter!, status: 'accepted' } },
+          chats: { ...s.chats, [o.cid]: { ...s.chats[o.cid], msgs: [...s.chats[o.cid].msgs, { me: true, t: `Parfait, j'accepte ${fmt(o.counter!)} !`, offer: { amount: o.counter!, kind: 'accept' } }] } },
+        }));
+      },
       toggleFollow: (sid) => set((s) => ({ following: s.following.includes(sid) ? s.following.filter((x) => x !== sid) : [...s.following, sid] })),
       publish: (p) => {
         const id = 1000 + get().mine.length;
@@ -136,8 +179,10 @@ export const useStore = create<State & Actions>()(
         const s = get();
         const delName = DELIVERY.find((d) => d.id === s.del)!.name;
         const stamp = Date.now();
-        const newOrders = s.cart.map((pid, i) => ({ id: `o${stamp}${i}`, pid, status: 0, del: delName, rating: 0 }));
-        set({ purchases: [...newOrders, ...s.purchases], cart: [], lastOrderId: newOrders[0]?.id ?? null });
+        const newOrders = s.cart.map((pid, i) => ({ id: `o${stamp}${i}`, pid, status: 0, del: delName, rating: 0, price: effectivePrice(s, pid) }));
+        const offers = { ...s.offers };
+        s.cart.forEach((pid) => delete offers[pid]);
+        set({ purchases: [...newOrders, ...s.purchases], cart: [], offers, lastOrderId: newOrders[0]?.id ?? null });
         return newOrders[0]?.id ?? '';
       },
       openChatFor: (sid, pid) => {
@@ -178,8 +223,14 @@ export const useStore = create<State & Actions>()(
     }),
     {
       name: 'nidoo-settings',
+      version: 2,
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (s) => ({ onboarded: s.onboarded, homeVariant: s.homeVariant, commission: s.commission, kidAges: s.kidAges }),
+      // v1 stored a home variant and bare ages; v2 keeps the children's passports instead.
+      migrate: (old) => {
+        const o = (old ?? {}) as { onboarded?: boolean; commission?: number };
+        return { onboarded: !!o.onboarded, commission: o.commission ?? DEFAULT_COMMISSION, kids: DEMO_KIDS, activeKidId: DEMO_KIDS[0].id } as Partial<State & Actions>;
+      },
+      partialize: (s) => ({ onboarded: s.onboarded, commission: s.commission, kids: s.kids, activeKidId: s.activeKidId }),
     },
   ),
 );
@@ -216,3 +267,11 @@ export const filterProducts = (s: Pick<State, 'mine' | 'f' | 'q' | 'ftype'>) => 
 };
 
 export const commissionRate = (pct: number) => pct / 100;
+
+/** Price the buyer pays: the accepted offer if there is one, else the listed price. */
+export const effectivePrice = (s: Pick<State, 'offers' | 'mine'>, pid: number) => {
+  const o = s.offers[pid];
+  return o?.status === 'accepted' ? o.amount : productById(s.mine, pid)?.price ?? 0;
+};
+
+export const isNegotiable = (p: Product) => p.negotiable !== false && p.sid !== 'me';

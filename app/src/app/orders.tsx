@@ -37,7 +37,7 @@ export default function Orders() {
         {list.map((o) => {
           const p = productById(mine, o.pid)!;
           const done = o.status >= 3;
-          const sub = isSale ? `${o.buyer} · tu reçois ${fmt(p.price * (1 - rate))}` : `${sellerById(p.sid)!.name} · ${o.del}`;
+          const sub = isSale ? `${o.buyer} · tu reçois ${fmt((o.price ?? p.price) * (1 - rate))}` : `${sellerById(p.sid)!.name} · ${o.del}`;
           return (
             <Pressable key={o.id} onPress={() => router.push(`/tracking/${o.id}`)} style={{ flexDirection: 'row', gap: 12, alignItems: 'center', padding: 12, borderRadius: 26, backgroundColor: colors.neutral100 }}>
               <Thumb p={p} size={68} radius={20} />

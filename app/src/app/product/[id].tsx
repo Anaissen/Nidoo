@@ -1,13 +1,14 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronRight, Layers, MessageCircle, ShieldCheck, Truck } from 'lucide-react-native';
+import { ChevronRight, HandCoins, Layers, MessageCircle, ShieldCheck, Truck } from 'lucide-react-native';
 import { useState } from 'react';
 import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 
+import { OfferSheet } from '../../components/OfferSheet';
 import { HeartButton, openProduct, perPiece, tonesFor } from '../../components/products';
 import { BackButton, BottomBar, Screen } from '../../components/Screen';
-import { Avatar, ellipsis, H, PrimaryButton, Stripes, Tag, Txt } from '../../components/ui';
+import { Avatar, ellipsis, H, OutlineButton, PrimaryButton, Stripes, Tag, Txt } from '../../components/ui';
 import { fmt } from '../../lib/format';
-import { allProducts, productById, sellerById, useStore } from '../../store/useStore';
+import { allProducts, isNegotiable, productById, sellerById, useStore } from '../../store/useStore';
 import { colors, GUTTER, ICON_STROKE } from '../../theme/tokens';
 
 export default function ProductScreen() {
@@ -17,6 +18,9 @@ export default function ProductScreen() {
   const addToCart = useStore((s) => s.addToCart);
   const openChatFor = useStore((s) => s.openChatFor);
   const showToast = useStore((s) => s.showToast);
+  const offer = useStore((s) => s.offers[Number(id)]);
+  const acceptCounter = useStore((s) => s.acceptCounter);
+  const [offerOpen, setOfferOpen] = useState(false);
   const { width } = useWindowDimensions();
   const [photo, setPhoto] = useState(0);
 
@@ -26,6 +30,8 @@ export default function ProductScreen() {
   const seller = sellerById(p.sid)!;
   const isLot = p.type === 'lot';
   const isMine = p.sid === 'me';
+  const negotiable = isNegotiable(p);
+  const accepted = offer?.status === 'accepted';
   const photoNames = isLot ? ["vue d'ensemble du lot", ...(p.contents ?? []).map((c) => c.n.toLowerCase()), 'étiquettes'] : ['vue de face', 'vue de dos', 'étiquette'];
   const nPhotos = isLot ? 5 : 3;
   const photoW = width - 24;
@@ -61,7 +67,20 @@ export default function ProductScreen() {
           >
             <MessageCircle size={22} strokeWidth={ICON_STROKE} color={colors.text} />
           </Pressable>
-          <PrimaryButton label={inCart ? 'Voir le panier' : isLot ? 'Acheter le lot' : 'Ajouter au panier'} onPress={cta} style={{ flex: 1 }} />
+          {negotiable && !accepted && !inCart && (
+            <OutlineButton
+              label={offer ? 'Mon offre' : 'Faire une offre'}
+              size={15}
+              onPress={() => (offer ? router.push(`/chat/${offer.cid}`) : setOfferOpen(true))}
+              style={{ flex: 1, paddingHorizontal: 10 }}
+            />
+          )}
+          <PrimaryButton
+            label={inCart ? 'Voir le panier' : accepted ? `Acheter à ${fmt(offer.amount)}` : negotiable ? 'Acheter' : isLot ? 'Acheter le lot' : 'Ajouter au panier'}
+            size={negotiable && !accepted && !inCart ? 15 : 17}
+            onPress={cta}
+            style={{ flex: 1, paddingHorizontal: 10 }}
+          />
         </>
       )}
     </BottomBar>
@@ -104,6 +123,27 @@ export default function ProductScreen() {
             <Txt size={26} weight="bold">{fmt(p.price)}</Txt>
             {isLot && <Txt size={14} weight="semi" color={colors.accent2_700}>soit {perPiece(p)} la pièce</Txt>}
           </View>
+          {negotiable && !offer && (
+            <Pressable onPress={() => setOfferOpen(true)} style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: colors.accent2_100 }}>
+              <HandCoins size={16} strokeWidth={ICON_STROKE} color={colors.accent2_800} />
+              <Txt size={13} weight="semi" color={colors.accent2_800}>Prix négociable · fais une offre</Txt>
+            </Pressable>
+          )}
+          {offer && (
+            <View style={{ padding: 14, borderRadius: 22, backgroundColor: accepted ? colors.accent2_100 : colors.accent100, gap: 8 }}>
+              <Txt size={14} weight="semi" color={accepted ? colors.accent2_800 : colors.accent800}>
+                {offer.status === 'pending' && `Offre envoyée : ${fmt(offer.amount)} · en attente de ${seller.name}`}
+                {offer.status === 'countered' && `${seller.name} te propose ${fmt(offer.counter!)} (ton offre : ${fmt(offer.amount)})`}
+                {accepted && `Offre acceptée : tu paies ${fmt(offer.amount)} au lieu de ${fmt(p.price)}`}
+              </Txt>
+              {offer.status === 'countered' && (
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <PrimaryButton label={`Accepter ${fmt(offer.counter!)}`} height={42} size={15} onPress={() => acceptCounter(p.id)} style={{ flex: 1 }} />
+                  <OutlineButton label="Répondre" height={42} size={15} onPress={() => router.push(`/chat/${offer.cid}`)} />
+                </View>
+              )}
+            </View>
+          )}
         </View>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: GUTTER }}>
@@ -127,7 +167,7 @@ export default function ProductScreen() {
                 <Txt size={14} color={colors.neutral700}>× {c.q}</Txt>
               </View>
             ))}
-            <Txt size={13} color={colors.neutral700}>Vendu en une seule fois, à prix fixe.</Txt>
+            <Txt size={13} color={colors.neutral700}>Vendu en une seule fois, tout le lot ensemble.</Txt>
           </View>
         )}
 
@@ -171,6 +211,7 @@ export default function ProductScreen() {
           </View>
         )}
       </View>
+      {negotiable && <OfferSheet p={p} visible={offerOpen} onClose={() => setOfferOpen(false)} />}
     </Screen>
   );
 }

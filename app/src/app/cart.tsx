@@ -36,7 +36,11 @@ export default function Cart() {
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Txt size={14} weight="semi" {...ellipsis}>{p.title}</Txt>
                   <Txt size={13} color={colors.neutral700}>{p.size} · {typeLabel(p)}</Txt>
-                  <Txt weight="bold">{fmt(p.price)}</Txt>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                    <Txt weight="bold">{fmt(p.price)}</Txt>
+                    {p.price !== p.listPrice && <Txt size={12} color={colors.neutral600} style={{ textDecorationLine: 'line-through' }}>{fmt(p.listPrice)}</Txt>}
+                    {p.price !== p.listPrice && <Txt size={12} weight="semi" color={colors.accent2_700}>offre acceptée</Txt>}
+                  </View>
                 </View>
                 <CircleButton size={36} onPress={() => remove(p.id)} accessibilityLabel="Retirer">
                   <X size={16} strokeWidth={ICON_STROKE} color={colors.neutral700} />

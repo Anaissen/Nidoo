@@ -13,21 +13,25 @@ import { colors, fonts, ICON_STROKE } from '../theme/tokens';
 
 type Draft = {
   step: number; type: ListingType | null; photos: number; title: string; age: string | null; gender: string;
-  season: string | null; brand: string; cond: string | null; count: number; contents: string; price: string;
+  season: string | null; brand: string; cond: string | null; count: number; contents: string; price: string; negotiable: boolean;
   d: Record<DeliveryId, boolean>;
 };
 
 const blank = (type: ListingType | null): Draft => ({
   step: type ? 1 : 0, type, photos: 0, title: '', age: null, gender: 'Mixte', season: null, brand: '', cond: null,
-  count: 5, contents: '', price: '', d: { relais: true, domicile: false, main: true },
+  count: 5, contents: '', price: '', negotiable: true, d: { relais: true, domicile: false, main: true },
 });
 
 const ERRORS = ["Choisis un type d'annonce", 'Ajoute au moins une photo', "Ajoute un titre, un âge et l'état", 'Indique un prix et un mode de livraison'];
 
 /** Publier une annonce — 4 étapes : type, photos, description, prix. `?type=lot` skips step 1. */
 export default function Sell() {
-  const { type } = useLocalSearchParams<{ type?: ListingType }>();
-  const [d, setD] = useState<Draft>(() => blank(type === 'lot' || type === 'unique' ? type : null));
+  const { type, age } = useLocalSearchParams<{ type?: ListingType; age?: string }>();
+  const [d, setD] = useState<Draft>(() => ({
+    ...blank(type === 'lot' || type === 'unique' ? type : null),
+    // Coming from a passport ("ne rentre plus dans le…"): pre-fill the size.
+    age: age && (AGES as readonly string[]).includes(age) ? age : null,
+  }));
   const commission = useStore((s) => s.commission);
   const publish = useStore((s) => s.publish);
   const showToast = useStore((s) => s.showToast);
@@ -47,7 +51,7 @@ export default function Sell() {
     const id = publish({
       type: d.type!, title: d.title.trim(), brand: d.brand.trim() || 'Sans marque', age: d.age!, size: d.age!, gender: d.gender,
       season: d.season || 'Toutes saisons', condition: d.cond!, price, color: isLot ? 'Multicolore' : 'Beige', sid: 'me', ph: 'ta photo',
-      count: isLot ? d.count : undefined, contents: isLot ? [{ n: d.contents.trim() || 'Pièces assorties', q: d.count }] : undefined,
+      negotiable: d.negotiable, count: isLot ? d.count : undefined, contents: isLot ? [{ n: d.contents.trim() || 'Pièces assorties', q: d.count }] : undefined,
     });
     router.replace(`/sell-done?id=${id}`);
   };
@@ -191,6 +195,13 @@ export default function Sell() {
               </View>
               {isLot && <Txt size={13} color={colors.neutral700}>Soit {fmt(d.count ? price / d.count : 0)} la pièce pour l'acheteur.</Txt>}
             </View>
+            <OptionCard
+              control="check"
+              on={d.negotiable}
+              title="J'accepte les offres"
+              sub="Les acheteurs peuvent te proposer un prix, tu restes libre de dire non."
+              onPress={() => patch({ negotiable: !d.negotiable })}
+            />
             <Field label="Modes de livraison acceptés">
               <View style={{ gap: 8 }}>
                 {SELL_DELIVERY.map((o) => (

@@ -56,6 +56,8 @@ export type Product = {
   id: number; type: ListingType; title: string; brand: string; age: string; size: string;
   gender: string; season: string; condition: string; price: number; color: string; sid: string;
   count?: number; contents?: LotLine[]; ph?: string;
+  /** Seller accepts price offers (default: yes, it's second hand). */
+  negotiable?: boolean;
 };
 
 const P = (
@@ -93,13 +95,6 @@ export const REVIEWS = [
   { who: 'Marion L.', stars: '★★★★★', text: 'Lot conforme, tout était plié et lavé. Envoi rapide.', when: 'il y a 3 jours' },
   { who: 'Thomas D.', stars: '★★★★★', text: 'Vendeuse très arrangeante pour la remise en main propre.', when: 'il y a 2 semaines' },
   { who: 'Aïcha K.', stars: '★★★★☆', text: 'Bon état comme décrit, un petit bouton à recoudre.', when: 'le mois dernier' },
-];
-
-export type Kid = { name: string; age: string; g: string; init: string; avatar: string; prev: string };
-
-export const KIDS: Kid[] = [
-  { name: 'Léa', age: '2-4 ans', g: 'Fille', init: 'L', avatar: '#ffc6a5', prev: '1-2 ans' },
-  { name: 'Tom', age: '6-12 mois', g: 'Garçon', init: 'T', avatar: '#ccdbb2', prev: '0-6 mois' },
 ];
 
 export type DeliveryId = 'relais' | 'domicile' | 'main';

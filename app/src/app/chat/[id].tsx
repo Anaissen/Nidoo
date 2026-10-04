@@ -5,7 +5,7 @@ import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { openProduct, Thumb } from '../../components/products';
 import { BackButton, BottomBar, Screen } from '../../components/Screen';
-import { Avatar, ellipsis, H, Txt } from '../../components/ui';
+import { Avatar, ellipsis, H, PrimaryButton, Txt } from '../../components/ui';
 import { fmt } from '../../lib/format';
 import { productById, sellerById, useStore } from '../../store/useStore';
 import { colors, fonts, ICON_STROKE } from '../../theme/tokens';
@@ -19,6 +19,8 @@ export default function ChatScreen() {
   const mine = useStore((s) => s.mine);
   const send = useStore((s) => s.send);
   const addToCart = useStore((s) => s.addToCart);
+  const offer = useStore((s) => (chat ? s.offers[chat.pid] : undefined));
+  const acceptCounter = useStore((s) => s.acceptCounter);
   const [draft, setDraft] = useState('');
   const scroll = useRef<ScrollView>(null);
 
@@ -73,7 +75,9 @@ export default function ChatScreen() {
           <Thumb p={p} size={52} radius={16} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Txt size={14} weight="semi" {...ellipsis}>{p.title}</Txt>
-            <Txt size={14} weight="bold">{fmt(p.price)}</Txt>
+            <Txt size={14} weight="bold">
+              {offer?.status === 'accepted' ? `${fmt(offer.amount)} · offre acceptée` : fmt(p.price)}
+            </Txt>
           </View>
           {p.sid !== 'me' && (
             <Pressable onPress={() => { addToCart(p.id); router.push('/cart'); }} style={{ height: 38, paddingHorizontal: 16, borderRadius: 999, backgroundColor: colors.accent, justifyContent: 'center' }}>
@@ -84,7 +88,11 @@ export default function ChatScreen() {
 
         <Txt size={12} color={colors.neutral600} style={{ textAlign: 'center', paddingVertical: 4 }}>Aujourd'hui</Txt>
 
-        {chat.msgs.map((m, i) => (
+        {chat.msgs.map((m, i) => m.offer ? (
+          <OfferBubble key={i} me={m.me} kind={m.offer.kind} amount={m.offer.amount} listPrice={p.price} text={m.t}
+            canAccept={m.offer.kind === 'counter' && offer?.status === 'countered' && offer.counter === m.offer.amount}
+            onAccept={() => acceptCounter(p.id)} />
+        ) : (
           <View
             key={i}
             style={{
@@ -103,5 +111,27 @@ export default function ChatScreen() {
         )}
       </View>
     </Screen>
+  );
+}
+
+const KIND_LABEL = { offer: 'Offre', counter: 'Contre-offre', accept: 'Accord' } as const;
+
+/** Price-offer card inside the conversation. */
+function OfferBubble({ me, kind, amount, listPrice, text, canAccept, onAccept }: {
+  me: boolean; kind: 'offer' | 'counter' | 'accept'; amount: number; listPrice: number; text: string; canAccept: boolean; onAccept: () => void;
+}) {
+  const done = kind === 'accept';
+  return (
+    <View style={{ alignSelf: me ? 'flex-end' : 'flex-start', width: '72%', padding: 14, gap: 4, borderRadius: 22, borderWidth: 2, borderColor: done ? colors.accent2_500 : colors.accent, backgroundColor: done ? colors.accent2_100 : colors.neutral100 }}>
+      <Txt size={11} weight="bold" color={done ? colors.accent2_800 : colors.accent700} style={{ letterSpacing: 0.9, textTransform: 'uppercase' }}>
+        {KIND_LABEL[kind]}{done ? ' ✓' : ''}
+      </Txt>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
+        <H size={24}>{fmt(amount)}</H>
+        <Txt size={13} color={colors.neutral600} style={{ textDecorationLine: 'line-through' }}>{fmt(listPrice)}</Txt>
+      </View>
+      <Txt size={14} color={colors.neutral800}>{text}</Txt>
+      {canAccept && <PrimaryButton label={`Accepter ${fmt(amount)}`} height={40} size={15} onPress={onAccept} style={{ marginTop: 6 }} />}
+    </View>
   );
 }

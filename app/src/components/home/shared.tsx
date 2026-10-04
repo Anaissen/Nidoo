@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Bell, Search, ShoppingBag } from 'lucide-react-native';
+import { Bell, ShoppingBag } from 'lucide-react-native';
 import { View } from 'react-native';
 
 import { TypeFilter, useStore } from '../../store/useStore';
@@ -30,14 +30,6 @@ export function CartButton() {
   );
 }
 
-export function SearchIconButton() {
-  return (
-    <CircleButton onPress={() => router.navigate('/search')} accessibilityLabel="Rechercher">
-      <Search size={20} strokeWidth={ICON_STROKE} color={colors.text} />
-    </CircleButton>
-  );
-}
-
 /** Reset the search tab to these filters and switch to it. */
 export function useSearchWith() {
   const searchWith = useStore((s) => s.searchWith);
@@ -46,5 +38,3 @@ export function useSearchWith() {
     router.navigate('/search');
   };
 }
-
-export const startLotListing = () => router.push('/sell?type=lot');

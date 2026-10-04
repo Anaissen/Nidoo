@@ -55,7 +55,7 @@ export default function Tracking() {
           <View style={{ flex: 1, minWidth: 0 }}>
             <Txt size={14} weight="semi" {...ellipsis}>{p.title}</Txt>
             <Txt size={13} color={colors.neutral700}>{isSale ? `Acheteur : ${o.buyer}` : seller.name} · {o.del}</Txt>
-            <Txt weight="bold">{isSale ? `Tu reçois ${fmt(p.price * (1 - rate))}` : fmt(p.price)}</Txt>
+            <Txt weight="bold">{isSale ? `Tu reçois ${fmt((o.price ?? p.price) * (1 - rate))}` : fmt(o.price ?? p.price)}</Txt>
           </View>
         </View>
 

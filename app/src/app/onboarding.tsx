@@ -1,11 +1,11 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { Check } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { KidList } from '../components/KidAvatar';
+import { Logo } from '../components/Logo';
 import { H, LinkButton, PrimaryButton, Stripes, Txt } from '../components/ui';
-import { AGES } from '../data/catalog';
 import { useStore } from '../store/useStore';
 import { colors } from '../theme/tokens';
 
@@ -15,18 +15,13 @@ const SLIDES: { title: string; text: string; label: string; tones: [string, stri
   { title: 'Simple et protégé', text: 'Paiement sécurisé, versé au vendeur après réception. Point relais, domicile ou main propre.', label: 'illustration · colis', tones: ['#eee7db', '#f9f4ed'] },
 ];
 
-/** `?kids=1` opens straight on the "ages" step, from the profile or the 1c "+" button. */
+/** Three intro slides, then the children's passports. */
 export default function Onboarding() {
-  const { kids } = useLocalSearchParams<{ kids?: string }>();
-  const fromProfile = kids === '1';
-  const [step, setStep] = useState(fromProfile ? 3 : 0);
-  const kidAges = useStore((s) => s.kidAges);
-  const toggleKidAge = useStore((s) => s.toggleKidAge);
+  const [step, setStep] = useState(0);
   const set = useStore((s) => s.set);
   const insets = useSafeAreaInsets();
 
   const finish = () => {
-    if (fromProfile) { router.back(); return; }
     set({ onboarded: true });
     router.replace('/home');
   };
@@ -36,8 +31,8 @@ export default function Onboarding() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + 10, paddingHorizontal: 24, paddingBottom: insets.bottom + 16 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 40 }}>
-        <H size={22} color={colors.accent}>nidoo</H>
-        {step < 3 && !fromProfile && <LinkButton label="Passer" color={colors.neutral700} onPress={() => setStep(3)} style={{ padding: 8 }} />}
+        <Logo size={22} />
+        {step < 3 && <LinkButton label="Passer" color={colors.neutral700} onPress={() => setStep(3)} style={{ padding: 8 }} />}
       </View>
 
       {step < 3 ? (
@@ -65,34 +60,15 @@ export default function Onboarding() {
         </>
       ) : (
         <>
-          <View style={{ flex: 1, gap: 22, paddingTop: 24 }}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 22, paddingTop: 24, paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
             <View style={{ gap: 8 }}>
-              <H size={34}>Pour qui tu cherches ?</H>
-              <Txt color={colors.neutral800}>Choisis les âges de tes enfants. On te montrera d'abord les bonnes tailles.</Txt>
+              <H size={34}>Présente-nous tes enfants</H>
+              <Txt color={colors.neutral800}>Un petit passeport par enfant : prénom, âge, taille, couleurs préférées. On te montrera d'abord ce qui lui va.</Txt>
             </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-              {AGES.map((a) => {
-                const on = kidAges.includes(a);
-                return (
-                  <Pressable
-                    key={a}
-                    onPress={() => toggleKidAge(a)}
-                    style={{
-                      width: '48.5%', height: 64, borderRadius: 22, borderWidth: 2, borderColor: on ? colors.accent : 'transparent',
-                      backgroundColor: on ? colors.accent100 : colors.neutral100, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16,
-                    }}
-                  >
-                    <Txt weight="semi">{a}</Txt>
-                    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: on ? colors.accent : colors.neutral300, alignItems: 'center', justifyContent: 'center' }}>
-                      <Check size={13} strokeWidth={3.5} color={colors.bg} />
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <Txt size={13} color={colors.neutral700}>Tu pourras modifier ça à tout moment depuis ton profil.</Txt>
-          </View>
-          <PrimaryButton label={fromProfile ? 'Enregistrer' : "C'est parti"} height={56} onPress={finish} />
+            <KidList />
+            <Txt size={13} color={colors.neutral700}>Tu pourras compléter les passeports à tout moment depuis ton profil.</Txt>
+          </ScrollView>
+          <PrimaryButton label="C'est parti" height={56} onPress={finish} />
         </>
       )}
     </View>
