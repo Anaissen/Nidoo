@@ -72,7 +72,7 @@ export default function Checkout() {
                   </Pressable>
                 );
               })}
-              <Txt size={12} color={colors.accent2_800}>Tu fixeras l'heure avec le vendeur dans la messagerie. Ne paie jamais en liquide : le paiement reste protégé par Nidoo.</Txt>
+              <Txt size={12} color={colors.accent2_800}>Tu fixeras l'heure avec le vendeur dans la messagerie. Ne paie jamais en liquide : le paiement reste protégé par Pimoo.</Txt>
             </View>
           ) : (
             <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 24, backgroundColor: colors.accent2_100 }}>

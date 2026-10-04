@@ -290,6 +290,7 @@ export const useStore = create<State & Actions>()(
       },
     }),
     {
+      // Storage key kept from the app's first name so saved passports and settings survive the rename.
       name: 'nidoo-settings',
       version: 3,
       storage: createJSONStorage(() => AsyncStorage),

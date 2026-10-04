@@ -33,7 +33,7 @@ export default function Impact() {
     <Screen contentStyle={{ paddingHorizontal: 20 }}>
       <View style={{ gap: 16, paddingTop: 4 }}>
         <BackHeader title="Mon impact" />
-        <Txt color={colors.neutral800}>Chaque vêtement acheté ou revendu sur Nidoo, c'est un vêtement neuf en moins à fabriquer.</Txt>
+        <Txt color={colors.neutral800}>Chaque vêtement acheté ou revendu sur Pimoo, c'est un vêtement neuf en moins à fabriquer.</Txt>
         {stats.map(({ Icon, big, small, bg, fg }) => (
           <View key={small} style={{ flexDirection: 'row', alignItems: 'center', gap: 16, padding: 18, borderRadius: 28, backgroundColor: bg }}>
             <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: colors.neutral100, alignItems: 'center', justifyContent: 'center' }}>

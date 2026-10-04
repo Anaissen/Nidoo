@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "Nidoo",
-    "slug": "nidoo",
+    "name": "Pimoo",
+    "slug": "pimoo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.nidoo.app"
+      "bundleIdentifier": "com.pimoo.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.nidoo.app"
+      "package": "com.pimoo.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -27,7 +27,7 @@
       "expo-router",
       "expo-font"
     ],
-    "scheme": "nidoo",
+    "scheme": "pimoo",
     "experiments": {
       "typedRoutes": true
     }

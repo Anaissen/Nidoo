@@ -150,7 +150,7 @@ export function OfferDemo({ onDone }: DemoProps) {
 // 4 · Protected payment ─────────────────────────────────────────────────────
 
 const SAFE_STEPS = [
-  ['Tu paies', 'Ton argent est mis de côté par Nidoo'],
+  ['Tu paies', 'Ton argent est mis de côté par Pimoo'],
   ['Le vendeur expédie', 'Point relais, domicile ou main propre'],
   ['Tu reçois et tu confirmes', 'Tu vérifies que tout est conforme'],
   ['Le vendeur est payé', 'Seulement maintenant'],
@@ -203,7 +203,7 @@ export function SellDemo({ onDone }: DemoProps) {
         <Pop k={price}>
           <View style={{ padding: 14, borderRadius: 20, backgroundColor: colors.surface, gap: 4 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Txt size={14} color={colors.neutral700}>Commission Nidoo ({pct} %)</Txt>
+              <Txt size={14} color={colors.neutral700}>Commission Pimoo ({pct} %)</Txt>
               <Txt size={14} color={colors.neutral700}>− {fmt(price * commissionRate(pct))}</Txt>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>

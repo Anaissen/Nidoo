@@ -10,7 +10,7 @@ import { useStore } from '../store/useStore';
 import { colors } from '../theme/tokens';
 
 const SLIDES: { title: string; text: string; label: string; tones: [string, string] }[] = [
-  { title: 'Bienvenue sur Nidoo', text: 'Le vide-dressing des 0-10 ans, entre parents. Achète malin, revends ce qui ne sert plus.', label: 'illustration · bienvenue', tones: ['#ffe1d0', '#fff2eb'] },
+  { title: 'Bienvenue sur Pimoo', text: 'Le vide-dressing des 0-10 ans, entre parents. Achète malin, revends ce qui ne sert plus.', label: 'illustration · bienvenue', tones: ['#ffe1d0', '#fff2eb'] },
   { title: 'Une pièce ou tout un lot', text: "Vends ce qui ne lui va plus à l'unité, ou d'un coup en lot par taille, à prix fixe.", label: 'illustration · pièce vs lot', tones: ['#e1eecc', '#f0fae1'] },
   { title: 'Simple et protégé', text: 'Paiement sécurisé, versé au vendeur après réception. Point relais, domicile ou main propre.', label: 'illustration · colis', tones: ['#eee7db', '#f9f4ed'] },
 ];

@@ -15,7 +15,7 @@ const ITEMS: Record<string, { label: string; Icon: LucideIcon }> = {
   profile: { label: 'Profil', Icon: User },
 };
 
-function NidooTabBar({ state, navigation }: BottomTabBarProps) {
+function PimooTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const unread = useStore((s) => Object.values(s.chats).filter((c) => c.unread).length);
 
@@ -72,7 +72,7 @@ function NidooTabBar({ state, navigation }: BottomTabBarProps) {
 export default function TabsLayout() {
   return (
     <Tabs
-      tabBar={(props) => <NidooTabBar {...props} />}
+      tabBar={(props) => <PimooTabBar {...props} />}
       screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.bg } }}
     >
       <Tabs.Screen name="home" />

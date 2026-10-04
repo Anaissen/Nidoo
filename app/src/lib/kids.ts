@@ -74,7 +74,7 @@ export const birthLabel = (k: Kid) => `${MONTHS_LONG[k.birthMonth - 1]} ${k.birt
 
 // Age (in months) at which each size bucket starts, aligned with AGES.
 const SIZE_START = [0, 6, 12, 24, 48, 72, 96];
-/** Within this many months of the next size, Nidoo nudges the parent ("Il grandit"). */
+/** Within this many months of the next size, Pimoo nudges the parent ("Il grandit"). */
 export const GROW_ALERT_MONTHS = 3;
 
 /** "Il grandit": the size coming up soon, or null when it's not close yet. */

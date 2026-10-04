@@ -56,7 +56,7 @@ export default function WardrobeScreen() {
           <View style={{ height: 12, borderRadius: 999, backgroundColor: colors.surface, overflow: 'hidden' }}>
             <View style={{ width: `${need ? (got / need) * 100 : 0}%`, height: '100%', borderRadius: 999, backgroundColor: colors.accent2_600 }} />
           </View>
-          <Txt size={13} color={colors.neutral700}>Tes achats sur Nidoo cochent automatiquement la garde-robe de l'enfant sélectionné sur l'accueil.</Txt>
+          <Txt size={13} color={colors.neutral700}>Tes achats sur Pimoo cochent automatiquement la garde-robe de l'enfant sélectionné sur l'accueil.</Txt>
         </View>
 
         <View style={{ gap: 10 }}>

@@ -1,4 +1,4 @@
-# Nidoo — app mobile (Expo / React Native)
+# Pimoo — app mobile (Expo / React Native)
 
 Marketplace de vêtements d'enfants 0-10 ans entre parents : pièces uniques ou lots à prix fixe.
 Implémentation du design Claude Design `project/Nidoo Directions.dc.html` (système Organic).
