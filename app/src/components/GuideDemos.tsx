@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, Text, View } from 'react-native';
 
 import { fmt } from '../lib/format';
+import { TREE_STAGES } from '../lib/impact';
 import { colors, fonts, ICON_STROKE, palettes, shadows } from '../theme/tokens';
+import { ImpactTree } from './ImpactTree';
 import { Chip, H, PrimaryButton, Segmented, Stripes, Txt } from './ui';
 
 type DemoProps = { onDone: () => void };
@@ -219,9 +221,14 @@ export function ImpactDemo({ onDone }: DemoProps) {
         })}
       </View>
       <Pop k={pieces}>
-        <View style={{ padding: 14, borderRadius: 20, backgroundColor: colors.accent2_100, gap: 2 }}>
-          <H size={22} color={colors.accent2_800}>{pieces} vêtement{pieces > 1 ? 's' : ''} sauvé{pieces > 1 ? 's' : ''}</H>
-          <Txt size={13} color={colors.accent2_800}>≈ {pieces * 5} kg de CO₂ et {(pieces * 1500).toLocaleString('fr-FR')} L d'eau économisés</Txt>
+        <View style={{ padding: 14, borderRadius: 20, backgroundColor: colors.accent2_100, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          {/* Demo: one stage per item saved, so the tree visibly grows (the real one counts 10 / 25 / 50 / 100 pieces). */}
+          <ImpactTree stage={saved.length} size={76} bg={colors.neutral100} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <H size={20} color={colors.accent2_800}>{pieces} vêtement{pieces > 1 ? 's' : ''} sauvé{pieces > 1 ? 's' : ''}</H>
+            <Txt size={13} color={colors.accent2_800}>Ton arbre : {TREE_STAGES[saved.length].label}</Txt>
+            <Txt size={12} color={colors.accent2_800}>≈ {pieces * 5} kg de CO₂ et {(pieces * 1500).toLocaleString('fr-FR')} L d'eau</Txt>
+          </View>
         </View>
       </Pop>
     </Card>

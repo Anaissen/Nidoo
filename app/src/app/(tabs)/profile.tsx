@@ -3,10 +3,12 @@ import { ChevronRight } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 
 import { VerifiedBadge } from '../../components/Badges';
+import { ImpactTree } from '../../components/ImpactTree';
 import { Screen } from '../../components/Screen';
 import { Avatar, H, PrimaryButton, Txt } from '../../components/ui';
 import { cityLabel, fullName, initial } from '../../lib/account';
 import { fmt, fmtInt } from '../../lib/format';
+import { TREE_STAGES, treeStage } from '../../lib/impact';
 import { accountOf, impactStats, myListings, useStore } from '../../store/useStore';
 import { colors, ICON_STROKE } from '../../theme/tokens';
 
@@ -53,10 +55,10 @@ export default function Profile() {
         )}
 
         <Pressable onPress={() => router.push('/impact')} style={({ pressed }) => ({ padding: 18, borderRadius: 28, backgroundColor: colors.accent2_100, flexDirection: 'row', alignItems: 'center', gap: 14, transform: [{ scale: pressed ? 0.98 : 1 }] })}>
-          <Txt size={34} lh={1.15}>🌱</Txt>
+          <ImpactTree stage={treeStage(impact.pieces)} size={56} bg={colors.neutral100} />
           <View style={{ flex: 1 }}>
             <H size={20} color={colors.accent2_800}>{impact.pieces} vêtements sauvés</H>
-            <Txt size={13} color={colors.accent2_800}>≈ {fmtInt(impact.co2Kg)} kg de CO₂ et {fmtInt(impact.waterL)} L d'eau économisés</Txt>
+            <Txt size={13} color={colors.accent2_800}>Ton arbre : {TREE_STAGES[treeStage(impact.pieces)].label} · ≈ {fmtInt(impact.co2Kg)} kg de CO₂ économisés</Txt>
           </View>
           <ChevronRight size={18} strokeWidth={ICON_STROKE} color={colors.accent2_800} />
         </Pressable>

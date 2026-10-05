@@ -27,7 +27,7 @@ npm run typecheck
 - **Badges** « Parent vérifié » (vérification du compte dans Réglages, simulée) et « Lavé et plié » (promis par le vendeur, confirmé par l'acheteur à la réception)
 - **Guide des états** (de « Neuf avec étiquette » à « Satisfaisant »), accessible depuis la fiche, la vente et le profil
 - **Près de chez toi** : distance du vendeur, filtre « moins de 2 / 5 / 10 km », lieux sûrs proposés pour la remise en main propre
-- **Compteur d'impact** : vêtements sauvés, estimations CO₂ et eau, paliers
+- **Compteur d'impact** : vêtements sauvés, estimations CO₂ et eau, et un **arbre qui grandit** (graine → petite pousse 10 → jeune arbre 25 → grand chêne 50 → forêt entière 100), aussi sur le profil et dans le guide
 - **Mode sombre** (clair par défaut, ou sombre / automatique) et **taille du texte** (normal / grand / très grand) dans Réglages
 - Recherche + filtres (âge, distance, fille/garçon, saison, état, prix, marque, couleur), Tout / Pièces / Lots
 - Fiche pièce ou lot (contenu du lot, prix à la pièce), profil vendeur (dressing, avis, suivre)
