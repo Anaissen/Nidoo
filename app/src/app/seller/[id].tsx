@@ -19,7 +19,8 @@ export default function SellerScreen() {
   const openChatFor = useStore((s) => s.openChatFor);
 
   const meVerified = useStore((s) => s.meVerified);
-  const sel = sellerView({ meVerified }, id);
+  const account = useStore((s) => s.account);
+  const sel = sellerView({ meVerified, account }, id);
   if (!sel) return <Screen><Txt style={{ padding: GUTTER }}>Vendeur introuvable.</Txt></Screen>;
   const isMe = id === 'me';
   const items = isMe ? myListings(mine) : allProducts(mine).filter((p) => p.sid === id);

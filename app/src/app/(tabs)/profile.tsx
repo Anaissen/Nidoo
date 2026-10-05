@@ -4,16 +4,19 @@ import { Pressable, View } from 'react-native';
 
 import { VerifiedBadge } from '../../components/Badges';
 import { Screen } from '../../components/Screen';
-import { Avatar, H, Txt } from '../../components/ui';
+import { Avatar, H, PrimaryButton, Txt } from '../../components/ui';
+import { cityLabel, fullName, initial } from '../../lib/account';
 import { fmt, fmtInt } from '../../lib/format';
-import { impactStats, myListings, useStore } from '../../store/useStore';
+import { accountOf, impactStats, myListings, useStore } from '../../store/useStore';
 import { colors, ICON_STROKE } from '../../theme/tokens';
 
 export default function Profile() {
   const s = useStore();
   const impact = impactStats(s);
+  const a = accountOf(s);
 
   const rows: { label: string; meta: string; href: Href }[] = [
+    { label: 'Mes informations', meta: a.email, href: '/account' },
     { label: 'Mes achats', meta: String(s.purchases.length), href: '/orders?tab=achats' },
     { label: 'Mes ventes', meta: String(s.sales.length), href: '/orders?tab=ventes' },
     { label: 'Favoris', meta: String(s.favs.length), href: '/favorites' },
@@ -29,14 +32,25 @@ export default function Profile() {
   return (
     <Screen contentStyle={{ paddingHorizontal: 20 }}>
       <View style={{ gap: 18, paddingTop: 4 }}>
-        <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
-          <Avatar init="É" size={76} bg={colors.accent300} font={30} />
-          <View style={{ gap: 4 }}>
-            <H size={26}>Élodie</H>
-            <Txt size={14} color={colors.neutral700}>Paris 11e · ★ 4,9 (12 avis)</Txt>
-            {s.meVerified && <VerifiedBadge small />}
+        {s.signedIn ? (
+          <Pressable onPress={() => router.push('/account')} style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
+            <Avatar init={initial(a)} size={76} bg={colors.accent300} font={30} />
+            <View style={{ gap: 4, flex: 1 }}>
+              <H size={26} numberOfLines={1}>{fullName(a) || a.email}</H>
+              <Txt size={14} color={colors.neutral700}>{[cityLabel(a), '★ 4,9 (12 avis)'].filter(Boolean).join(' · ')}</Txt>
+              {s.meVerified && <VerifiedBadge small />}
+            </View>
+          </Pressable>
+        ) : (
+          <View style={{ padding: 20, borderRadius: 30, backgroundColor: colors.neutral100, gap: 12 }}>
+            <H size={22}>Tu n'es pas connecté·e</H>
+            <Txt size={14} color={colors.neutral800}>Connecte-toi pour acheter, vendre, faire des offres et retrouver tes messages.</Txt>
+            <PrimaryButton label="Me connecter" height={50} size={16} onPress={() => router.push('/login')} />
+            <Pressable onPress={() => router.push('/login?mode=signup')} style={{ alignSelf: 'center', padding: 4 }}>
+              <Txt size={14} weight="semi" color={colors.accent700}>Créer un compte</Txt>
+            </Pressable>
           </View>
-        </View>
+        )}
 
         <Pressable onPress={() => router.push('/impact')} style={({ pressed }) => ({ padding: 18, borderRadius: 28, backgroundColor: colors.accent2_100, flexDirection: 'row', alignItems: 'center', gap: 14, transform: [{ scale: pressed ? 0.98 : 1 }] })}>
           <Txt size={34} lh={1.15}>🌱</Txt>
@@ -58,14 +72,14 @@ export default function Profile() {
         </View>
 
         <View style={{ borderRadius: 30, backgroundColor: colors.neutral100, overflow: 'hidden' }}>
-          {rows.map((r, i) => (
+          {rows.filter((r) => s.signedIn || r.href !== '/account').map((r, i) => (
             <Pressable
               key={r.label}
               onPress={() => router.push(r.href)}
               style={({ pressed }) => ({
                 flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, paddingHorizontal: 18,
                 backgroundColor: pressed ? colors.neutral200 : 'transparent',
-                borderBottomWidth: i < rows.length - 1 ? 1 : 0, borderBottomColor: colors.divider,
+                borderBottomWidth: i < rows.length - (s.signedIn ? 1 : 2) ? 1 : 0, borderBottomColor: colors.divider,
               })}
             >
               <Txt weight="semi" style={{ flex: 1 }}>{r.label}</Txt>

@@ -1,25 +1,30 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AuthPanel } from '../components/AuthPanel';
+import { ParcelArt, PieceOrLotArt, SproutDot } from '../components/Illustrations';
 import { KidList } from '../components/KidAvatar';
 import { FullLogo, Logo } from '../components/Logo';
 import { GIFT } from '../components/home/Home1c';
-import { H, LinkButton, OutlineButton, PrimaryButton, Stripes, Txt } from '../components/ui';
+import { H, LinkButton, OutlineButton, PrimaryButton, Txt } from '../components/ui';
 import { useStore } from '../store/useStore';
 import { colors, shadows } from '../theme/tokens';
 
-const SLIDES: { title: string; text: string; label: string; tones: [string, string] }[] = [
-  { title: 'Bienvenue sur Pimou', text: 'Pimou simplifie le quotidien des parents et de tous ceux qui achètent pour les enfants. Un lieu pensé pour gagner du temps, tout trouver au même endroit et éviter des heures de recherche, d\'achats et de colis à gérer.', label: 'illustration · bienvenue', tones: ['#ffe1d0', '#fff2eb'] },
-  { title: 'Une pièce ou tout un lot', text: "Vends ce qui ne lui va plus à l'unité, ou d'un coup en lot par taille.", label: 'illustration · pièce vs lot', tones: ['#e1eecc', '#f0fae1'] },
-  { title: 'Simple et protégé', text: 'Paiement sécurisé, versé au vendeur après réception. Point relais, domicile ou main propre.', label: 'illustration · colis', tones: ['#eee7db', '#f9f4ed'] },
+const SLIDES: { title: string; text: string }[] = [
+  { title: 'Bienvenue sur Pimou', text: 'Pimou simplifie le quotidien des parents et de tous ceux qui achètent pour les enfants. Un lieu pensé pour gagner du temps, tout trouver au même endroit et éviter des heures de recherche, d\'achats et de colis à gérer.'},
+  { title: 'Une pièce ou tout un lot', text: "Vends ce qui ne lui va plus à l'unité, ou d'un coup en lot par taille."},
+  { title: 'Simple et protégé', text: 'Paiement sécurisé, versé au vendeur après réception. Point relais, domicile ou main propre.'},
 ];
 
-/** Three intro slides, then the children's passports. */
+/** Three intro slides, sign-up (or log in), then the children's passports. */
 export default function Onboarding() {
   const [step, setStep] = useState(0);
   const set = useStore((s) => s.set);
+  const signedIn = useStore((s) => s.signedIn);
+  // Already logged in (e.g. "Revoir l'onboarding"): skip the sign-up page.
+  const afterSlides = signedIn ? 4 : 3;
   const insets = useSafeAreaInsets();
 
   const finish = () => {
@@ -33,7 +38,7 @@ export default function Onboarding() {
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + 10, paddingHorizontal: 24, paddingBottom: insets.bottom + 16 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 40 }}>
         <Logo size={22} />
-        {step < 3 && <LinkButton label="Passer" color={colors.neutral700} onPress={() => setStep(3)} style={{ padding: 8 }} />}
+        {step < 3 && <LinkButton label="Passer" color={colors.neutral700} onPress={() => setStep(afterSlides)} style={{ padding: 8 }} />}
       </View>
 
       {step < 3 ? (
@@ -47,11 +52,9 @@ export default function Onboarding() {
                   <FullLogo width={196} />
                 </View>
               ) : (
-                <Stripes tones={slide.tones} style={{ width: 260, height: 260, borderRadius: 130, alignItems: 'center', justifyContent: 'center' }}>
-                  <Txt size={10} color={colors.neutral700} style={{ letterSpacing: 0.5 }}>{slide.label}</Txt>
-                </Stripes>
+                <View style={{ borderRadius: 130, boxShadow: shadows.md }}>{step === 1 ? <PieceOrLotArt /> : <ParcelArt />}</View>
               )}
-              {step > 0 && <View style={{ position: 'absolute', right: -18, bottom: 24, width: 72, height: 72, borderRadius: 36, backgroundColor: colors.accent2_300 }} />}
+              {step > 0 && <View style={{ position: 'absolute', right: -18, bottom: 24 }}><SproutDot /></View>}
             </View>
             <View style={{ gap: 10 }}>
               <H size={36}>{slide.title}</H>
@@ -64,9 +67,15 @@ export default function Onboarding() {
                 <View key={i} style={{ height: 8, width: i === step ? 28 : 8, borderRadius: 999, backgroundColor: i === step ? colors.accent : colors.neutral400 }} />
               ))}
             </View>
-            <PrimaryButton label="Suivant" height={56} onPress={() => setStep(step + 1)} style={{ paddingHorizontal: 28 }} />
+            <PrimaryButton label="Suivant" height={56} onPress={() => setStep(step === 2 ? afterSlides : step + 1)} style={{ paddingHorizontal: 28 }} />
           </View>
         </>
+      ) : step === 3 ? (
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 24, paddingBottom: 16 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <AuthPanel onDone={() => setStep(4)} />
+          </ScrollView>
+        </KeyboardAvoidingView>
       ) : (
         <>
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 22, paddingTop: 24, paddingBottom: 16 }} showsVerticalScrollIndicator={false}>

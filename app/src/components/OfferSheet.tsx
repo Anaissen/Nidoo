@@ -5,6 +5,7 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, TextInput, View } fro
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Product } from '../data/catalog';
+import { requireAccount } from '../lib/auth';
 import { fmt } from '../lib/format';
 import { useStore } from '../store/useStore';
 import { colors, fonts, GUTTER, ICON_STROKE, shadows } from '../theme/tokens';
@@ -25,6 +26,7 @@ export function OfferSheet({ p, visible, onClose }: { p: Product; visible: boole
   const quick = [0.95, 0.9, 0.85].map((r) => round(p.price * r));
 
   const send = () => {
+    if (!requireAccount('faire une offre')) { onClose(); return; }
     if (amount <= 0) { showToast('Indique un montant'); return; }
     if (amount >= p.price) { showToast('Ton offre doit être sous le prix affiché'); return; }
     if (amount < min) { showToast(`Offre trop basse : minimum ${fmt(min)}`); return; }

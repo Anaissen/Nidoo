@@ -5,6 +5,7 @@ import { Pressable, View } from 'react-native';
 import { openProduct, Thumb, typeLabel } from '../components/products';
 import { BackHeader, BottomBar, Screen } from '../components/Screen';
 import { Avatar, CircleButton, ellipsis, H, PrimaryButton, Txt } from '../components/ui';
+import { requireAccount } from '../lib/auth';
 import { fmt } from '../lib/format';
 import { useCartGroups } from '../lib/cart';
 import { useStore } from '../store/useStore';
@@ -15,7 +16,7 @@ export default function Cart() {
   const remove = useStore((s) => s.removeFromCart);
 
   const bottom = items.length > 0 ? (
-    <BottomBar><PrimaryButton label={`Commander · ${fmt(subtotal)}`} onPress={() => router.push('/checkout')} style={{ flex: 1 }} /></BottomBar>
+    <BottomBar><PrimaryButton label={`Commander · ${fmt(subtotal)}`} onPress={() => requireAccount('commander') && router.push('/checkout')} style={{ flex: 1 }} /></BottomBar>
   ) : undefined;
 
   return (

@@ -5,8 +5,8 @@ import { View } from 'react-native';
 import { Logo } from '../../components/Logo';
 import { BackHeader, BottomBar, Screen } from '../../components/Screen';
 import { H, OutlineButton, PrimaryButton, Txt } from '../../components/ui';
-import { SELLERS } from '../../data/catalog';
-import { productById, useStore } from '../../store/useStore';
+import { fullName } from '../../lib/account';
+import { accountOf, productById, useStore } from '../../store/useStore';
 import { colors, ICON_STROKE, shadows } from '../../theme/tokens';
 
 /** Deterministic pseudo-random bits from the order id, so the code looks real and stays stable. */
@@ -61,10 +61,10 @@ export default function Label() {
   const mine = useStore((s) => s.mine);
   const updateOrder = useStore((s) => s.updateOrder);
   const showToast = useStore((s) => s.showToast);
+  const me = useStore(accountOf);
   if (!sale) return <Screen><Txt style={{ padding: 20 }}>Vente introuvable.</Txt></Screen>;
 
   const p = productById(mine, sale.pid)!;
-  const me = SELLERS.me;
   const code = `PIM-${sale.id.replace(/\D/g, '').padStart(4, '0').slice(-6)}-${p.id}`;
   const relais = sale.del === 'Point relais';
   const dropped = sale.status >= 1;
@@ -104,7 +104,7 @@ export default function Label() {
             <Txt size={12} weight="bold" color="#201e1d">{relais ? 'Point relais' : 'Colissimo · domicile'}</Txt>
           </View>
           <View style={{ flexDirection: 'row', gap: 12 }}>
-            <Block title="Expéditeur" lines={[me.name, me.city]} />
+            <Block title="Expéditeur" lines={[fullName(me), me.street, `${me.zip} ${me.city}`.trim()].filter(Boolean)} />
             <Block title="Destinataire" lines={relais ? [sale.buyer ?? 'Acheteur', 'Relais Tabac du Parc', '12 rue Oberkampf, Paris 11e'] : [sale.buyer ?? 'Acheteur', 'Adresse transmise au transporteur']} />
           </View>
           <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>

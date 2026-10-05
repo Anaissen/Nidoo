@@ -5,6 +5,7 @@ import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Txt } from '../../components/ui';
+import { requireAccount } from '../../lib/auth';
 import { useStore } from '../../store/useStore';
 import { colors, ICON_STROKE, shadows } from '../../theme/tokens';
 
@@ -56,7 +57,7 @@ function PimouTabBar({ state, navigation }: BottomTabBarProps) {
       >
         {tab(0)}
         {tab(1)}
-        <Pressable onPress={() => router.push('/sell')} accessibilityLabel="Vendre" style={{ flex: 1, alignItems: 'center', gap: 3 }}>
+        <Pressable onPress={() => requireAccount('vendre') && router.push('/sell')} accessibilityLabel="Vendre" style={{ flex: 1, alignItems: 'center', gap: 3 }}>
           <View style={{ width: 52, height: 52, marginTop: -26, borderRadius: 26, backgroundColor: colors.accent, borderWidth: 4, borderColor: colors.neutral100, alignItems: 'center', justifyContent: 'center', boxShadow: shadows.md }}>
             <Plus size={24} strokeWidth={3} color={colors.bg} />
           </View>

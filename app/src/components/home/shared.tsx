@@ -1,10 +1,12 @@
 import { router } from 'expo-router';
-import { Bell, ShoppingBag } from 'lucide-react-native';
+import { Bell, LogIn, ShoppingBag } from 'lucide-react-native';
+import { Pressable, useWindowDimensions } from 'react-native';
 import { View } from 'react-native';
 
-import { TypeFilter, useStore } from '../../store/useStore';
+import { initial } from '../../lib/account';
+import { accountOf, TypeFilter, useStore } from '../../store/useStore';
 import { colors, ICON_STROKE } from '../../theme/tokens';
-import { CircleButton, Txt } from '../ui';
+import { Avatar, CircleButton, H, Txt } from '../ui';
 import type { Filters } from '../../store/useStore';
 
 export function BellButton() {
@@ -13,6 +15,26 @@ export function BellButton() {
       <Bell size={20} strokeWidth={ICON_STROKE} color={colors.text} />
       <View style={{ position: 'absolute', top: 10, right: 11, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent }} />
     </CircleButton>
+  );
+}
+
+/** Top of the page: "Connexion" when logged out, otherwise the parent's initial (opens the profile). */
+export function AccountButton() {
+  const signedIn = useStore((s) => s.signedIn);
+  const account = useStore(accountOf);
+  const { width } = useWindowDimensions();
+  if (!signedIn) {
+    return (
+      <Pressable onPress={() => router.push('/login')} accessibilityLabel="Se connecter" style={({ pressed }) => ({ height: 44, paddingHorizontal: 14, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.text, opacity: pressed ? 0.85 : 1 })}>
+        <LogIn size={18} strokeWidth={ICON_STROKE} color={colors.bg} />
+        {width >= 370 && <H size={14} color={colors.bg}>Connexion</H>}
+      </Pressable>
+    );
+  }
+  return (
+    <Pressable onPress={() => router.navigate('/profile')} accessibilityLabel="Mon compte" style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}>
+      <Avatar init={initial(account)} size={44} bg={colors.accent300} font={18} />
+    </Pressable>
   );
 }
 

@@ -14,7 +14,7 @@ import { GrowAlertCard, WardrobeCard } from '../KidCards';
 import { Logo } from '../Logo';
 import { HeartButton, LotBadge, openProduct, ProductGrid, ProductTile, tonesFor } from '../products';
 import { Chip, ellipsis, H, LinkButton, Segmented, Stripes, Txt } from '../ui';
-import { BellButton, CartButton } from './shared';
+import { AccountButton, BellButton, CartButton } from './shared';
 
 /** activeKidId value for the no-passport "Pour offrir" feed. */
 export const GIFT = 'gift';
@@ -43,6 +43,7 @@ export function Home1c() {
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <BellButton />
           <CartButton />
+          <AccountButton />
         </View>
       </View>
       <H size={26} style={{ paddingHorizontal: GUTTER, marginTop: -6 }}>Pour qui aujourd'hui ?</H>

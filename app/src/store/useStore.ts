@@ -7,6 +7,7 @@ import {
   WARDROBE_TEMPLATES, WardrobeLine,
 } from '../data/catalog';
 import { fmt } from '../lib/format';
+import { Account, cityLabel, DEMO_ACCOUNT, EMPTY_ACCOUNT, hashPassword, shortName } from '../lib/account';
 import { DEMO_KIDS, Kid, withCurrentSize } from '../lib/kids';
 
 export type TypeFilter = 'all' | 'unique' | 'lot';
@@ -41,6 +42,12 @@ type State = {
   commission: number;
   kids: Kid[];
   activeKidId: string | null;
+  /** Filled in at sign-up; null until then. */
+  account: Account | null;
+  /** Logged in on this device (the account stays saved after logging out, to log back in). */
+  signedIn: boolean;
+  /** Demo only: a hash of the password, kept on the device until there's a server. */
+  pwHash: string | null;
   theme: ThemeMode;
   textScale: number;
   meVerified: boolean;
@@ -71,6 +78,10 @@ type State = {
 
 type Actions = {
   set: (patch: Partial<State>) => void;
+  signUp: (account: Account, password: string) => void;
+  /** Returns an error message, or null once logged in. */
+  signIn: (email: string, password: string) => string | null;
+  signOut: () => void;
   showToast: (msg: string) => void;
   toggleFav: (id: number) => void;
   addToCart: (id: number) => void;
@@ -116,6 +127,9 @@ export const useStore = create<State & Actions>()(
       kids: DEMO_KIDS,
       activeKidId: DEMO_KIDS[0].id,
       // Light by default for everyone; dark mode is a choice in Réglages.
+      account: null,
+      signedIn: false,
+      pwHash: null,
       theme: 'light',
       textScale: 1,
       meVerified: false,
@@ -153,6 +167,22 @@ export const useStore = create<State & Actions>()(
       toast: null,
 
       set: (patch) => set(patch),
+      signUp: (account, password) => set({ account, pwHash: hashPassword(password), signedIn: true }),
+      signIn: (email, password) => {
+        const { account, pwHash } = get();
+        const e = email.trim().toLowerCase();
+        if (account && account.email.toLowerCase() === e) {
+          // Accounts from before sign-up have no password yet: the first one typed becomes theirs.
+          if (pwHash && pwHash !== hashPassword(password)) return 'Mot de passe incorrect';
+          set({ signedIn: true, pwHash: pwHash ?? hashPassword(password) });
+          return null;
+        }
+        // No server yet: an e-mail unknown on this device opens a fresh account to complete in "Mes informations".
+        const first = e.split('@')[0].split(/[._-]/)[0];
+        set({ account: { ...EMPTY_ACCOUNT, email: e, firstName: first.charAt(0).toUpperCase() + first.slice(1) }, pwHash: hashPassword(password), signedIn: true });
+        return null;
+      },
+      signOut: () => set({ signedIn: false }),
       showToast: (msg) => {
         clearTimeout(toastTimer);
         set({ toast: msg });
@@ -299,7 +329,7 @@ export const useStore = create<State & Actions>()(
     {
       // Storage key kept from the app's first name so saved passports and settings survive the rename.
       name: 'nidoo-settings',
-      version: 4,
+      version: 5,
       storage: createJSONStorage(() => AsyncStorage),
       // v1 stored a home variant and bare ages; v2 keeps the children's passports instead.
       migrate: (old, version) => {
@@ -310,11 +340,14 @@ export const useStore = create<State & Actions>()(
         const merged = { theme: 'light', textScale: 1, meVerified: false, wardrobes: {}, ...base } as Partial<State & Actions>;
         // v4: back to the light look for everyone; people pick dark mode themselves.
         if (version < 4) merged.theme = 'light';
+        // v5: sign-up arrived; people already in the app keep the demo profile and stay logged in.
+        if (version < 5 && merged.onboarded && !merged.account) Object.assign(merged, { account: DEMO_ACCOUNT, signedIn: true });
         return merged;
       },
       partialize: (s) => ({
         onboarded: s.onboarded, commission: s.commission, kids: s.kids, activeKidId: s.activeKidId,
-        theme: s.theme, textScale: s.textScale, meVerified: s.meVerified, wardrobes: s.wardrobes,
+        theme: s.theme, textScale: s.textScale, meVerified: s.meVerified, wardrobes: s.wardrobes, account: s.account,
+        signedIn: s.signedIn, pwHash: s.pwHash,
       }),
     },
   ),
@@ -390,7 +423,12 @@ export function impactStats(s: Pick<State, 'purchases' | 'sales' | 'mine'>) {
 export const IMPACT_PER_PIECE = { co2Kg: 5, waterL: 1500 };
 
 /** Seller as shown to others: the user's own badge follows their verification. */
-export const sellerView = (s: Pick<State, 'meVerified'>, id: string | undefined) => {
+export const sellerView = (s: Pick<State, 'meVerified'> & Partial<Pick<State, 'account'>>, id: string | undefined) => {
   const seller = sellerById(id);
-  return seller && seller.id === 'me' ? { ...seller, verified: s.meVerified } : seller;
+  if (!seller || seller.id !== 'me') return seller;
+  const a = s.account ?? DEMO_ACCOUNT;
+  return { ...seller, verified: s.meVerified, name: shortName(a), init: a.firstName.slice(0, 1).toUpperCase() || seller.init, city: cityLabel(a) };
 };
+
+/** The signed-in person, or the demo profile for installs from before sign-up. */
+export const accountOf = (s: Pick<State, 'account'>) => s.account ?? DEMO_ACCOUNT;

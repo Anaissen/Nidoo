@@ -10,7 +10,8 @@ import { H, PrimaryButton, Txt } from '../components/ui';
 import { DELIVERY, DELIVERY_DETAIL, HANDOVER_MAX_KM, SAFE_SPOTS } from '../data/catalog';
 import { useCartGroups } from '../lib/cart';
 import { fmt } from '../lib/format';
-import { useStore } from '../store/useStore';
+import { addressLine, fullName, hasAddress } from '../lib/account';
+import { accountOf, useStore } from '../store/useStore';
 import { colors, fonts, ICON_STROKE } from '../theme/tokens';
 
 
@@ -22,10 +23,12 @@ export default function Checkout() {
   const placeOrder = useStore((s) => s.placeOrder);
   const showToast = useStore((s) => s.showToast);
 
+  const account = useStore(accountOf);
+  const savedOk = hasAddress(account);
   const [spot, setSpot] = useState(SAFE_SPOTS[0].id);
   // Home delivery: confirm the saved address or type another one.
-  const [addrMode, setAddrMode] = useState<'saved' | 'other'>('saved');
-  const [addr, setAddr] = useState({ name: '', street: '', zip: '', city: '' });
+  const [addrMode, setAddrMode] = useState<'saved' | 'other'>(savedOk ? 'saved' : 'other');
+  const [addr, setAddr] = useState({ name: savedOk ? '' : fullName(account), street: '', zip: '', city: '' });
   const otherOk = !!addr.name.trim() && !!addr.street.trim() && /^\d{5}$/.test(addr.zip.trim()) && !!addr.city.trim();
   const addressMissing = del === 'domicile' && addrMode === 'other' && !otherOk;
   // Hand-to-hand only when every seller in the cart is close enough.
@@ -65,8 +68,8 @@ export default function Checkout() {
           {del === 'domicile' ? (
             <View style={{ gap: 8, padding: 14, borderRadius: 24, backgroundColor: colors.accent2_100 }}>
               <Txt size={13} weight="semi" color={colors.accent2_800}>Vérifie ton adresse de livraison :</Txt>
-              <OptionCard control="radio" on={addrMode === 'saved'} title="Livrer à mon adresse" sub={DELIVERY_DETAIL.domicile} onPress={() => setAddrMode('saved')} />
-              <OptionCard control="radio" on={addrMode === 'other'} title="Livrer à une autre adresse" sub="Chez un proche, au travail…" onPress={() => setAddrMode('other')} />
+              {savedOk && <OptionCard control="radio" on={addrMode === 'saved'} title="Livrer à mon adresse" sub={addressLine(account)} onPress={() => setAddrMode('saved')} />}
+              <OptionCard control="radio" on={addrMode === 'other'} title="Livrer à une autre adresse" sub={savedOk ? 'Chez un proche, au travail…' : 'Indique où te livrer'} onPress={() => setAddrMode('other')} />
               {addrMode === 'other' && (
                 <View style={{ gap: 8 }}>
                   <TextInput value={addr.name} onChangeText={(t) => setAddr({ ...addr, name: t })} placeholder="Nom et prénom" placeholderTextColor={colors.neutral600} autoComplete="name" style={field()} />
