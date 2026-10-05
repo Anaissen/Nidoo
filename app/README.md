@@ -16,7 +16,7 @@ npm run typecheck
 ## Ce qui est inclus
 
 - Onboarding (3 écrans illustrés, **création de compte** ou connexion, passeports des enfants), puis guide interactif « Comment ça marche » (6 démos à manipuler, dont affichage et taille du texte, revoir depuis le profil)
-- **Compte** : prénom, nom, e-mail, téléphone, adresse, mot de passe ; « Mes informations » dans le profil, déconnexion, bouton « Connexion » en haut de l'accueil. Acheter, vendre et faire une offre demandent d'être connecté. (Démo : le compte reste sur l'appareil, à brancher sur un serveur.)
+- **Compte** : prénom, nom, e-mail, téléphone, adresse, mot de passe ; « Mes informations » dans le profil, déconnexion, bouton « Connexion » en haut de l'accueil. Acheter, vendre et faire une offre demandent d'être connecté. Comptes et passeports enregistrés sur **Supabase** (voir `supabase/schema.sql`, à lancer une fois dans le SQL Editor).
 - **Accueil « par enfant »** (direction 1c) : un flux par passeport, à sa taille, trié selon ses couleurs préférées, avec rappel d'anniversaire et option « taille au-dessus »
 - **Passeport enfant** : prénom, avatar, date de naissance complète (âge calculé), taille portée, cm, pointure, couleurs, style, petits mots. Conservé sur l'appareil.
 - **Sans enfant** : « 🎁 Pour offrir » sur l'accueil pour dénicher à toutes les tailles sans passeport
@@ -49,4 +49,5 @@ src/theme/        tokens Organic (couleurs, polices, ombres)
 ## À brancher ensuite
 
 - **Photos** : les visuels sont des rayures de remplacement (`Stripes`). Les remplacer par de vraies images (avec `expo-image-picker` dans l'étape « photos »).
-- **Back-end** : tout est local et en mémoire (données de démo). Paiement, messagerie, réponses aux offres et suivi sont simulés (« Démo : passer à l'étape suivante »).
+- **Back-end** : comptes, profils et passeports sont sur Supabase (`src/lib/backend.ts`). Annonces, messagerie, offres, paiement et suivi restent des données de démo sur l'appareil.
+- **E-mails** : brancher un SMTP (ex. Resend) dans Supabase avant l'ouverture au public ; l'envoi intégré ne sert qu'aux membres du projet.
