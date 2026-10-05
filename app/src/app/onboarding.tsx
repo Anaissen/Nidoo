@@ -10,6 +10,7 @@ import { FullLogo, Logo } from '../components/Logo';
 import { GIFT } from '../components/home/Home1c';
 import { Avatar, H, LinkButton, OutlineButton, PrimaryButton, Txt } from '../components/ui';
 import { fullName, initial } from '../lib/account';
+import { signOut } from '../lib/backend';
 import { accountOf, useStore } from '../store/useStore';
 import { colors, shadows } from '../theme/tokens';
 
@@ -25,7 +26,6 @@ export default function Onboarding() {
   const set = useStore((s) => s.set);
   const signedIn = useStore((s) => s.signedIn);
   const account = useStore(accountOf);
-  const signOut = useStore((s) => s.signOut);
   const afterSlides = 3;
   const insets = useSafeAreaInsets();
 

@@ -6,7 +6,7 @@ import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import { AGES } from '../../data/catalog';
 
 import { fmt, plural } from '../../lib/format';
-import { ageLabel, birthdayNote, nextSize, prevSize } from '../../lib/kids';
+import { ageLabel, birthdayNote, GIFT, nextSize, prevSize } from '../../lib/kids';
 import { allProducts, useStore } from '../../store/useStore';
 import { colors, GUTTER, ICON_STROKE, shadows } from '../../theme/tokens';
 import { KidAvatar } from '../KidAvatar';
@@ -17,7 +17,7 @@ import { Chip, ellipsis, H, LinkButton, Segmented, Stripes, Txt } from '../ui';
 import { AccountButton, BellButton, CartButton } from './shared';
 
 /** activeKidId value for the no-passport "Pour offrir" feed. */
-export const GIFT = 'gift';
+export { GIFT } from '../../lib/kids';
 
 const pressScale = ({ pressed }: { pressed: boolean }) => ({ transform: [{ scale: pressed ? 0.97 : 1 }] });
 

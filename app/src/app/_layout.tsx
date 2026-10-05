@@ -8,8 +8,11 @@ import { Platform, useColorScheme, useWindowDimensions, View } from 'react-nativ
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { Toast } from '../components/Toast';
+import { startBackend } from '../lib/backend';
 import { useStore } from '../store/useStore';
 import { applyTheme, colors, shadows } from '../theme/tokens';
+
+startBackend();
 
 export default function RootLayout() {
   const [loaded] = useFonts({ Caprasimo_400Regular, Figtree_400Regular, Figtree_600SemiBold, Figtree_700Bold });
@@ -17,6 +20,7 @@ export default function RootLayout() {
   const theme = useStore((s) => s.theme);
   const textScale = useStore((s) => s.textScale);
   const returnTo = useStore((s) => s.returnTo);
+  const pendingRecovery = useStore((s) => s.pendingRecovery);
   const pathname = usePathname();
   const { width } = useWindowDimensions();
   const framed = Platform.OS === 'web' && width > 600;
@@ -36,6 +40,11 @@ export default function RootLayout() {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [look]);
+
+  // Back from the "mot de passe oublié" e-mail: ask for the new password.
+  useEffect(() => {
+    if (pendingRecovery && loaded) router.push('/new-password');
+  }, [pendingRecovery, loaded]);
 
   if (!loaded) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
 

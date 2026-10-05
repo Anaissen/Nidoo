@@ -7,7 +7,7 @@ import {
   WARDROBE_TEMPLATES, WardrobeLine,
 } from '../data/catalog';
 import { fmt } from '../lib/format';
-import { Account, cityLabel, DEMO_ACCOUNT, EMPTY_ACCOUNT, hashPassword, shortName } from '../lib/account';
+import { Account, cityLabel, DEMO_ACCOUNT, shortName } from '../lib/account';
 import { DEMO_KIDS, Kid, withCurrentSize } from '../lib/kids';
 
 export type TypeFilter = 'all' | 'unique' | 'lot';
@@ -44,10 +44,10 @@ type State = {
   activeKidId: string | null;
   /** Filled in at sign-up; null until then. */
   account: Account | null;
-  /** Logged in on this device (the account stays saved after logging out, to log back in). */
+  /** Mirrors the Supabase session (src/lib/backend.ts keeps it up to date). */
   signedIn: boolean;
-  /** Demo only: a hash of the password, kept on the device until there's a server. */
-  pwHash: string | null;
+  /** Came back from a "mot de passe oublié" e-mail: ask for the new password. */
+  pendingRecovery: boolean;
   theme: ThemeMode;
   textScale: number;
   meVerified: boolean;
@@ -78,10 +78,6 @@ type State = {
 
 type Actions = {
   set: (patch: Partial<State>) => void;
-  signUp: (account: Account, password: string) => void;
-  /** Returns an error message, or null once logged in. */
-  signIn: (email: string, password: string) => string | null;
-  signOut: () => void;
   showToast: (msg: string) => void;
   toggleFav: (id: number) => void;
   addToCart: (id: number) => void;
@@ -129,7 +125,7 @@ export const useStore = create<State & Actions>()(
       // Light by default for everyone; dark mode is a choice in Réglages.
       account: null,
       signedIn: false,
-      pwHash: null,
+      pendingRecovery: false,
       theme: 'light',
       textScale: 1,
       meVerified: false,
@@ -167,22 +163,6 @@ export const useStore = create<State & Actions>()(
       toast: null,
 
       set: (patch) => set(patch),
-      signUp: (account, password) => set({ account, pwHash: hashPassword(password), signedIn: true }),
-      signIn: (email, password) => {
-        const { account, pwHash } = get();
-        const e = email.trim().toLowerCase();
-        if (account && account.email.toLowerCase() === e) {
-          // Accounts from before sign-up have no password yet: the first one typed becomes theirs.
-          if (pwHash && pwHash !== hashPassword(password)) return 'Mot de passe incorrect';
-          set({ signedIn: true, pwHash: pwHash ?? hashPassword(password) });
-          return null;
-        }
-        // No server yet: an e-mail unknown on this device opens a fresh account to complete in "Mes informations".
-        const first = e.split('@')[0].split(/[._-]/)[0];
-        set({ account: { ...EMPTY_ACCOUNT, email: e, firstName: first.charAt(0).toUpperCase() + first.slice(1) }, pwHash: hashPassword(password), signedIn: true });
-        return null;
-      },
-      signOut: () => set({ signedIn: false }),
       showToast: (msg) => {
         clearTimeout(toastTimer);
         set({ toast: msg });
@@ -347,7 +327,7 @@ export const useStore = create<State & Actions>()(
       partialize: (s) => ({
         onboarded: s.onboarded, commission: s.commission, kids: s.kids, activeKidId: s.activeKidId,
         theme: s.theme, textScale: s.textScale, meVerified: s.meVerified, wardrobes: s.wardrobes, account: s.account,
-        signedIn: s.signedIn, pwHash: s.pwHash,
+        signedIn: s.signedIn,
       }),
     },
   ),

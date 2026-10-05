@@ -34,13 +34,6 @@ export function cityLabel(a: Account) {
 /** Delivery address filled in (needed for home delivery and the shipping label). */
 export const hasAddress = (a: Account) => !!a.street.trim() && /^\d{5}$/.test(a.zip.trim()) && !!a.city.trim();
 
-/** Demo only, until there's a server: never keep the password itself on the device. */
-export function hashPassword(pw: string) {
-  let h = 5381;
-  for (let i = 0; i < pw.length; i++) h = ((h << 5) + h + pw.charCodeAt(i)) | 0;
-  return 'h' + (h >>> 0).toString(36);
-}
-
 /** What's wrong with the form, field by field (empty object when it's fine). */
 export function accountErrors(a: Account, opts: { requireAddress?: boolean } = {}) {
   const e: Partial<Record<keyof Account, string>> = {};

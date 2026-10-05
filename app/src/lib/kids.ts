@@ -26,6 +26,9 @@ export type Kid = {
   showNextSize: boolean;
 };
 
+/** `activeKidId` for "Pour offrir": browsing every size without a passport. */
+export const GIFT = 'gift';
+
 export const KID_COLORS = [colors.accent300, colors.accent2_300, colors.accent200, colors.accent2_200, colors.neutral300, '#f3d58a'];
 export const KID_EMOJIS = ['', '🦊', '🐻', '🐰', '🦁', '🐼', '🐸', '🦄', '🐳', '🐞', '🌻', '⭐️'];
 export const KID_STYLES = ['Confort', 'Classique', 'Coloré', 'Sport', 'Chic', 'Nature', 'Rigolo'];

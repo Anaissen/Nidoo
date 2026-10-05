@@ -1,0 +1,194 @@
+import 'react-native-url-polyfill/auto';
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AuthError, createClient, Session } from '@supabase/supabase-js';
+import { AppState, Platform } from 'react-native';
+
+import { useStore } from '../store/useStore';
+import { Account, EMPTY_ACCOUNT } from './account';
+import { GIFT, Kid, withCurrentSize } from './kids';
+
+// Pimou's Supabase project. The publishable key is meant to ship inside the app: what each
+// person can read or change is enforced on the server (row level security, see supabase/schema.sql).
+const SUPABASE_URL = 'https://xlnsfinfwmdfuasrtqkd.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_9aa5g65PnfOJ7MnUd3fuxA_lnuK7r4S';
+
+/** Where the links in Supabase e-mails (confirmation, new password) bring people back. */
+const WEB_APP_URL = 'https://anaissen.github.io/Nidoo/';
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    storage: AsyncStorage,
+    autoRefreshToken: true,
+    persistSession: true,
+    // On the web, the e-mail links come back with the session in the URL.
+    detectSessionInUrl: Platform.OS === 'web',
+  },
+});
+
+// Refresh the session only while the app is in the foreground (recommended for React Native).
+if (Platform.OS !== 'web') {
+  AppState.addEventListener('change', (state) => {
+    if (state === 'active') supabase.auth.startAutoRefresh();
+    else supabase.auth.stopAutoRefresh();
+  });
+}
+
+type ProfileRow = { first_name: string; last_name: string; phone: string; street: string; zip: string; city: string; verified: boolean };
+
+const toRow = (a: Account) => ({ first_name: a.firstName, last_name: a.lastName, phone: a.phone, street: a.street, zip: a.zip, city: a.city });
+const fromRow = (r: ProfileRow, email: string): Account => ({
+  firstName: r.first_name, lastName: r.last_name, email, phone: r.phone, street: r.street, zip: r.zip, city: r.city,
+});
+
+/** Supabase's English messages, in the app's words. */
+function frenchError(e: AuthError | Error | null | undefined): string {
+  const m = (e?.message ?? '').toLowerCase();
+  if (!m) return 'Une erreur est survenue, réessaie.';
+  if (m.includes('invalid login credentials')) return 'E-mail ou mot de passe incorrect';
+  if (m.includes('already registered') || m.includes('already been registered')) return 'Un compte existe déjà avec cet e-mail. Connecte-toi.';
+  if (m.includes('email not confirmed')) return "Confirme d'abord ton e-mail : clique sur le lien reçu dans ta boîte mail.";
+  if (m.includes('password should be') || m.includes('weak')) return 'Mot de passe trop simple : mélange lettres et chiffres.';
+  if (m.includes('rate limit') || m.includes('too many')) return 'Trop de tentatives, réessaie dans quelques minutes.';
+  if (m.includes('invalid') && m.includes('email')) return 'Cette adresse e-mail ne semble pas valide';
+  if (m.includes('fetch') || m.includes('network')) return 'Pas de connexion internet. Réessaie dans un instant.';
+  return 'Une erreur est survenue, réessaie.';
+}
+
+// ── Passports: kept on the phone, copied to the server for the logged-in parent ───────────
+
+let syncedKids: Record<string, string> = {};
+let applyingRemote = false;
+
+/** Change the passports on this phone only (loaded from the server, or cleared at logout): nothing to send back. */
+type StoreState = ReturnType<typeof useStore.getState>;
+function setLocally(patch: Partial<StoreState> | ((s: StoreState) => Partial<StoreState>)) {
+  applyingRemote = true;
+  try { useStore.setState(patch); } finally { applyingRemote = false; }
+}
+
+async function loadKids(userId: string) {
+  const { data, error } = await supabase.from('kids').select('id, data').eq('user_id', userId);
+  if (error) return;
+  const remote = (data ?? []).map((r) => withCurrentSize(r.data as Kid));
+  syncedKids = Object.fromEntries((data ?? []).map((r) => [r.id, JSON.stringify(r.data)]));
+  const local = useStore.getState().kids;
+  if (!remote.length && local.length) {
+    // Passports typed before the account existed (onboarding): send them up.
+    pushKids(local);
+    return;
+  }
+  setLocally((s) => ({
+    kids: remote,
+    activeKidId: remote.some((k) => k.id === s.activeKidId) ? s.activeKidId : remote[0]?.id ?? GIFT,
+  }));
+}
+
+async function pushKids(kids: Kid[]) {
+  const userId = currentUserId;
+  if (!userId) return;
+  const changed = kids.filter((k) => syncedKids[k.id] !== JSON.stringify(k));
+  const removed = Object.keys(syncedKids).filter((id) => !kids.some((k) => k.id === id));
+  if (changed.length) {
+    const { error } = await supabase.from('kids').upsert(changed.map((k) => ({ user_id: userId, id: k.id, data: k, updated_at: new Date().toISOString() })));
+    if (!error) changed.forEach((k) => { syncedKids[k.id] = JSON.stringify(k); });
+  }
+  if (removed.length) {
+    const { error } = await supabase.from('kids').delete().eq('user_id', userId).in('id', removed);
+    if (!error) removed.forEach((id) => { delete syncedKids[id]; });
+  }
+}
+
+useStore.subscribe((s, prev) => {
+  if (s.kids !== prev.kids && !applyingRemote && currentUserId) pushKids(s.kids);
+});
+
+// ── Session ─────────────────────────────────────────────────────────────────────────────
+
+let currentUserId: string | null = null;
+
+async function applySession(session: Session | null) {
+  const user = session?.user;
+  currentUserId = user?.id ?? null;
+  if (!user) {
+    syncedKids = {};
+    useStore.setState({ signedIn: false });
+    return;
+  }
+  useStore.setState({ signedIn: true });
+  const { data } = await supabase.from('profiles').select('first_name, last_name, phone, street, zip, city, verified').eq('id', user.id).maybeSingle();
+  if (data) useStore.setState({ account: fromRow(data as ProfileRow, user.email ?? ''), meVerified: (data as ProfileRow).verified });
+  else useStore.setState((s) => ({ account: s.account ?? { ...EMPTY_ACCOUNT, email: user.email ?? '' } }));
+  await loadKids(user.id);
+}
+
+let started = false;
+/** Call once at startup: keeps `signedIn`, the account and the passports in step with the server. */
+export function startBackend() {
+  if (started) return;
+  started = true;
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') useStore.setState({ pendingRecovery: true });
+    // Supabase advises not to await other Supabase calls inside this callback.
+    setTimeout(() => applySession(session), 0);
+  });
+}
+
+// ── Actions used by the screens. Each returns an error message in French, or null. ──────
+
+export type SignUpResult = { error: string | null; needsConfirmation: boolean };
+
+export async function signUp(a: Account, password: string): Promise<SignUpResult> {
+  const { data, error } = await supabase.auth.signUp({
+    email: a.email,
+    password,
+    options: { data: toRow(a), emailRedirectTo: WEB_APP_URL },
+  });
+  if (error) return { error: frenchError(error), needsConfirmation: false };
+  // Supabase answers without error for an e-mail already in use (no identities): say so.
+  if (data.user && !data.user.identities?.length) return { error: 'Un compte existe déjà avec cet e-mail. Connecte-toi.', needsConfirmation: false };
+  // A new account starts with no passports (the demo children stay out of it).
+  setLocally({ account: a, kids: [], activeKidId: GIFT, wardrobes: {} });
+  return { error: null, needsConfirmation: !data.session };
+}
+
+export async function signIn(email: string, password: string) {
+  const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+  return error ? frenchError(error) : null;
+}
+
+export async function signOut() {
+  // Stop syncing first: clearing the phone must never delete the passports on the server.
+  currentUserId = null;
+  syncedKids = {};
+  await supabase.auth.signOut();
+  // Personal data stays on the server, not on a phone someone else might use.
+  setLocally({ signedIn: false, account: null, kids: [], activeKidId: GIFT, wardrobes: {}, meVerified: false });
+}
+
+export async function sendPasswordReset(email: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: WEB_APP_URL });
+  return error ? frenchError(error) : null;
+}
+
+export async function setNewPassword(password: string) {
+  const { error } = await supabase.auth.updateUser({ password });
+  if (!error) useStore.setState({ pendingRecovery: false });
+  return error ? frenchError(error) : null;
+}
+
+/** Save "Mes informations". A new e-mail address only applies once confirmed from the mail Supabase sends. */
+export async function saveAccount(a: Account) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Reconnecte-toi pour modifier tes informations', emailPending: false };
+  const { error } = await supabase.from('profiles').update({ ...toRow(a), updated_at: new Date().toISOString() }).eq('id', user.id);
+  if (error) return { error: frenchError(error), emailPending: false };
+  let emailPending = false;
+  if (a.email !== user.email) {
+    const res = await supabase.auth.updateUser({ email: a.email }, { emailRedirectTo: WEB_APP_URL });
+    if (res.error) return { error: frenchError(res.error), emailPending: false };
+    emailPending = true;
+  }
+  useStore.setState({ account: { ...a, email: emailPending ? user.email ?? a.email : a.email } });
+  return { error: null, emailPending };
+}
