@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, Text, View } from 'react-native';
 
 import { fmt } from '../lib/format';
-import { commissionRate, useStore } from '../store/useStore';
 import { colors, fonts, ICON_STROKE, palettes, shadows } from '../theme/tokens';
 import { Chip, H, PrimaryButton, Segmented, Stripes, Txt } from './ui';
 
@@ -188,27 +187,43 @@ export function SafeDemo({ onDone }: DemoProps) {
   );
 }
 
-// 5 · Sell ──────────────────────────────────────────────────────────────────
+// 5 · Impact ──────────────────────────────────────────────────────────────
 
-export function SellDemo({ onDone }: DemoProps) {
-  const pct = useStore((s) => s.commission);
-  const [price, setPrice] = useState<number | null>(null);
+const RESCUE: { id: string; label: string; pieces: number; tones: [string, string] }[] = [
+  { id: 'body', label: 'Un body', pieces: 1, tones: ['#ffe1d0', '#fff2eb'] },
+  { id: 'pyjama', label: 'Un pyjama', pieces: 1, tones: ['#e1eecc', '#f0fae1'] },
+  { id: 'lot', label: 'Un lot de 5', pieces: 5, tones: ['#eee7db', '#f9f4ed'] },
+];
+
+export function ImpactDemo({ onDone }: DemoProps) {
+  const [saved, setSaved] = useState<string[]>([]);
+  const pieces = RESCUE.filter((r) => saved.includes(r.id)).reduce((a, r) => a + r.pieces, 0);
+  const toggle = (id: string) => {
+    const next = saved.includes(id) ? saved.filter((x) => x !== id) : [...saved, id];
+    setSaved(next);
+    if (next.length) onDone();
+  };
   return (
     <Card>
-      <Txt size={13} color={colors.neutral800}>Ton lot de bodies 3 mois, à combien ?</Txt>
-      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-        {[10, 15, 20, 25].map((n) => <Chip key={n} label={`${n} €`} on={price === n} onPress={() => { setPrice(n); onDone(); }} />)}
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        {RESCUE.map((r) => {
+          const on = saved.includes(r.id);
+          return (
+            <Pressable key={r.id} onPress={() => toggle(r.id)} style={({ pressed }) => ({ flex: 1, gap: 6, alignItems: 'center', transform: [{ scale: pressed ? 0.95 : 1 }] })}>
+              <Stripes tones={r.tones} style={{ width: '100%', aspectRatio: 1, borderRadius: 20, borderWidth: 3, borderColor: on ? colors.accent2_600 : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+                {on && <Txt size={26} lh={1.15}>🌱</Txt>}
+              </Stripes>
+              <Txt size={12} weight="semi" style={{ textAlign: 'center' }}>{r.label}</Txt>
+            </Pressable>
+          );
+        })}
       </View>
-      {price != null && (
-        <Pop k={price}>
-          <View style={{ padding: 14, borderRadius: 20, backgroundColor: colors.surface, gap: 4 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Txt weight="bold">Tu recevras</Txt>
-              <Txt weight="bold" color={colors.accent2_700}>{fmt(price * (1 - commissionRate(pct)))}</Txt>
-            </View>
-          </View>
-        </Pop>
-      )}
+      <Pop k={pieces}>
+        <View style={{ padding: 14, borderRadius: 20, backgroundColor: colors.accent2_100, gap: 2 }}>
+          <H size={22} color={colors.accent2_800}>{pieces} vêtement{pieces > 1 ? 's' : ''} sauvé{pieces > 1 ? 's' : ''}</H>
+          <Txt size={13} color={colors.accent2_800}>≈ {pieces * 5} kg de CO₂ et {(pieces * 1500).toLocaleString('fr-FR')} L d'eau économisés</Txt>
+        </View>
+      </Pop>
     </Card>
   );
 }

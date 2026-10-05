@@ -19,7 +19,7 @@ export default function Profile() {
     { label: 'Favoris', meta: String(s.favs.length), href: '/favorites' },
     { label: 'Passeports de mes enfants', meta: s.kids.map((k) => k.name).join(', ') || '—', href: '/kids' },
     { label: 'Notifications', meta: '2 nouvelles', href: '/notifications' },
-    { label: 'Mon dressing public', meta: `${myListings(s.mine).length} annonces`, href: '/seller/me' },
+    { label: 'Mon dressing', meta: `${myListings(s.mine).length} annonces`, href: '/seller/me' },
     { label: 'Mon impact', meta: `${impact.pieces} vêtements`, href: '/impact' },
     { label: 'Comment ça marche', meta: 'Guide', href: '/guide' },
     { label: 'Guide des états', meta: 'Neuf, très bon…', href: '/conditions' },

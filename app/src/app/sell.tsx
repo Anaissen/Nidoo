@@ -87,7 +87,7 @@ export default function Sell() {
             <H size={30}>Qu'est-ce que tu vends ?</H>
             {([
               ['unique', 'Une pièce unique', 'Un vêtement, une annonce. Idéal pour les belles pièces.'],
-              ['lot', 'Un lot', "Plusieurs vêtements d'une même taille, vendus ensemble à prix fixe."],
+              ['lot', 'Un lot', "Plusieurs vêtements d'une même taille, vendus ensemble."],
             ] as const).map(([v, t, x]) => {
               const on = d.type === v;
               const Icon = v === 'lot' ? Layers : Shirt;

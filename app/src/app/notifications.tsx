@@ -5,7 +5,7 @@ import { useSearchWith } from '../components/home/shared';
 import { BackHeader, Screen } from '../components/Screen';
 import { H, Txt } from '../components/ui';
 import { growthAlert } from '../lib/kids';
-import { useStore } from '../store/useStore';
+import { productById, useStore } from '../store/useStore';
 import { colors } from '../theme/tokens';
 
 export default function Notifications() {
@@ -13,9 +13,12 @@ export default function Notifications() {
   const searchWith = useSearchWith();
 
   const kids = useStore((s) => s.kids);
+  const sales = useStore((s) => s.sales);
+  const mine = useStore((s) => s.mine);
   const grow = kids.map((k) => ({ k, a: growthAlert(k) })).filter((x) => x.a);
   const items = [
     ...grow.map(({ k, a }) => ({ init: '🌱', bg: colors.accent2_200, text: `Il grandit ! ${a!.text}. Prépare sa nouvelle garde-robe.`, when: "Aujourd'hui", unread: true, open: () => router.push(`/passport/${k.id}`) })),
+    ...sales.filter((o) => o.status === 0 && o.del !== 'Main propre').map((o) => ({ init: '€', bg: colors.accent2_300, text: `Vendu ! ${o.buyer} a acheté « ${productById(mine, o.pid)?.title} ». Ton bordereau est prêt.`, when: "Aujourd'hui", unread: true, open: () => router.push(`/label/${o.id}`) })),
     { init: 'J', bg: colors.accent2_300, text: 'Julie M. a répondu à propos de « Robe en lin smockée »', when: 'il y a 12 min', unread: true, open: () => router.push(`/chat/${openChatFor('s2', 2)}`) },
     { init: '%', bg: colors.accent200, text: 'Baisse de prix sur un favori : Lot été fille 9 pièces passe à 25,00 €', when: 'il y a 2 h', unread: true, open: () => router.push('/product/7') },
     { init: '⌂', bg: colors.neutral300, text: 'Ton colis « Lot rentrée garçon » est disponible en point relais', when: 'Hier', unread: false, open: () => router.push('/tracking/o1') },

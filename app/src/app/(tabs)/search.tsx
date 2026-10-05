@@ -26,7 +26,7 @@ export default function Search() {
   return (
     <Screen>
       <View style={{ gap: 14, paddingTop: 4 }}>
-        <H size={28} style={{ paddingHorizontal: GUTTER }}>Rechercher</H>
+        <H size={28} style={{ paddingHorizontal: GUTTER }}>Dénicher</H>
 
         <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: GUTTER }}>
           <View style={{ flex: 1, height: 50, borderRadius: 999, backgroundColor: colors.neutral100, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, boxShadow: shadows.sm }}>
@@ -34,7 +34,7 @@ export default function Search() {
             <TextInput
               value={q}
               onChangeText={(t) => set({ q: t })}
-              placeholder="Body, robe, Petit Bateau…"
+              placeholder="Qu'est-ce qu'on déniche ?"
               placeholderTextColor={colors.neutral700}
               returnKeyType="search"
               style={{ flex: 1, minWidth: 0, fontFamily: fonts.body, fontSize: 15, color: colors.text, paddingVertical: 0, outlineWidth: 0 }}
@@ -58,7 +58,7 @@ export default function Search() {
           style={{ marginHorizontal: GUTTER }}
           height={38}
           size={13}
-          options={[['all', 'Tout'], ['unique', 'Pièces uniques'], ['lot', 'Lots']]}
+          options={[['all', 'Tout'], ['unique', 'Pièces uniques'], ['lot', 'Les lots']]}
           value={ftype}
           onChange={(v) => set({ ftype: v })}
         />

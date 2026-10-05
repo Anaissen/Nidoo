@@ -5,13 +5,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { KidList } from '../components/KidAvatar';
 import { Logo } from '../components/Logo';
-import { H, LinkButton, PrimaryButton, Stripes, Txt } from '../components/ui';
+import { GIFT } from '../components/home/Home1c';
+import { H, LinkButton, OutlineButton, PrimaryButton, Stripes, Txt } from '../components/ui';
 import { useStore } from '../store/useStore';
 import { colors } from '../theme/tokens';
 
 const SLIDES: { title: string; text: string; label: string; tones: [string, string] }[] = [
-  { title: 'Bienvenue sur Pimou', text: 'Le vide-dressing des 0-10 ans, entre parents. Achète malin, revends ce qui ne sert plus.', label: 'illustration · bienvenue', tones: ['#ffe1d0', '#fff2eb'] },
-  { title: 'Une pièce ou tout un lot', text: "Vends ce qui ne lui va plus à l'unité, ou d'un coup en lot par taille, à prix fixe.", label: 'illustration · pièce vs lot', tones: ['#e1eecc', '#f0fae1'] },
+  { title: 'Bienvenue sur Pimou', text: 'Le vide-dressing des 0-10 ans. Gagne du temps et de l\'argent : la bonne taille au bon prix en quelques gestes, et ce qui ne sert plus revendu en un clin d\'œil.', label: 'illustration · bienvenue', tones: ['#ffe1d0', '#fff2eb'] },
+  { title: 'Une pièce ou tout un lot', text: "Vends ce qui ne lui va plus à l'unité, ou d'un coup en lot par taille.", label: 'illustration · pièce vs lot', tones: ['#e1eecc', '#f0fae1'] },
   { title: 'Simple et protégé', text: 'Paiement sécurisé, versé au vendeur après réception. Point relais, domicile ou main propre.', label: 'illustration · colis', tones: ['#eee7db', '#f9f4ed'] },
 ];
 
@@ -66,9 +67,17 @@ export default function Onboarding() {
               <Txt color={colors.neutral800}>Un petit passeport par enfant : prénom, âge, taille, couleurs préférées. On te montrera d'abord ce qui lui va.</Txt>
             </View>
             <KidList />
-            <Txt size={13} color={colors.neutral700}>Tu pourras compléter les passeports à tout moment depuis ton profil.</Txt>
+            <Txt size={13} color={colors.neutral700}>Tu pourras compléter les passeports à tout moment depuis ton profil. Pas d'enfant ? Pimou marche aussi très bien pour offrir.</Txt>
           </ScrollView>
-          <PrimaryButton label="C'est parti" height={56} onPress={finish} />
+          <View style={{ gap: 12 }}>
+            <PrimaryButton label="C'est parti" height={56} onPress={finish} />
+            <OutlineButton
+              label="Pas d'enfant ? J'achète pour offrir"
+              height={50}
+              size={15}
+              onPress={() => { set({ kids: [], activeKidId: GIFT }); finish(); }}
+            />
+          </View>
         </>
       )}
     </View>

@@ -7,7 +7,7 @@ import { KidAvatar } from '../../components/KidAvatar';
 import { BottomBar, Screen, BackButton } from '../../components/Screen';
 import { Chip, H, LinkButton, PrimaryButton, Txt } from '../../components/ui';
 import { AGES, COLORS } from '../../data/catalog';
-import { ageLabel, ageInMonths, bucketForMonths, Kid, KID_COLORS, KID_EMOJIS, KID_STYLES, MONTHS } from '../../lib/kids';
+import { ageLabel, ageInMonths, bucketForMonths, daysInMonth, Kid, KID_COLORS, KID_EMOJIS, KID_STYLES, MONTHS } from '../../lib/kids';
 import { useStore } from '../../store/useStore';
 import { colors, fonts } from '../../theme/tokens';
 
@@ -15,7 +15,7 @@ const now = new Date();
 const YEARS = Array.from({ length: 11 }, (_, i) => now.getFullYear() - i);
 
 const blankKid = (): Kid => ({
-  id: 'k' + Date.now(), name: '', emoji: '', color: KID_COLORS[0], birthYear: now.getFullYear() - 2, birthMonth: now.getMonth() + 1,
+  id: 'k' + Date.now(), name: '', emoji: '', color: KID_COLORS[0], birthYear: now.getFullYear() - 2, birthMonth: now.getMonth() + 1, birthDay: now.getDate(),
   gender: 'Mixte', size: bucketForMonths(24), favColors: [], styles: [], notes: '', showNextSize: false,
 });
 
@@ -33,12 +33,14 @@ export default function PassportEdit() {
   const [sizeTouched, setSizeTouched] = useState(!!existing);
   const patch = (p: Partial<Kid>) => setK((x) => {
     const next = { ...x, ...p };
-    if (!sizeTouched && (p.birthYear || p.birthMonth)) next.size = bucketForMonths(ageInMonths(next));
+    if (!sizeTouched && (p.birthYear || p.birthMonth || p.birthDay)) next.size = bucketForMonths(ageInMonths(next));
     return next;
   });
   const toggle = (key: 'favColors' | 'styles', v: string) => patch({ [key]: k[key].includes(v) ? k[key].filter((x) => x !== v) : [...k[key], v] });
   const num = (t: string) => { const n = parseFloat(t.replace(',', '.')); return Number.isFinite(n) ? n : undefined; };
-  const future = k.birthYear === now.getFullYear() && k.birthMonth > now.getMonth() + 1;
+  const birth = new Date(k.birthYear, k.birthMonth - 1, k.birthDay ?? 1);
+  const future = birth > now;
+  const maxDay = daysInMonth(k.birthYear, k.birthMonth);
 
   const save = () => {
     if (!k.name.trim()) { showToast('Ajoute son prénom'); return; }
@@ -88,10 +90,21 @@ export default function PassportEdit() {
 
         <Field label="Date de naissance">
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-            {YEARS.map((y) => <Chip key={y} label={String(y)} on={k.birthYear === y} onPress={() => patch({ birthYear: y })} />)}
+            {YEARS.map((y) => <Chip key={y} label={String(y)} on={k.birthYear === y} onPress={() => patch({ birthYear: y, birthDay: Math.min(k.birthDay ?? 1, daysInMonth(y, k.birthMonth)) })} />)}
           </ScrollView>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {MONTHS.map((m, i) => <Chip key={m} label={m} on={k.birthMonth === i + 1} onPress={() => patch({ birthMonth: i + 1 })} height={34} />)}
+            {MONTHS.map((m, i) => <Chip key={m} label={m} on={k.birthMonth === i + 1} onPress={() => patch({ birthMonth: i + 1, birthDay: Math.min(k.birthDay ?? 1, daysInMonth(k.birthYear, i + 1)) })} height={34} />)}
+          </View>
+          <Txt size={12} color={colors.neutral700}>Jour</Txt>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {Array.from({ length: maxDay }, (_, i) => i + 1).map((d) => {
+              const on = k.birthDay === d;
+              return (
+                <Pressable key={d} onPress={() => patch({ birthDay: d })} accessibilityLabel={`Jour ${d}`} style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? colors.text : colors.neutral100 }}>
+                  <Txt size={14} weight="semi" color={on ? colors.bg : colors.text}>{d}</Txt>
+                </Pressable>
+              );
+            })}
           </View>
           {future && <Txt size={13} color={colors.accent700}>Cette date est dans le futur.</Txt>}
         </Field>

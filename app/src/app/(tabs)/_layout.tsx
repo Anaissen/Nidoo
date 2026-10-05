@@ -10,7 +10,7 @@ import { colors, ICON_STROKE, shadows } from '../../theme/tokens';
 
 const ITEMS: Record<string, { label: string; Icon: LucideIcon }> = {
   home: { label: 'Accueil', Icon: House },
-  search: { label: 'Rechercher', Icon: Search },
+  search: { label: 'Dénicher', Icon: Search },
   messages: { label: 'Messages', Icon: MessageCircle },
   profile: { label: 'Profil', Icon: User },
 };

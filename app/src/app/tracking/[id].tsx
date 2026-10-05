@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Check, Star } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 
@@ -80,7 +80,7 @@ export default function Tracking() {
         </View>
 
         {canConfirm && <PrimaryButton label="J'ai bien reçu le colis" onPress={() => { updateOrder(o.id, { status: 3 }); showToast('Merci ! Le vendeur reçoit son paiement.'); }} />}
-        {canShip && <PrimaryButton label="Imprimer le bordereau" onPress={() => { updateOrder(o.id, { status: 1 }); showToast('Bordereau envoyé par e-mail'); }} />}
+        {canShip && <PrimaryButton label={o.del === 'Main propre' ? 'Fixer le rendez-vous' : 'Obtenir mon bordereau'} onPress={() => router.push(`/label/${o.id}`)} />}
         {canRate && p.washed && o.washedOk === undefined && (
           <View style={{ padding: 18, borderRadius: 28, backgroundColor: colors.accent100, gap: 10 }}>
             <H size={18}>Le colis était-il lavé et plié ?</H>

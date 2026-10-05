@@ -1,6 +1,9 @@
 import { router } from 'expo-router';
 import { ChevronRight, Layers, Plus } from 'lucide-react-native';
+import { useState } from 'react';
 import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
+
+import { AGES } from '../../data/catalog';
 
 import { fmt, plural } from '../../lib/format';
 import { ageLabel, birthdayNote, nextSize, prevSize } from '../../lib/kids';
@@ -9,9 +12,12 @@ import { colors, GUTTER, ICON_STROKE, shadows } from '../../theme/tokens';
 import { KidAvatar } from '../KidAvatar';
 import { GrowAlertCard, WardrobeCard } from '../KidCards';
 import { Logo } from '../Logo';
-import { HeartButton, LotBadge, openProduct, ProductGrid, tonesFor } from '../products';
-import { ellipsis, H, LinkButton, PrimaryButton, Segmented, Stripes, Txt } from '../ui';
+import { HeartButton, LotBadge, openProduct, ProductGrid, ProductTile, tonesFor } from '../products';
+import { Chip, ellipsis, H, LinkButton, Segmented, Stripes, Txt } from '../ui';
 import { BellButton, CartButton } from './shared';
+
+/** activeKidId value for the no-passport "Pour offrir" feed. */
+export const GIFT = 'gift';
 
 const pressScale = ({ pressed }: { pressed: boolean }) => ({ transform: [{ scale: pressed ? 0.97 : 1 }] });
 
@@ -26,7 +32,9 @@ export function Home1c() {
   const { width } = useWindowDimensions();
   const tile = (width - GUTTER * 2 - 12) / 2;
 
-  const kid = kids.find((k) => k.id === activeKidId) ?? kids[0];
+  const [giftSize, setGiftSize] = useState<string | null>(null);
+  // "Pour offrir" (or no passport at all): browse every size without a child's profile.
+  const kid = activeKidId === GIFT ? undefined : kids.find((k) => k.id === activeKidId) ?? kids[0];
 
   const header = (
     <>
@@ -41,14 +49,65 @@ export function Home1c() {
     </>
   );
 
+  const kidRow = (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: GUTTER }}>
+        {kids.map((k) => {
+          const on = k.id === kid?.id;
+          return (
+            <Pressable
+              key={k.id}
+              onPress={() => set({ activeKidId: k.id })}
+              onLongPress={() => router.push(`/passport/${k.id}`)}
+              style={(st) => [pressScale(st), { flexDirection: 'row', alignItems: 'center', gap: 10, height: 60, paddingLeft: 8, paddingRight: 18, borderRadius: 999, backgroundColor: on ? colors.text : colors.neutral100 }]}
+            >
+              <KidAvatar kid={k} />
+              <View>
+                <Txt weight="bold" lh={1.15} color={on ? colors.bg : colors.text}>{k.name}</Txt>
+                <Txt size={12} lh={1.15} color={on ? colors.bg : colors.text}>{k.size}</Txt>
+              </View>
+            </Pressable>
+          );
+        })}
+        <Pressable
+          onPress={() => set({ activeKidId: GIFT })}
+          style={(st) => [pressScale(st), { flexDirection: 'row', alignItems: 'center', gap: 8, height: 60, paddingLeft: 8, paddingRight: 18, borderRadius: 999, backgroundColor: !kid ? colors.text : colors.neutral100 }]}
+        >
+          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent200, alignItems: 'center', justifyContent: 'center' }}><Txt size={22} lh={1.15}>🎁</Txt></View>
+          <View>
+            <Txt weight="bold" lh={1.15} color={!kid ? colors.bg : colors.text}>Pour offrir</Txt>
+            <Txt size={12} lh={1.15} color={!kid ? colors.bg : colors.text}>toutes tailles</Txt>
+          </View>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push('/passport/edit')}
+          accessibilityLabel="Ajouter un enfant"
+          style={(st) => [pressScale(st), { width: 60, height: 60, borderRadius: 30, borderWidth: 2, borderStyle: 'dashed', borderColor: colors.neutral400, alignItems: 'center', justifyContent: 'center' }]}
+        >
+          <Plus size={20} strokeWidth={ICON_STROKE} color={colors.neutral700} />
+        </Pressable>
+    </ScrollView>
+  );
+
   if (!kid) {
+    const giftFeed = allProducts(mine).filter((p) => (!giftSize || p.age === giftSize) && (homeType === 'all' || p.type === homeType));
     return (
       <View style={{ gap: 20, paddingTop: 4 }}>
         {header}
-        <View style={{ marginHorizontal: GUTTER, padding: 24, borderRadius: 32, backgroundColor: colors.accent100, gap: 12 }}>
-          <H size={22}>Crée le passeport de ton enfant</H>
-          <Txt color={colors.neutral800}>Son prénom, son âge, sa taille, ses couleurs préférées… et l'accueil se remplit de vêtements faits pour lui ou pour elle.</Txt>
-          <PrimaryButton label="Créer un passeport" height={48} size={16} onPress={() => router.push('/passport/edit')} style={{ alignSelf: 'flex-start' }} />
+        {kidRow}
+        <View style={{ marginHorizontal: GUTTER, padding: 18, borderRadius: 28, backgroundColor: colors.accent100, gap: 6 }}>
+          <H size={20} lh={1.15}>Pas besoin d'avoir des enfants</H>
+          <Txt size={14} color={colors.neutral800}>Un cadeau de naissance, un filleul, des neveux… Choisis une taille et déniche. Tu peux aussi créer un passeport pour l'enfant à qui tu offres.</Txt>
+          <LinkButton label="Créer un passeport →" weight="bold" onPress={() => router.push('/passport/edit')} />
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: GUTTER }}>
+          {[null, ...AGES].map((a) => (
+            <Chip key={a ?? 'all'} label={a ?? 'Toutes tailles'} on={giftSize === a} onPress={() => setGiftSize(a)} />
+          ))}
+        </ScrollView>
+        <Segmented style={{ marginHorizontal: GUTTER }} options={[['all', 'Tout'], ['unique', 'Pièces'], ['lot', 'Les lots']]} value={homeType} onChange={(v) => set({ homeType: v })} />
+        <Txt size={14} color={colors.neutral800} style={{ paddingHorizontal: GUTTER }}>{plural(giftFeed.length, 'article')}{giftSize ? ` en ${giftSize}` : ''}</Txt>
+        <View style={{ paddingHorizontal: GUTTER }}>
+          <ProductGrid items={giftFeed} render={(p) => <ProductTile p={p} />} />
         </View>
       </View>
     );
@@ -70,32 +129,7 @@ export function Home1c() {
     <View style={{ gap: 20, paddingTop: 4 }}>
       {header}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: GUTTER }}>
-        {kids.map((k) => {
-          const on = k.id === kid.id;
-          return (
-            <Pressable
-              key={k.id}
-              onPress={() => set({ activeKidId: k.id })}
-              onLongPress={() => router.push(`/passport/${k.id}`)}
-              style={(st) => [pressScale(st), { flexDirection: 'row', alignItems: 'center', gap: 10, height: 60, paddingLeft: 8, paddingRight: 18, borderRadius: 999, backgroundColor: on ? colors.text : colors.neutral100 }]}
-            >
-              <KidAvatar kid={k} />
-              <View>
-                <Txt weight="bold" lh={1.15} color={on ? colors.bg : colors.text}>{k.name}</Txt>
-                <Txt size={12} lh={1.15} color={on ? colors.bg : colors.text}>{k.size}</Txt>
-              </View>
-            </Pressable>
-          );
-        })}
-        <Pressable
-          onPress={() => router.push('/passport/edit')}
-          accessibilityLabel="Ajouter un enfant"
-          style={(st) => [pressScale(st), { width: 60, height: 60, borderRadius: 30, borderWidth: 2, borderStyle: 'dashed', borderColor: colors.neutral400, alignItems: 'center', justifyContent: 'center' }]}
-        >
-          <Plus size={20} strokeWidth={ICON_STROKE} color={colors.neutral700} />
-        </Pressable>
-      </ScrollView>
+      {kidRow}
 
       {/* Passport summary — the personal touch. */}
       <Pressable
@@ -127,7 +161,7 @@ export function Home1c() {
       <WardrobeCard kid={kid} />
 
       <View style={{ gap: 10, paddingHorizontal: GUTTER }}>
-        <Segmented options={[['all', 'Tout'], ['unique', 'Pièces'], ['lot', 'Lots']]} value={homeType} onChange={(v) => set({ homeType: v })} />
+        <Segmented options={[['all', 'Tout'], ['unique', 'Pièces'], ['lot', 'Les lots']]} value={homeType} onChange={(v) => set({ homeType: v })} />
         <Pressable
           onPress={() => saveKid({ ...kid, showNextSize: !kid.showNextSize })}
           style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, height: 36, paddingHorizontal: 14, borderRadius: 999, backgroundColor: kid.showNextSize ? colors.accent2_700 : colors.accent2_100 }}

@@ -1,6 +1,6 @@
 # Pimou — app mobile (Expo / React Native)
 
-Marketplace de vêtements d'enfants 0-10 ans entre parents : pièces uniques ou lots à prix fixe.
+Marketplace de vêtements d'enfants 0-10 ans entre parents : pièces uniques ou lots, pour les parents et pour offrir.
 Implémentation du design Claude Design `project/Nidoo Directions.dc.html` (système Organic).
 
 ## Lancer
@@ -17,7 +17,9 @@ npm run typecheck
 
 - Onboarding (3 écrans + passeports des enfants), puis guide interactif « Comment ça marche » (6 démos à manipuler, dont affichage et taille du texte, revoir depuis le profil)
 - **Accueil « par enfant »** (direction 1c) : un flux par passeport, à sa taille, trié selon ses couleurs préférées, avec rappel d'anniversaire et option « taille au-dessus »
-- **Passeport enfant** : prénom, avatar, naissance (âge calculé), taille portée, cm, pointure, couleurs, style, petits mots. Conservé sur l'appareil.
+- **Passeport enfant** : prénom, avatar, date de naissance complète (âge calculé), taille portée, cm, pointure, couleurs, style, petits mots. Conservé sur l'appareil.
+- **Sans enfant** : « 🎁 Pour offrir » sur l'accueil pour dénicher à toutes les tailles sans passeport
+- **Bordereau d'envoi** après une vente (QR code, n° de suivi, étapes d'envoi) et confirmation / saisie de l'adresse à domicile au paiement
 - **Prix négociables** : « Faire une offre », contre-offre du vendeur dans la messagerie, prix négocié appliqué au panier. Le vendeur peut refuser les offres sur son annonce.
 - **Il grandit** : alerte quand un enfant approche de la taille suivante (≤ 3 mois), sur l'accueil, le passeport et les notifications
 - **Garde-robe de saison** par enfant (liste automne-hiver / printemps-été), « Trouver » lance la recherche, les achats cochent la liste
