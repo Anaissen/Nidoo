@@ -7,13 +7,13 @@ import { AGES } from '../../data/catalog';
 
 import { fmt, plural } from '../../lib/format';
 import { ageLabel, birthdayNote, GIFT, nextSize, prevSize } from '../../lib/kids';
-import { allProducts, useStore } from '../../store/useStore';
+import { allProducts, useMarket, useStore } from '../../store/useStore';
 import { colors, GUTTER, ICON_STROKE, shadows } from '../../theme/tokens';
 import { KidAvatar } from '../KidAvatar';
 import { GrowAlertCard, WardrobeCard } from '../KidCards';
 import { Logo } from '../Logo';
-import { HeartButton, LotBadge, openProduct, ProductGrid, ProductTile, tonesFor } from '../products';
-import { Chip, ellipsis, H, LinkButton, Segmented, Stripes, Txt } from '../ui';
+import { HeartButton, LotBadge, openProduct, ProductGrid, ProductPhoto, ProductTile } from '../products';
+import { Chip, ellipsis, H, LinkButton, Segmented, Txt } from '../ui';
 import { AccountButton, BellButton, CartButton } from './shared';
 
 /** activeKidId value for the no-passport "Pour offrir" feed. */
@@ -23,6 +23,7 @@ const pressScale = ({ pressed }: { pressed: boolean }) => ({ transform: [{ scale
 
 /** 1c · Par enfant : chaque passeport donne un flux à sa taille, ses goûts et ses couleurs. */
 export function Home1c() {
+  useMarket();
   const mine = useStore((s) => s.mine);
   const kids = useStore((s) => s.kids);
   const activeKidId = useStore((s) => s.activeKidId);
@@ -185,8 +186,8 @@ export function Home1c() {
               <Pressable onPress={() => openProduct(p.id)} style={(st) => [pressScale(st), { gap: 5 }]}>
                 {/* Arch-shaped photo (50% 50% 24px 24px); the heart overlaps the curve, so it sits outside the clip. */}
                 <View style={{ aspectRatio: 1 }}>
-                  <Stripes
-                    tones={tonesFor(p)}
+                  <ProductPhoto
+                    p={p}
                     label={p.ph}
                     labelPos={{ left: 14, bottom: 12 }}
                     style={{ flex: 1, borderTopLeftRadius: tile / 2, borderTopRightRadius: tile / 2, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 }}

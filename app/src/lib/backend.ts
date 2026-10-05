@@ -6,7 +6,7 @@ import { AppState, Platform } from 'react-native';
 
 import { useStore } from '../store/useStore';
 import { Account, EMPTY_ACCOUNT } from './account';
-import { GIFT, Kid, withCurrentSize } from './kids';
+import { DEMO_KIDS, GIFT, Kid, withCurrentSize } from './kids';
 
 // Pimou's Supabase project. The publishable key is meant to ship inside the app: what each
 // person can read or change is enforced on the server (row level security, see supabase/schema.sql).
@@ -72,16 +72,15 @@ async function loadKids(userId: string) {
   if (error) return;
   const remote = (data ?? []).map((r) => withCurrentSize(r.data as Kid));
   syncedKids = Object.fromEntries((data ?? []).map((r) => [r.id, JSON.stringify(r.data)]));
-  const local = useStore.getState().kids;
-  if (!remote.length && local.length) {
-    // Passports typed before the account existed (onboarding): send them up.
-    pushKids(local);
-    return;
-  }
+  // Passports typed on this phone before logging in are kept and sent up; the demo children (Léa, Tom) never are.
+  const demoIds = new Set(DEMO_KIDS.map((k) => k.id));
+  const localOnly = useStore.getState().kids.filter((k) => !demoIds.has(k.id) && !remote.some((r) => r.id === k.id));
+  const kids = [...remote, ...localOnly];
   setLocally((s) => ({
-    kids: remote,
-    activeKidId: remote.some((k) => k.id === s.activeKidId) ? s.activeKidId : remote[0]?.id ?? GIFT,
+    kids,
+    activeKidId: kids.some((k) => k.id === s.activeKidId) ? s.activeKidId : kids[0]?.id ?? GIFT,
   }));
+  if (localOnly.length) pushKids(kids);
 }
 
 async function pushKids(kids: Kid[]) {
@@ -106,6 +105,8 @@ useStore.subscribe((s, prev) => {
 // ── Session ─────────────────────────────────────────────────────────────────────────────
 
 let currentUserId: string | null = null;
+/** The logged-in parent (null when logged out). */
+export const currentUser = () => (currentUserId ? { id: currentUserId } : null);
 
 async function applySession(session: Session | null) {
   const user = session?.user;

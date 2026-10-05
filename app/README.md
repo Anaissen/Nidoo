@@ -48,6 +48,6 @@ src/theme/        tokens Organic (couleurs, polices, ombres)
 
 ## À brancher ensuite
 
-- **Photos** : les visuels sont des rayures de remplacement (`Stripes`). Les remplacer par de vraies images (avec `expo-image-picker` dans l'étape « photos »).
-- **Back-end** : comptes, profils et passeports sont sur Supabase (`src/lib/backend.ts`). Annonces, messagerie, offres, paiement et suivi restent des données de démo sur l'appareil.
+- **Photos** : les annonces publiées ont de vraies photos (galerie ou appareil photo, redimensionnées puis envoyées dans le stockage Supabase). Le catalogue de démo garde ses rayures.
+- **Back-end** : comptes, profils et passeports sont sur Supabase (`src/lib/backend.ts`). Les annonces publiées et les fiches vendeurs aussi (`src/lib/listings.ts`, `supabase/schema-2-annonces.sql`). Messagerie, offres, paiement et suivi restent des données de démo sur l'appareil.
 - **E-mails** : brancher un SMTP (ex. Resend) dans Supabase avant l'ouverture au public ; l'envoi intégré ne sert qu'aux membres du projet.

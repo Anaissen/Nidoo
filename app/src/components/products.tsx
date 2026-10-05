@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { Heart } from 'lucide-react-native';
-import { Pressable, StyleProp, View, ViewStyle } from 'react-native';
+import { Image, Pressable, StyleProp, View, ViewStyle } from 'react-native';
 
 import { Product, TONES } from '../data/catalog';
 import { fmt } from '../lib/format';
@@ -12,6 +12,20 @@ export const tonesFor = (p: Product): [string, string] => TONES[p.color] ?? TONE
 export const perPiece = (p: Product) => (p.type === 'lot' && p.count ? fmt(p.price / p.count) : '');
 export const typeLabel = (p: Product) => (p.type === 'lot' ? `Lot de ${p.count}` : 'Pièce unique');
 export const openProduct = (id: number) => router.push(`/product/${id}`);
+
+/** A listing's photo: the real one when there is one, otherwise the striped placeholder. */
+export function ProductPhoto({ p, index = 0, label, labelPos, labelSize, style, children }: {
+  p: Product; index?: number; label?: string; labelPos?: { left: number; bottom: number }; labelSize?: number; style: StyleProp<ViewStyle>; children?: React.ReactNode;
+}) {
+  const uri = p.photos?.[index];
+  if (!uri) return <Stripes tones={tonesFor(p)} label={label} labelPos={labelPos} labelSize={labelSize} style={style}>{children}</Stripes>;
+  return (
+    <View style={[{ overflow: 'hidden', backgroundColor: colors.neutral200 }, style]}>
+      <Image source={{ uri }} resizeMode="cover" accessibilityIgnoresInvertColors style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+      {children}
+    </View>
+  );
+}
 
 export function HeartButton({ id, size = 34, icon = 17, style }: { id: number; size?: number; icon?: number; style?: StyleProp<ViewStyle> }) {
   const fav = useStore((s) => s.favs.includes(id));
@@ -38,10 +52,10 @@ export function ProductTile({ p, meta = 'size', showHeart = true, showLabel = tr
   const line = meta === 'brand' ? `${p.brand} · ${p.condition}` : meta === 'sizeOnly' ? p.size : `${p.size} · ${p.condition}`;
   return (
     <Pressable onPress={() => openProduct(p.id)} style={{ flex: 1, minWidth: 0, gap: 5 }}>
-      <Stripes tones={tonesFor(p)} label={showLabel ? p.ph ?? 'photo' : undefined} style={{ aspectRatio: 4 / 5, borderRadius: 22 }}>
+      <ProductPhoto p={p} label={showLabel ? p.ph ?? 'photo' : undefined} style={{ aspectRatio: 4 / 5, borderRadius: 22 }}>
         {p.type === 'lot' && <LotBadge label={`Lot · ${p.count}`} style={{ top: 10, left: 10 }} />}
         {showHeart && <HeartButton id={p.id} style={{ position: 'absolute', top: 8, right: 8 }} />}
-      </Stripes>
+      </ProductPhoto>
       <Txt size={15} weight="bold" style={{ paddingLeft: 2 }}>{fmt(p.price)}</Txt>
       <Txt size={13} lh={1.3} style={{ paddingLeft: 2 }} {...ellipsis}>{p.title}</Txt>
       <Txt size={12} color={colors.neutral700} style={{ paddingLeft: 2 }} {...ellipsis}>{line}</Txt>
@@ -69,10 +83,10 @@ export function ProductGrid({ items, render }: { items: Product[]; render: (p: P
 export function LotCard({ p }: { p: Product }) {
   return (
     <Pressable onPress={() => openProduct(p.id)} style={{ width: 220, gap: 6 }}>
-      <Stripes tones={tonesFor(p)} label={p.ph} style={{ height: 150, borderRadius: 24 }}>
+      <ProductPhoto p={p} label={p.ph} style={{ height: 150, borderRadius: 24 }}>
         <LotBadge label={`Lot · ${p.count} pièces`} style={{ top: 10, left: 10 }} />
         <HeartButton id={p.id} style={{ position: 'absolute', top: 8, right: 8 }} />
-      </Stripes>
+      </ProductPhoto>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <Txt size={16} weight="bold">{fmt(p.price)}</Txt>
         <Txt size={12} color={colors.neutral700}>{perPiece(p)} / pièce</Txt>
@@ -83,8 +97,8 @@ export function LotCard({ p }: { p: Product }) {
   );
 }
 
-/** Small thumbnail with stripes (cart, orders, chat header). */
+/** Small thumbnail (cart, orders, chat header). */
 export const Thumb = ({ p, size, radius }: { p: Product; size: number; radius: number }) => (
-  <Stripes tones={tonesFor(p)} style={{ width: size, height: size, borderRadius: radius }} />
+  <ProductPhoto p={p} style={{ width: size, height: size, borderRadius: radius }} />
 );
 

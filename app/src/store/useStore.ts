@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import {
-  DEFAULT_COMMISSION, DeliveryId, DELIVERY, DISTANCES, MY_PAST_LISTINGS, PRICES, Product, PRODUCTS, SELLERS,
+  DEFAULT_COMMISSION, DeliveryId, DELIVERY, DISTANCES, MY_PAST_LISTINGS, PRICES, Product, PRODUCTS, Seller, SELLERS,
   WARDROBE_TEMPLATES, WardrobeLine,
 } from '../data/catalog';
 import { fmt } from '../lib/format';
@@ -63,6 +63,10 @@ type State = {
   ftype: TypeFilter;
   f: Filters;
   mine: Product[];
+  /** Other parents' listings from the server (src/lib/listings.ts loads them). */
+  market: Product[];
+  /** Their sellers' public cards, by id. */
+  marketSellers: Record<string, Seller>;
   lastMineId: number | null;
   del: DeliveryId;
   pay: 'card' | 'apple';
@@ -100,7 +104,6 @@ type Actions = {
   makeOffer: (pid: number, amount: number) => string;
   acceptCounter: (pid: number) => void;
   toggleFollow: (sid: string) => void;
-  publish: (p: Omit<Product, 'id'>) => number;
   /** Returns the new order id and how many wardrobe lines got ticked. */
   placeOrder: () => { oid: string; ticked: number };
   /** Returns the conversation id for this seller/article, creating it if needed. */
@@ -140,6 +143,8 @@ export const useStore = create<State & Actions>()(
       ftype: 'all',
       f: emptyFilters(),
       mine: [],
+      market: [],
+      marketSellers: {},
       lastMineId: null,
       del: 'relais',
       pay: 'card',
@@ -241,11 +246,6 @@ export const useStore = create<State & Actions>()(
         }));
       },
       toggleFollow: (sid) => set((s) => ({ following: s.following.includes(sid) ? s.following.filter((x) => x !== sid) : [...s.following, sid] })),
-      publish: (p) => {
-        const id = 1000 + get().mine.length;
-        set((s) => ({ mine: [{ ...p, id }, ...s.mine], lastMineId: id }));
-        return id;
-      },
       placeOrder: () => {
         const s = get();
         const delName = DELIVERY.find((d) => d.id === s.del)!.name;
@@ -339,16 +339,23 @@ if (useStore.persist.hasHydrated()) useStore.getState().refreshKidSizes();
 
 // ─── Selectors / helpers ─────────────────────────────────────────────────────
 
-/** Public feed: the user's new listings first, then the catalogue. */
-export const allProducts = (mine: Product[]) => [...mine, ...PRODUCTS];
+// Explicit return types: these read the store they're used in, which TypeScript can't infer through.
+function market(): Product[] { return useStore.getState().market; }
+function marketSellers(): Record<string, Seller> { return useStore.getState().marketSellers; }
+
+/** Public feed: the user's new listings first, then other parents' real listings, then the demo catalogue. */
+export const allProducts = (mine: Product[]) => [...mine, ...market(), ...PRODUCTS];
+
+/** Re-render a feed when the listings from the server arrive (the helpers above read them on demand). */
+export const useMarket = () => useStore((s) => s.market);
 
 /** The user's own dressing (older sold listings + new ones). */
 export const myListings = (mine: Product[]) => [...MY_PAST_LISTINGS, ...mine];
 
 export const productById = (mine: Product[], id: number | null | undefined) =>
-  id == null ? undefined : [...PRODUCTS, ...MY_PAST_LISTINGS, ...mine].find((p) => p.id === id);
+  id == null ? undefined : [...PRODUCTS, ...MY_PAST_LISTINGS, ...mine, ...market()].find((p) => p.id === id);
 
-export const sellerById = (id: string | undefined) => (id ? SELLERS[id] : undefined);
+export const sellerById = (id: string | undefined) => (id ? SELLERS[id] ?? marketSellers()[id] : undefined);
 
 export const filterProducts = (s: Pick<State, 'mine' | 'f' | 'q' | 'ftype'>) => {
   const { f, q, ftype } = s;

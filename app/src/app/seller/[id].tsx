@@ -7,10 +7,11 @@ import { ProductGrid, ProductTile } from '../../components/products';
 import { BackButton, Screen } from '../../components/Screen';
 import { Avatar, H, Segmented, Txt } from '../../components/ui';
 import { REVIEWS } from '../../data/catalog';
-import { allProducts, myListings, sellerView, useStore } from '../../store/useStore';
+import { allProducts, myListings, sellerView, useMarket, useStore } from '../../store/useStore';
 import { colors, GUTTER } from '../../theme/tokens';
 
 export default function SellerScreen() {
+  useMarket();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [tab, setTab] = useState<'items' | 'reviews'>('items');
   const mine = useStore((s) => s.mine);
@@ -25,7 +26,7 @@ export default function SellerScreen() {
   const isMe = id === 'me';
   const items = isMe ? myListings(mine) : allProducts(mine).filter((p) => p.sid === id);
 
-  const stats = [[`★ ${sel.rating}`, `${sel.reviews} avis`], [String(sel.sales), 'ventes'], [sel.ship, 'pour expédier']];
+  const stats = [sel.reviews ? [`★ ${sel.rating}`, `${sel.reviews} avis`] : ['Nouveau', 'sur Pimou'], [String(sel.sales), 'ventes'], [sel.ship, 'pour expédier']];
 
   return (
     <Screen>

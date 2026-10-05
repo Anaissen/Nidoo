@@ -1,9 +1,9 @@
 import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
-import { tonesFor } from '../../components/products';
+import { ProductPhoto } from '../../components/products';
 import { Screen } from '../../components/Screen';
-import { Avatar, ellipsis, H, Stripes, Txt } from '../../components/ui';
+import { Avatar, ellipsis, H, Txt } from '../../components/ui';
 import { productById, sellerById, useStore } from '../../store/useStore';
 import { colors } from '../../theme/tokens';
 
@@ -28,7 +28,7 @@ export default function Messages() {
             >
               <View>
                 <Avatar init={seller.init} size={54} font={20} />
-                <Stripes tones={tonesFor(p)} style={{ position: 'absolute', right: -4, bottom: -4, width: 28, height: 28, borderRadius: 10, borderWidth: 2, borderColor: colors.bg }} />
+                <ProductPhoto p={p} style={{ position: 'absolute', right: -4, bottom: -4, width: 28, height: 28, borderRadius: 10, borderWidth: 2, borderColor: colors.bg }} />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>

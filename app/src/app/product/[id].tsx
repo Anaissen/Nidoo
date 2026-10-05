@@ -1,19 +1,21 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { ChevronRight, HandCoins, Handshake, Layers, MessageCircle, ShieldCheck, Truck } from 'lucide-react-native';
 import { useState } from 'react';
-import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
+import { Alert, NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 
 import { DistancePill, formatKm, VerifiedBadge, WashedBadge } from '../../components/Badges';
 import { OfferSheet } from '../../components/OfferSheet';
-import { HeartButton, openProduct, perPiece, tonesFor } from '../../components/products';
+import { HeartButton, openProduct, perPiece, ProductPhoto } from '../../components/products';
 import { BackButton, BottomBar, Screen } from '../../components/Screen';
-import { Avatar, ellipsis, H, OutlineButton, PrimaryButton, Stripes, Tag, Txt } from '../../components/ui';
+import { Avatar, ellipsis, H, OutlineButton, PrimaryButton, Tag, Txt } from '../../components/ui';
 import { HANDOVER_MAX_KM } from '../../data/catalog';
 import { fmt } from '../../lib/format';
-import { allProducts, isNegotiable, productById, sellerView, useStore } from '../../store/useStore';
+import { removeListing } from '../../lib/listings';
+import { allProducts, isNegotiable, productById, sellerView, useMarket, useStore } from '../../store/useStore';
 import { colors, GUTTER, ICON_STROKE } from '../../theme/tokens';
 
 export default function ProductScreen() {
+  useMarket();
   const { id } = useLocalSearchParams<{ id: string }>();
   const mine = useStore((s) => s.mine);
   const inCart = useStore((s) => s.cart.includes(Number(id)));
@@ -38,14 +40,15 @@ export default function ProductScreen() {
   const negotiable = isNegotiable(p);
   const accepted = offer?.status === 'accepted';
   const photoNames = isLot ? ["vue d'ensemble du lot", ...(p.contents ?? []).map((c) => c.n.toLowerCase()), 'étiquettes'] : ['vue de face', 'vue de dos', 'étiquette'];
-  const nPhotos = isLot ? 5 : 3;
+  const nPhotos = p.photos?.length || (isLot ? 5 : 3);
   const photoW = width - 24;
   const similar = allProducts(mine).filter((x) => x.age === p.age && x.id !== p.id).slice(0, 6);
   const specs = [
     ['Âge / taille', p.size], ['Pour', p.gender], ['Marque', p.brand],
     ['Saison', p.season], ['Couleur', p.color], ['État', p.condition],
   ];
-  const desc = isLot
+  // Real listings show what the seller wrote; the demo catalogue keeps a sample text.
+  const desc = p.remoteId != null ? p.description ?? '' : isLot
     ? `Lot complet en ${p.size}, lavé et plié. Non fumeur, sans animaux. Vendu en une fois uniquement.`
     : `Portée quelques fois, sans tache ni accroc. Taille ${p.size}, coupe normale.`;
 
@@ -57,12 +60,26 @@ export default function ProductScreen() {
     showToast('Ajouté au panier');
   };
 
+  // Sold elsewhere or changed one's mind: take the listing off the feed.
+  const withdraw = () => {
+    const go = async () => {
+      const err = await removeListing(p);
+      showToast(err ?? 'Annonce retirée');
+      if (!err) router.back();
+    };
+    if (Platform.OS === 'web') { go(); return; }
+    Alert.alert('Retirer cette annonce ?', 'Elle ne sera plus visible par les autres parents.', [{ text: 'Annuler', style: 'cancel' }, { text: 'Retirer', style: 'destructive', onPress: go }]);
+  };
+
   const bottom = (
     <BottomBar>
       {isMine ? (
-        <View style={{ flex: 1, height: 54, borderRadius: 999, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
-          <Txt weight="semi">C'est ton annonce</Txt>
-        </View>
+        <>
+          <View style={{ flex: 1, height: 54, borderRadius: 999, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
+            <Txt weight="semi">C'est ton annonce</Txt>
+          </View>
+          {p.remoteId != null && <OutlineButton label="Retirer" size={15} onPress={withdraw} style={{ paddingHorizontal: 20 }} />}
+        </>
       ) : (
         <>
           <Pressable
@@ -97,9 +114,10 @@ export default function ProductScreen() {
         <View style={{ marginHorizontal: 12, height: 400, borderRadius: 36, overflow: 'hidden' }}>
           <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onMomentumScrollEnd={onScroll} scrollEventThrottle={16}>
             {Array.from({ length: nPhotos }, (_, i) => (
-              <Stripes
+              <ProductPhoto
                 key={i}
-                tones={tonesFor(p)}
+                p={p}
+                index={i}
                 label={`photo ${i + 1}/${nPhotos} · ${photoNames[i] ?? 'détail'}`}
                 labelPos={{ left: 20, bottom: 44 }}
                 labelSize={10}
@@ -179,7 +197,7 @@ export default function ProductScreen() {
           </View>
         )}
 
-        <Txt color={colors.neutral800} style={{ paddingHorizontal: GUTTER }}>{desc}</Txt>
+        {!!desc && <Txt color={colors.neutral800} style={{ paddingHorizontal: GUTTER }}>{desc}</Txt>}
 
         <Pressable
           onPress={() => router.push(`/seller/${p.sid}`)}
@@ -188,7 +206,7 @@ export default function ProductScreen() {
           <Avatar init={seller.init} size={48} font={20} />
           <View style={{ flex: 1 }}>
             <Txt weight="bold">{seller.name}</Txt>
-            <Txt size={13} color={colors.neutral700}>★ {seller.rating} · {seller.reviews} avis · {seller.city}</Txt>
+            <Txt size={13} color={colors.neutral700}>{seller.reviews ? `★ ${seller.rating} · ${seller.reviews} avis` : 'Nouveau sur Pimou'} · {seller.city}</Txt>
             {(seller.verified || !isMine) && (
               <View style={{ flexDirection: 'row', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
                 {seller.verified && <VerifiedBadge small />}
@@ -224,7 +242,7 @@ export default function ProductScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: GUTTER }}>
               {similar.map((x) => (
                 <Pressable key={x.id} onPress={() => openProduct(x.id)} style={{ width: 140, gap: 4 }}>
-                  <Stripes tones={tonesFor(x)} style={{ height: 170, borderRadius: 22 }} />
+                  <ProductPhoto p={x} style={{ height: 170, borderRadius: 22 }} />
                   <Txt size={14} weight="bold">{fmt(x.price)}</Txt>
                   <Txt size={12} {...ellipsis}>{x.title}</Txt>
                 </Pressable>

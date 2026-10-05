@@ -23,7 +23,14 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pimou utilise tes photos pour illustrer tes annonces de vêtements.",
+          "cameraPermission": "Pimou utilise l'appareil photo pour photographier les vêtements que tu vends."
+        }
+      ]
     ],
     "scheme": "pimou",
     "experiments": {

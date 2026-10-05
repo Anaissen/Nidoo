@@ -66,6 +66,12 @@ export type Product = {
   negotiable?: boolean;
   /** Seller promises the clothes are washed and folded. */
   washed?: boolean;
+  /** Written by the seller (real listings). */
+  description?: string;
+  /** Real photos (public URLs, or local files while publishing). Demo listings use striped placeholders. */
+  photos?: string[];
+  /** Row id in the Supabase `listings` table, for listings that live on the server. */
+  remoteId?: number;
 };
 
 const P = (

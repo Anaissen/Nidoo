@@ -7,10 +7,11 @@ import { ProductGrid, ProductTile } from '../../components/products';
 import { Screen } from '../../components/Screen';
 import { H, OutlineButton, Segmented, Txt } from '../../components/ui';
 import { plural } from '../../lib/format';
-import { FilterKey, filterProducts, useStore } from '../../store/useStore';
+import { FilterKey, filterProducts, useMarket, useStore } from '../../store/useStore';
 import { colors, fonts, GUTTER, ICON_STROKE, shadows } from '../../theme/tokens';
 
 export default function Search() {
+  useMarket();
   const [sheet, setSheet] = useState(false);
   const q = useStore((s) => s.q);
   const ftype = useStore((s) => s.ftype);

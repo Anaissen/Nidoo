@@ -1,24 +1,26 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Layers, Shirt, X } from 'lucide-react-native';
+import { ImagePlus, Layers, Shirt, X } from 'lucide-react-native';
 import { useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
+import { ColorDot } from '../components/FilterSheet';
 import { OptionCard } from '../components/OptionCard';
 import { BottomBar, Screen } from '../components/Screen';
-import { Chip, CircleButton, H, LinkButton, monoFont, OutlineButton, PrimaryButton, Stripes, Txt } from '../components/ui';
-import { AGES, CONDS, DeliveryId, GENDERS, ListingType, SEASONS, SELL_DELIVERY } from '../data/catalog';
+import { Chip, CircleButton, H, LinkButton, OutlineButton, PrimaryButton, Tag, Txt } from '../components/ui';
+import { AGES, COLORS, CONDS, DeliveryId, GENDERS, ListingType, SEASONS, SELL_DELIVERY } from '../data/catalog';
 import { fmt } from '../lib/format';
+import { MAX_PHOTOS, pickPhotos, publishListing } from '../lib/listings';
 import { commissionRate, useStore } from '../store/useStore';
 import { colors, fonts, ICON_STROKE } from '../theme/tokens';
 
 type Draft = {
-  step: number; type: ListingType | null; photos: number; title: string; age: string | null; gender: string;
-  season: string | null; brand: string; cond: string | null; count: number; contents: string; price: string; negotiable: boolean; washed: boolean;
+  step: number; type: ListingType | null; photos: string[]; title: string; age: string | null; gender: string; color: string | null;
+  season: string | null; brand: string; description: string; cond: string | null; count: number; contents: string; price: string; negotiable: boolean; washed: boolean;
   d: Record<DeliveryId, boolean>;
 };
 
 const blank = (type: ListingType | null): Draft => ({
-  step: type ? 1 : 0, type, photos: 0, title: '', age: null, gender: 'Mixte', season: null, brand: '', cond: null,
+  step: type ? 1 : 0, type, photos: [], color: null, title: '', description: '', age: null, gender: 'Mixte', season: null, brand: '', cond: null,
   count: 5, contents: '', price: '', negotiable: true, washed: true, d: { relais: true, domicile: false, main: true },
 });
 
@@ -33,7 +35,6 @@ export default function Sell() {
     age: age && (AGES as readonly string[]).includes(age) ? age : null,
   }));
   const commission = useStore((s) => s.commission);
-  const publish = useStore((s) => s.publish);
   const showToast = useStore((s) => s.showToast);
   const scroll = useRef<ScrollView>(null);
 
@@ -41,19 +42,33 @@ export default function Sell() {
   const isLot = d.type === 'lot';
   const price = parseFloat(d.price.replace(',', '.')) || 0;
   const rate = commissionRate(commission);
-  const canNext = [!!d.type, d.photos > 0, !!d.title.trim() && !!d.age && !!d.cond, price > 0 && Object.values(d.d).some(Boolean)][d.step];
+  const [busy, setBusy] = useState(false);
+  const canNext = [!!d.type, d.photos.length > 0, !!d.title.trim() && !!d.age && !!d.cond, price > 0 && Object.values(d.d).some(Boolean)][d.step];
 
   const goStep = (step: number) => { patch({ step }); scroll.current?.scrollTo({ y: 0, animated: false }); };
 
-  const next = () => {
+  const addPhotos = async (source: 'library' | 'camera') => {
+    const { uris, error } = await pickPhotos(source, MAX_PHOTOS - d.photos.length);
+    if (error) showToast(error);
+    if (uris.length) setD((x) => ({ ...x, photos: [...x.photos, ...uris].slice(0, MAX_PHOTOS) }));
+  };
+  const removePhoto = (i: number) => patch({ photos: d.photos.filter((_, j) => j !== i) });
+  const makeCover = (i: number) => patch({ photos: [d.photos[i], ...d.photos.filter((_, j) => j !== i)] });
+
+  const next = async () => {
+    if (busy) return;
     if (!canNext) { showToast(ERRORS[d.step]); return; }
     if (d.step < 3) { goStep(d.step + 1); return; }
-    const id = publish({
-      type: d.type!, title: d.title.trim(), brand: d.brand.trim() || 'Sans marque', age: d.age!, size: d.age!, gender: d.gender,
-      season: d.season || 'Toutes saisons', condition: d.cond!, price, color: isLot ? 'Multicolore' : 'Beige', sid: 'me', ph: 'ta photo',
+    const listing = {
+      type: d.type!, title: d.title.trim(), description: d.description.trim(), brand: d.brand.trim() || 'Sans marque', age: d.age!, size: d.age!, gender: d.gender,
+      season: d.season || 'Toutes saisons', condition: d.cond!, price, color: d.color ?? (isLot ? 'Multicolore' : 'Beige'),
       negotiable: d.negotiable, washed: d.washed, count: isLot ? d.count : undefined, contents: isLot ? [{ n: d.contents.trim() || 'Pièces assorties', q: d.count }] : undefined,
-    });
-    router.replace(`/sell-done?id=${id}`);
+    };
+    setBusy(true);
+    const res = await publishListing({ ...listing, photos: d.photos, delivery: d.d });
+    setBusy(false);
+    if (res.error || res.id == null) { showToast(res.error ?? "L'annonce n'a pas pu être publiée, réessaie."); return; }
+    router.replace(`/sell-done?id=${res.id}`);
   };
 
   const chips = (key: 'age' | 'gender' | 'season' | 'cond', list: readonly string[]) => (
@@ -65,7 +80,7 @@ export default function Sell() {
   const bottom = (
     <BottomBar>
       {d.step > 0 && <OutlineButton label="Retour" size={16} onPress={() => goStep(d.step - 1)} />}
-      <PrimaryButton label={d.step === 3 ? "Publier l'annonce" : 'Continuer'} onPress={next} disabledLook={!canNext} style={{ flex: 1 }} />
+      <PrimaryButton label={d.step === 3 ? (busy ? 'Publication…' : "Publier l'annonce") : 'Continuer'} onPress={next} disabledLook={!canNext || busy} style={{ flex: 1 }} />
     </BottomBar>
   );
 
@@ -111,30 +126,33 @@ export default function Sell() {
             <View style={{ gap: 6 }}>
               <H size={30}>Ajoute des photos</H>
               <Txt size={14} color={colors.neutral800}>
-                {isLot ? "Commence par une photo de tout le lot étalé, puis une par pièce. Jusqu'à 12 photos." : "De face, de dos et l'étiquette. Jusqu'à 6 photos."}
+                {isLot ? `Commence par une photo de tout le lot étalé, puis les pièces une par une. Jusqu'à ${MAX_PHOTOS} photos.` : `De face, de dos et l'étiquette. Jusqu'à ${MAX_PHOTOS} photos.`}
               </Txt>
             </View>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-              {Array.from({ length: 6 }, (_, i) => {
-                const filled = i < d.photos;
-                const isNext = i === d.photos;
-                const label = filled ? (i === 0 ? 'couverture' : `photo ${i + 1}`) : isNext ? '+ ajouter' : '';
-                const box = { width: '31.5%' as const, aspectRatio: 1, borderRadius: 24 };
-                // Demo: tapping adds a photo slot; tapping a filled one trims back to it. Wire expo-image-picker here.
-                const onPress = () => patch({ photos: filled ? i : Math.min(6, d.photos + 1) });
-                return filled ? (
-                  <Pressable key={i} onPress={onPress} style={box}>
-                    <Stripes tones={['#ffe1d0', '#fff2eb']} style={[StyleSheet.absoluteFill, { borderRadius: 24, alignItems: 'center', justifyContent: 'center' }]}>
-                      <Txt size={9} color={colors.neutral700} style={{ fontFamily: monoFont }}>{label}</Txt>
-                    </Stripes>
+              {d.photos.map((uri, i) => (
+                <View key={uri + i} style={{ width: '31.5%', aspectRatio: 1, borderRadius: 24, overflow: 'hidden', backgroundColor: colors.neutral200 }}>
+                  <Pressable onPress={() => i > 0 && makeCover(i)} accessibilityLabel={i === 0 ? 'Photo de couverture' : 'Choisir comme couverture'} style={StyleSheet.absoluteFill}>
+                    <Image source={{ uri }} resizeMode="cover" style={StyleSheet.absoluteFill} />
                   </Pressable>
-                ) : (
-                  <Pressable key={i} onPress={onPress} style={[box, { borderWidth: 2, borderStyle: 'dashed', borderColor: isNext ? colors.accent : colors.neutral300, backgroundColor: colors.neutral100, alignItems: 'center', justifyContent: 'center' }]}>
-                    <Txt size={9} color={colors.neutral700} style={{ fontFamily: monoFont }}>{label}</Txt>
+                  {i === 0 && <Tag label="Couverture" bg={colors.text} fg={colors.bg} size={10} style={{ position: 'absolute', left: 6, bottom: 6 }} />}
+                  <Pressable onPress={() => removePhoto(i)} hitSlop={6} accessibilityLabel="Retirer la photo" style={{ position: 'absolute', top: 6, right: 6, width: 28, height: 28, borderRadius: 14, backgroundColor: colors.neutral100, alignItems: 'center', justifyContent: 'center' }}>
+                    <X size={15} strokeWidth={ICON_STROKE} color={colors.text} />
                   </Pressable>
-                );
-              })}
+                </View>
+              ))}
+              {d.photos.length < MAX_PHOTOS && (
+                <Pressable onPress={() => addPhotos('library')} accessibilityLabel="Ajouter des photos" style={{ width: '31.5%', aspectRatio: 1, borderRadius: 24, borderWidth: 2, borderStyle: 'dashed', borderColor: colors.accent, backgroundColor: colors.neutral100, alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                  <ImagePlus size={26} strokeWidth={ICON_STROKE} color={colors.accent700} />
+                  <Txt size={12} weight="semi" color={colors.accent700}>Ajouter</Txt>
+                </Pressable>
+              )}
             </View>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <OutlineButton label="📷  Photo" height={48} size={15} onPress={() => addPhotos('camera')} style={{ flex: 1 }} />
+              <OutlineButton label="🖼️  Galerie" height={48} size={15} onPress={() => addPhotos('library')} style={{ flex: 1 }} />
+            </View>
+            {d.photos.length > 1 && <Txt size={12} color={colors.neutral700}>Touche une photo pour en faire la couverture.</Txt>}
             <View style={{ paddingVertical: 14, paddingHorizontal: 18, borderRadius: 24, backgroundColor: colors.accent2_100 }}>
               <Txt size={13} color={colors.accent2_800}>Lumière du jour, fond uni, vêtement à plat : tes photos se vendent mieux.</Txt>
             </View>
@@ -163,11 +181,19 @@ export default function Sell() {
               </>
             )}
             <Field label="Âge / taille">{chips('age', AGES)}</Field>
+            <Field label="Couleur principale">
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {Object.keys(COLORS).map((c) => <Chip key={c} label={c} on={d.color === c} onPress={() => patch({ color: d.color === c ? null : c })} left={<ColorDot name={c} />} />)}
+              </View>
+            </Field>
             <Field label="Pour">{chips('gender', GENDERS)}</Field>
             <Field label="Saison">{chips('season', SEASONS)}</Field>
             <Field label="État">
               {chips('cond', CONDS)}
               <LinkButton label="Un doute ? Voir le guide des états →" size={13} onPress={() => router.push(`/conditions${d.cond ? `?focus=${encodeURIComponent(d.cond)}` : ''}`)} />
+            </Field>
+            <Field label="Description (facultatif)">
+              <TextInput value={d.description} onChangeText={(t) => patch({ description: t.slice(0, 1000) })} multiline placeholder="ex. Portée quelques fois, sans tache. Taille un peu grand." placeholderTextColor={colors.neutral600} style={[input(), { minHeight: 90, height: undefined, borderRadius: 24, paddingTop: 14, paddingBottom: 14, textAlignVertical: 'top' }]} />
             </Field>
             <Field label="Marque (facultatif)">
               <TextInput value={d.brand} onChangeText={(t) => patch({ brand: t })} placeholder="ex. Petit Bateau" placeholderTextColor={colors.neutral600} style={input()} />

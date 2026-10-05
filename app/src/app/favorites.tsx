@@ -3,10 +3,11 @@ import { View } from 'react-native';
 import { ProductGrid, ProductTile } from '../components/products';
 import { BackHeader, Screen } from '../components/Screen';
 import { Txt } from '../components/ui';
-import { allProducts, useStore } from '../store/useStore';
+import { allProducts, useMarket, useStore } from '../store/useStore';
 import { colors } from '../theme/tokens';
 
 export default function Favorites() {
+  useMarket();
   const favs = useStore((s) => s.favs);
   const mine = useStore((s) => s.mine);
   const items = allProducts(mine).filter((p) => favs.includes(p.id));
