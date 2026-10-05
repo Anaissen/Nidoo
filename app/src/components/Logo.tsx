@@ -1,10 +1,14 @@
-import { View } from 'react-native';
+import { Image, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { colors } from '../theme/tokens';
-import { H } from './ui';
 
-/** A little sage sprig: curved stem with four soft leaves. */
+const WORDMARK = require('../../assets/logo-wordmark.png');
+const FULL = require('../../assets/logo-full.png');
+const WORDMARK_RATIO = 1030 / 315;
+const FULL_RATIO = 1030 / 912;
+
+/** A little sage sprig: curved stem with four soft leaves (decoration, e.g. on the passport). */
 export function Sprig({ size = 22 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
@@ -17,14 +21,17 @@ export function Sprig({ size = 22 }: { size?: number }) {
   );
 }
 
-/** "pimou" wordmark in Caprasimo with the sprig tucked against the last letter. */
+/** Colourful "Pimou" lettering from the brand logo. `size` ≈ the height of a matching text title. */
 export function Logo({ size = 24 }: { size?: number }) {
+  const height = Math.round(size * 1.25);
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-end' }} accessibilityRole="header" accessibilityLabel="pimou">
-      <H size={size} color={colors.accent} lh={1.1}>pimou</H>
-      <View style={{ marginLeft: 1, marginBottom: size * 0.28 }}>
-        <Sprig size={Math.round(size * 1.05)} />
-      </View>
+    <View accessibilityRole="header" accessibilityLabel="Pimou">
+      <Image source={WORDMARK} style={{ height, width: height * WORDMARK_RATIO }} resizeMode="contain" />
     </View>
   );
+}
+
+/** Full brand logo: the bear in its cart, "Pimou" and the tagline. */
+export function FullLogo({ width }: { width: number }) {
+  return <Image source={FULL} accessibilityLabel="Pimou, la marketplace des enfants" style={{ width, height: width / FULL_RATIO }} resizeMode="contain" />;
 }

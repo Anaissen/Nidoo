@@ -4,14 +4,14 @@ import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { KidList } from '../components/KidAvatar';
-import { Logo } from '../components/Logo';
+import { FullLogo, Logo } from '../components/Logo';
 import { GIFT } from '../components/home/Home1c';
 import { H, LinkButton, OutlineButton, PrimaryButton, Stripes, Txt } from '../components/ui';
 import { useStore } from '../store/useStore';
 import { colors, shadows } from '../theme/tokens';
 
 const SLIDES: { title: string; text: string; label: string; tones: [string, string] }[] = [
-  { title: 'Bienvenue sur Pimou', text: 'Le vide-dressing des 0-10 ans. Gagne du temps et de l\'argent : la bonne taille au bon prix en quelques gestes, et ce qui ne sert plus revendu en un clin d\'œil.', label: 'illustration · bienvenue', tones: ['#ffe1d0', '#fff2eb'] },
+  { title: 'Bienvenue sur Pimou', text: 'Pimou simplifie le quotidien des parents et de tous ceux qui achètent pour les enfants. Un lieu pensé pour gagner du temps, tout trouver au même endroit et éviter des heures de recherche, d\'achats et de colis à gérer.', label: 'illustration · bienvenue', tones: ['#ffe1d0', '#fff2eb'] },
   { title: 'Une pièce ou tout un lot', text: "Vends ce qui ne lui va plus à l'unité, ou d'un coup en lot par taille.", label: 'illustration · pièce vs lot', tones: ['#e1eecc', '#f0fae1'] },
   { title: 'Simple et protégé', text: 'Paiement sécurisé, versé au vendeur après réception. Point relais, domicile ou main propre.', label: 'illustration · colis', tones: ['#eee7db', '#f9f4ed'] },
 ];
@@ -42,16 +42,16 @@ export default function Onboarding() {
             <View style={{ width: 260, height: 260 }}>
               {step === 0 ? (
                 // Welcome page: the Pimou logo, big, on a soft round badge.
-                <View style={{ width: 260, height: 260, borderRadius: 130, backgroundColor: colors.accent100, alignItems: 'center', justifyContent: 'center', boxShadow: shadows.md }}>
-                  <View style={{ position: 'absolute', left: 26, top: 30, width: 46, height: 46, borderRadius: 23, backgroundColor: colors.accent200 }} />
-                  <View style={{ marginTop: -10 }}><Logo size={50} /></View>
+                // Stays light in dark mode too: the logo is drawn for a white background.
+                <View style={{ width: 260, height: 260, borderRadius: 130, backgroundColor: '#fffaf3', alignItems: 'center', justifyContent: 'center', boxShadow: shadows.md }}>
+                  <FullLogo width={196} />
                 </View>
               ) : (
                 <Stripes tones={slide.tones} style={{ width: 260, height: 260, borderRadius: 130, alignItems: 'center', justifyContent: 'center' }}>
                   <Txt size={10} color={colors.neutral700} style={{ letterSpacing: 0.5 }}>{slide.label}</Txt>
                 </Stripes>
               )}
-              <View style={{ position: 'absolute', right: -18, bottom: 24, width: 72, height: 72, borderRadius: 36, backgroundColor: colors.accent2_300 }} />
+              {step > 0 && <View style={{ position: 'absolute', right: -18, bottom: 24, width: 72, height: 72, borderRadius: 36, backgroundColor: colors.accent2_300 }} />}
             </View>
             <View style={{ gap: 10 }}>
               <H size={36}>{slide.title}</H>
