@@ -8,7 +8,7 @@ import { Logo } from '../components/Logo';
 import { GIFT } from '../components/home/Home1c';
 import { H, LinkButton, OutlineButton, PrimaryButton, Stripes, Txt } from '../components/ui';
 import { useStore } from '../store/useStore';
-import { colors } from '../theme/tokens';
+import { colors, shadows } from '../theme/tokens';
 
 const SLIDES: { title: string; text: string; label: string; tones: [string, string] }[] = [
   { title: 'Bienvenue sur Pimou', text: 'Le vide-dressing des 0-10 ans. Gagne du temps et de l\'argent : la bonne taille au bon prix en quelques gestes, et ce qui ne sert plus revendu en un clin d\'œil.', label: 'illustration · bienvenue', tones: ['#ffe1d0', '#fff2eb'] },
@@ -40,9 +40,17 @@ export default function Onboarding() {
         <>
           <View style={{ flex: 1, justifyContent: 'center', gap: 28 }}>
             <View style={{ width: 260, height: 260 }}>
-              <Stripes tones={slide.tones} style={{ width: 260, height: 260, borderRadius: 130, alignItems: 'center', justifyContent: 'center' }}>
-                <Txt size={10} color={colors.neutral700} style={{ letterSpacing: 0.5 }}>{slide.label}</Txt>
-              </Stripes>
+              {step === 0 ? (
+                // Welcome page: the Pimou logo, big, on a soft round badge.
+                <View style={{ width: 260, height: 260, borderRadius: 130, backgroundColor: colors.accent100, alignItems: 'center', justifyContent: 'center', boxShadow: shadows.md }}>
+                  <View style={{ position: 'absolute', left: 26, top: 30, width: 46, height: 46, borderRadius: 23, backgroundColor: colors.accent200 }} />
+                  <View style={{ marginTop: -10 }}><Logo size={50} /></View>
+                </View>
+              ) : (
+                <Stripes tones={slide.tones} style={{ width: 260, height: 260, borderRadius: 130, alignItems: 'center', justifyContent: 'center' }}>
+                  <Txt size={10} color={colors.neutral700} style={{ letterSpacing: 0.5 }}>{slide.label}</Txt>
+                </Stripes>
+              )}
               <View style={{ position: 'absolute', right: -18, bottom: 24, width: 72, height: 72, borderRadius: 36, backgroundColor: colors.accent2_300 }} />
             </View>
             <View style={{ gap: 10 }}>

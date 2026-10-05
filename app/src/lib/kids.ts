@@ -15,6 +15,8 @@ export type Kid = {
   gender: 'Fille' | 'Garçon' | 'Mixte';
   /** Size bucket they wear now (defaults to the one matching their age). */
   size: string;
+  /** Size picked by hand ("porte plus grand / plus petit"). Otherwise it follows the age as the child grows. */
+  sizeManual?: boolean;
   heightCm?: number;
   shoeSize?: number;
   favColors: string[];
@@ -39,6 +41,13 @@ export function ageInMonths(k: Pick<Kid, 'birthYear' | 'birthMonth' | 'birthDay'
   const months = (now.getFullYear() - k.birthYear) * 12 + (now.getMonth() + 1 - k.birthMonth);
   // A month only counts once the day of birth is reached.
   return Math.max(0, months - (k.birthDay && now.getDate() < k.birthDay ? 1 : 0));
+}
+
+/** The passport with its size brought up to date with today's age (unless set by hand). */
+export function withCurrentSize(k: Kid, now = new Date()): Kid {
+  if (k.sizeManual) return k;
+  const size = bucketForMonths(ageInMonths(k, now));
+  return size === k.size ? k : { ...k, size };
 }
 
 export const daysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate();

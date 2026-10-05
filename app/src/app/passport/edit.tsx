@@ -30,7 +30,7 @@ export default function PassportEdit() {
 
   const [k, setK] = useState<Kid>(() => existing ?? blankKid());
   // Until the parent picks a size, follow the one matching the birth date.
-  const [sizeTouched, setSizeTouched] = useState(!!existing);
+  const [sizeTouched, setSizeTouched] = useState(!!existing?.sizeManual);
   const patch = (p: Partial<Kid>) => setK((x) => {
     const next = { ...x, ...p };
     if (!sizeTouched && (p.birthYear || p.birthMonth || p.birthDay)) next.size = bucketForMonths(ageInMonths(next));
@@ -117,10 +117,13 @@ export default function PassportEdit() {
           </View>
         </Field>
 
-        <Field label="Taille portée" hint={sizeTouched ? undefined : "Calculée d'après son âge, change-la s'il ou elle porte plus grand ou plus petit."}>
+        <Field label="Taille portée" hint={sizeTouched ? "Choisie à la main : elle ne suivra plus l'âge automatiquement." : "Calculée d'après son âge, et mise à jour quand l'enfant grandit. Change-la s'il ou elle porte plus grand ou plus petit."}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {AGES.map((a) => <Chip key={a} label={a} on={k.size === a} onPress={() => { setSizeTouched(true); patch({ size: a }); }} />)}
+            {AGES.map((a) => <Chip key={a} label={a} on={k.size === a} onPress={() => { setSizeTouched(true); patch({ size: a, sizeManual: true }); }} />)}
           </View>
+          {sizeTouched && (
+            <LinkButton label="Revenir à la taille selon son âge" size={13} onPress={() => { setSizeTouched(false); setK((x) => ({ ...x, sizeManual: false, size: bucketForMonths(ageInMonths(x)) })); }} />
+          )}
         </Field>
 
         <View style={{ flexDirection: 'row', gap: 12 }}>

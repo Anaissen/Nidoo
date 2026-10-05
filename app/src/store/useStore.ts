@@ -7,7 +7,7 @@ import {
   WARDROBE_TEMPLATES, WardrobeLine,
 } from '../data/catalog';
 import { fmt } from '../lib/format';
-import { DEMO_KIDS, Kid } from '../lib/kids';
+import { DEMO_KIDS, Kid, withCurrentSize } from '../lib/kids';
 
 export type TypeFilter = 'all' | 'unique' | 'lot';
 export type FilterKey = 'ages' | 'genders' | 'seasons' | 'brands' | 'conds' | 'colors' | 'price' | 'distance';
@@ -80,6 +80,8 @@ type Actions = {
   /** Reset search to the given filters (used by home shortcuts). Caller navigates to the search tab. */
   searchWith: (patch: { f?: Partial<Filters>; ftype?: TypeFilter }) => void;
   saveKid: (k: Kid) => void;
+  /** Children grow: move each passport to the size matching today's age. */
+  refreshKidSizes: () => void;
   /** Garde-robe of a child, created from the season template on first use. */
   wardrobeFor: (kidId: string) => Wardrobe;
   setWardrobeGot: (kidId: string, lineId: string, got: number) => void;
@@ -165,10 +167,14 @@ export const useStore = create<State & Actions>()(
       }),
       clearFilters: () => set({ f: emptyFilters(), q: '', ftype: 'all' }),
       searchWith: ({ f, ftype }) => set({ f: { ...emptyFilters(), ...f }, ftype: ftype ?? 'all', q: '' }),
-      saveKid: (k) => set((s) => ({
+      saveKid: (raw) => set((s) => {
+        const k = withCurrentSize(raw);
+        return {
         kids: s.kids.some((x) => x.id === k.id) ? s.kids.map((x) => (x.id === k.id ? k : x)) : [...s.kids, k],
         activeKidId: s.activeKidId ?? k.id,
-      })),
+        };
+      }),
+      refreshKidSizes: () => set((s) => ({ kids: s.kids.map((k) => withCurrentSize(k)) })),
       wardrobeFor: (kidId) => {
         const w = get().wardrobes[kidId];
         if (w) return w;
@@ -313,6 +319,10 @@ export const useStore = create<State & Actions>()(
     },
   ),
 );
+
+// Sizes follow the children's age: refresh once saved passports are loaded (and right away if already loaded).
+useStore.persist.onFinishHydration(() => useStore.getState().refreshKidSizes());
+if (useStore.persist.hasHydrated()) useStore.getState().refreshKidSizes();
 
 // ─── Selectors / helpers ─────────────────────────────────────────────────────
 
