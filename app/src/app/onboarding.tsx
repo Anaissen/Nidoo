@@ -8,8 +8,9 @@ import { ParcelArt, PieceOrLotArt, SproutDot } from '../components/Illustrations
 import { KidList } from '../components/KidAvatar';
 import { FullLogo, Logo } from '../components/Logo';
 import { GIFT } from '../components/home/Home1c';
-import { H, LinkButton, OutlineButton, PrimaryButton, Txt } from '../components/ui';
-import { useStore } from '../store/useStore';
+import { Avatar, H, LinkButton, OutlineButton, PrimaryButton, Txt } from '../components/ui';
+import { fullName, initial } from '../lib/account';
+import { accountOf, useStore } from '../store/useStore';
 import { colors, shadows } from '../theme/tokens';
 
 const SLIDES: { title: string; text: string }[] = [
@@ -23,8 +24,9 @@ export default function Onboarding() {
   const [step, setStep] = useState(0);
   const set = useStore((s) => s.set);
   const signedIn = useStore((s) => s.signedIn);
-  // Already logged in (e.g. "Revoir l'onboarding"): skip the sign-up page.
-  const afterSlides = signedIn ? 4 : 3;
+  const account = useStore(accountOf);
+  const signOut = useStore((s) => s.signOut);
+  const afterSlides = 3;
   const insets = useSafeAreaInsets();
 
   const finish = () => {
@@ -73,7 +75,26 @@ export default function Onboarding() {
       ) : step === 3 ? (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 24, paddingBottom: 16 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            <AuthPanel onDone={() => setStep(4)} />
+            {signedIn ? (
+              // "Revoir l'onboarding" while logged in: keep the account, or start another one.
+              <View style={{ gap: 18 }}>
+                <View style={{ gap: 8 }}>
+                  <H size={34}>Ton compte</H>
+                  <Txt color={colors.neutral800}>Tu es déjà connecté·e. Continue avec ce compte, ou crée-en un nouveau.</Txt>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 28, backgroundColor: colors.neutral100 }}>
+                  <Avatar init={initial(account)} size={56} bg={colors.accent300} font={22} />
+                  <View style={{ flex: 1 }}>
+                    <H size={20} numberOfLines={1}>{fullName(account) || account.email}</H>
+                    <Txt size={14} color={colors.neutral700} numberOfLines={1}>{account.email}</Txt>
+                  </View>
+                </View>
+                <PrimaryButton label={`Continuer en tant que ${account.firstName || 'moi'}`} height={56} onPress={() => setStep(4)} />
+                <OutlineButton label="Créer un autre compte" height={50} size={15} onPress={signOut} />
+              </View>
+            ) : (
+              <AuthPanel onDone={() => setStep(4)} />
+            )}
           </ScrollView>
         </KeyboardAvoidingView>
       ) : (
