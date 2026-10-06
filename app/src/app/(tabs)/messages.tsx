@@ -17,8 +17,9 @@ export default function Messages() {
       <View style={{ gap: 8, paddingTop: 4 }}>
         <H size={28} style={{ marginBottom: 8 }}>Messages</H>
         {Object.entries(chats).map(([id, c]) => {
-          const seller = sellerById(c.sid)!;
-          const p = productById(mine, c.pid)!;
+          const seller = sellerById(c.sid);
+          const p = productById(mine, c.pid);
+          if (!seller || !p) return null;
           const last = c.msgs[c.msgs.length - 1];
           return (
             <Pressable

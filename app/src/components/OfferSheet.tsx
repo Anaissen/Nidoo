@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Product } from '../data/catalog';
 import { requireAccount } from '../lib/auth';
 import { fmt } from '../lib/format';
+import { isRemoteListing, sendOffer } from '../lib/messaging';
 import { useStore } from '../store/useStore';
 import { colors, fonts, GUTTER, ICON_STROKE, shadows } from '../theme/tokens';
 import { CircleButton, H, PrimaryButton, Txt } from './ui';
@@ -25,12 +26,20 @@ export function OfferSheet({ p, visible, onClose }: { p: Product; visible: boole
   const min = round(p.price * MIN_OFFER_RATIO);
   const quick = [0.95, 0.9, 0.85].map((r) => round(p.price * r));
 
-  const send = () => {
+  const [busy, setBusy] = useState(false);
+  const send = async () => {
+    if (busy) return;
     if (!requireAccount('faire une offre')) { onClose(); return; }
     if (amount <= 0) { showToast('Indique un montant'); return; }
     if (amount >= p.price) { showToast('Ton offre doit être sous le prix affiché'); return; }
     if (amount < min) { showToast(`Offre trop basse : minimum ${fmt(min)}`); return; }
-    const cid = makeOffer(p.id, amount);
+    let cid: string | null;
+    if (isRemoteListing(p)) {
+      setBusy(true);
+      cid = await sendOffer(p, amount);
+      setBusy(false);
+    } else cid = makeOffer(p.id, amount);
+    if (!cid) return;
     onClose();
     router.push(`/chat/${cid}`);
   };

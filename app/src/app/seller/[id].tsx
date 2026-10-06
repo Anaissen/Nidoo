@@ -7,6 +7,8 @@ import { ProductGrid, ProductTile } from '../../components/products';
 import { BackButton, Screen } from '../../components/Screen';
 import { Avatar, H, Segmented, Txt } from '../../components/ui';
 import { REVIEWS } from '../../data/catalog';
+import { requireAccount } from '../../lib/auth';
+import { chatFor, isRemoteListing } from '../../lib/messaging';
 import { allProducts, myListings, sellerView, useMarket, useStore } from '../../store/useStore';
 import { colors, GUTTER } from '../../theme/tokens';
 
@@ -66,7 +68,15 @@ export default function SellerScreen() {
             <Pressable onPress={() => toggleFollow(id)} style={{ flex: 1, height: 48, borderRadius: 999, backgroundColor: following ? colors.surface : colors.accent, alignItems: 'center', justifyContent: 'center' }}>
               <H size={16} color={following ? colors.text : colors.bg}>{following ? 'Abonné·e' : 'Suivre'}</H>
             </Pressable>
-            <Pressable onPress={() => router.push(`/chat/${openChatFor(id, null)}`)} style={{ flex: 1, height: 48, borderRadius: 999, borderWidth: 1, borderColor: colors.divider, alignItems: 'center', justifyContent: 'center' }}>
+            <Pressable onPress={async () => {
+              // A real parent: talk about their latest listing. Demo sellers keep their simulated chat.
+              const p = items[0];
+              if (p && isRemoteListing(p)) {
+                if (!requireAccount('écrire à ce parent')) return;
+                const cid = await chatFor(p);
+                if (cid) router.push(`/chat/${cid}`);
+              } else router.push(`/chat/${openChatFor(id, null)}`);
+            }} style={{ flex: 1, height: 48, borderRadius: 999, borderWidth: 1, borderColor: colors.divider, alignItems: 'center', justifyContent: 'center' }}>
               <H size={16}>Message</H>
             </Pressable>
           </View>

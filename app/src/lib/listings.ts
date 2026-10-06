@@ -11,14 +11,14 @@ const REMOTE_ID_OFFSET = 100000;
 export const MAX_PHOTOS = 6;
 const PHOTO_WIDTH = 1280;
 
-type ListingRow = {
+export type ListingRow = {
   id: number; seller_id: string; type: 'unique' | 'lot'; title: string; description: string; brand: string; age: string; gender: string; season: string;
   condition: string; price: number | string; color: string; count: number | null; contents: Product['contents'] | null;
   negotiable: boolean; washed: boolean; photos: string[]; created_at: string;
 };
-type SellerRow = { id: string; display_name: string; city: string; zip: string; verified: boolean; created_at: string };
+export type SellerRow = { id: string; display_name: string; city: string; zip: string; verified: boolean; created_at: string };
 
-const toProduct = (r: ListingRow, mine: boolean): Product => ({
+export const toProduct = (r: ListingRow, mine: boolean): Product => ({
   id: REMOTE_ID_OFFSET + r.id, remoteId: r.id, type: r.type, title: r.title, description: r.description, brand: r.brand || 'Sans marque', age: r.age, size: r.age,
   gender: r.gender, season: r.season, condition: r.condition, price: Number(r.price), color: r.color,
   // The person's own listings use the 'me' seller, like everywhere else in the app.
@@ -35,14 +35,19 @@ function guessKm(zip: string) {
   return 50;
 }
 
-const toSeller = (r: SellerRow): Seller => ({
+export const sellerFromRow = (r: SellerRow): Seller => ({
   id: r.id, name: r.display_name || 'Un parent', city: r.city, rating: '–', reviews: 0, sales: 0,
   init: (r.display_name || '?').slice(0, 1).toUpperCase(), since: r.created_at.slice(0, 4), ship: '48 h',
   verified: r.verified, distanceKm: guessKm(r.zip), washedConfirms: 0,
 });
 
+let loading: Promise<void> = Promise.resolve();
 /** Fetch the active listings and their sellers. Anyone can browse, logged in or not. */
-export async function loadMarket() {
+export const loadMarket = () => (loading = fetchMarket());
+/** Resolves once the latest load is done (conversations wait for it). */
+export const marketLoaded = () => loading;
+
+async function fetchMarket() {
   const { data, error } = await supabase.from('listings').select('*').eq('status', 'active').order('created_at', { ascending: false }).limit(200);
   if (error || !data) return;
   const me = currentUser()?.id;
@@ -52,7 +57,7 @@ export async function loadMarket() {
   const sellers: Record<string, Seller> = {};
   if (ids.length) {
     const res = await supabase.from('public_profiles').select('*').in('id', ids);
-    (res.data as SellerRow[] | null)?.forEach((r) => { sellers[r.id] = toSeller(r); });
+    (res.data as SellerRow[] | null)?.forEach((r) => { sellers[r.id] = sellerFromRow(r); });
   }
   useStore.setState((s) => ({
     market: others.filter((r) => sellers[r.seller_id]).map((r) => toProduct(r, false)),

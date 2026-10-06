@@ -10,7 +10,9 @@ import { BackButton, BottomBar, Screen } from '../../components/Screen';
 import { Avatar, ellipsis, H, OutlineButton, PrimaryButton, Tag, Txt } from '../../components/ui';
 import { HANDOVER_MAX_KM } from '../../data/catalog';
 import { fmt } from '../../lib/format';
+import { requireAccount } from '../../lib/auth';
 import { removeListing } from '../../lib/listings';
+import { chatFor } from '../../lib/messaging';
 import { allProducts, isNegotiable, productById, sellerView, useMarket, useStore } from '../../store/useStore';
 import { colors, GUTTER, ICON_STROKE } from '../../theme/tokens';
 
@@ -20,7 +22,6 @@ export default function ProductScreen() {
   const mine = useStore((s) => s.mine);
   const inCart = useStore((s) => s.cart.includes(Number(id)));
   const addToCart = useStore((s) => s.addToCart);
-  const openChatFor = useStore((s) => s.openChatFor);
   const showToast = useStore((s) => s.showToast);
   const offer = useStore((s) => s.offers[Number(id)]);
   const meVerified = useStore((s) => s.meVerified);
@@ -83,7 +84,7 @@ export default function ProductScreen() {
       ) : (
         <>
           <Pressable
-            onPress={() => router.push(`/chat/${openChatFor(p.sid, p.id)}`)}
+            onPress={async () => { if (!requireAccount('écrire au vendeur')) return; const cid = await chatFor(p); if (cid) router.push(`/chat/${cid}`); }}
             accessibilityLabel="Écrire au vendeur"
             style={{ width: 54, height: 54, borderRadius: 27, borderWidth: 1, borderColor: colors.divider, alignItems: 'center', justifyContent: 'center' }}
           >

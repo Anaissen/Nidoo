@@ -17,10 +17,19 @@ export type Wardrobe = { season: keyof typeof WARDROBE_TEMPLATES; lines: Wardrob
 export type Filters = Record<FilterKey, string[]>;
 
 /** A chat message; `offer` turns it into a price-offer card. */
-export type Msg = { me: boolean; t: string; offer?: { amount: number; kind: 'offer' | 'counter' | 'accept' } };
+export type OfferKind = 'offer' | 'counter' | 'accept' | 'decline';
+export type Msg = { me: boolean; t: string; offer?: { amount: number; kind: OfferKind }; id?: number; at?: string };
 /** Price negotiation on one article (one at a time per article). */
 export type Offer = { amount: number; status: 'pending' | 'countered' | 'accepted'; counter?: number; cid: string };
-export type Chat = { sid: string; pid: number; when: string; unread: boolean; msgs: Msg[] };
+/** `remote`: a real conversation on the server (src/lib/messaging.ts); otherwise a demo chat with simulated replies. */
+export type Chat = { sid: string; pid: number; when: string; unread: boolean; msgs: Msg[]; remote?: { convId: string; role: 'buyer' | 'seller' } };
+
+/** Server actions for real conversations, plugged in by src/lib/messaging.ts (which imports this store). */
+export const remoteChat: {
+  send?: (cid: string, text: string) => void;
+  acceptCounter?: (cid: string) => void;
+  markRead?: (cid: string) => void;
+} = {};
 // status: 0 payée · 1 expédiée · 2 en relais / rdv fixé · 3 reçue
 export type Order = { id: string; pid: number; status: number; del: string; rating?: number; buyer?: string; price?: number; washedOk?: boolean };
 
@@ -65,8 +74,12 @@ type State = {
   mine: Product[];
   /** Other parents' listings from the server (src/lib/listings.ts loads them). */
   market: Product[];
-  /** Their sellers' public cards, by id. */
+  /** Their sellers' (and buyers') public cards, by id. */
   marketSellers: Record<string, Seller>;
+  /** Listings no longer in the feed (sold, removed) that a conversation still points to. */
+  archived: Product[];
+  /** Conversation on screen right now: new messages there don't need a notice. */
+  viewingCid: string | null;
   lastMineId: number | null;
   del: DeliveryId;
   pay: 'card' | 'apple';
@@ -145,6 +158,8 @@ export const useStore = create<State & Actions>()(
       mine: [],
       market: [],
       marketSellers: {},
+      archived: [],
+      viewingCid: null,
       lastMineId: null,
       del: 'relais',
       pay: 'card',
@@ -240,6 +255,7 @@ export const useStore = create<State & Actions>()(
       acceptCounter: (pid) => {
         const o = get().offers[pid];
         if (!o?.counter) return;
+        if (get().chats[o.cid]?.remote) { remoteChat.acceptCounter?.(o.cid); return; }
         set((s) => ({
           offers: { ...s.offers, [pid]: { ...o, amount: o.counter!, status: 'accepted' } },
           chats: { ...s.chats, [o.cid]: { ...s.chats[o.cid], msgs: [...s.chats[o.cid].msgs, { me: true, t: `Parfait, j'accepte ${fmt(o.counter!)} !`, offer: { amount: o.counter!, kind: 'accept' } }] } },
@@ -282,10 +298,14 @@ export const useStore = create<State & Actions>()(
         set({ chats: { ...s.chats, [id]: { sid, pid: fallbackPid, when: 'Maintenant', unread: false, msgs: [] } } });
         return id;
       },
-      markRead: (cid) => set((s) => ({ chats: { ...s.chats, [cid]: { ...s.chats[cid], unread: false } } })),
+      markRead: (cid) => {
+        if (get().chats[cid]?.remote) remoteChat.markRead?.(cid);
+        set((s) => ({ chats: { ...s.chats, [cid]: { ...s.chats[cid], unread: false } } }));
+      },
       send: (cid, text) => {
         const t = text.trim();
         if (!t) return;
+        if (get().chats[cid]?.remote) { remoteChat.send?.(cid, t); return; }
         set((s) => ({ typingCid: cid, chats: { ...s.chats, [cid]: { ...s.chats[cid], when: 'Maintenant', msgs: [...s.chats[cid].msgs, { me: true, t }] } } }));
         // Demo: the seller answers after a short pause.
         clearTimeout(replyTimer);
@@ -342,6 +362,7 @@ if (useStore.persist.hasHydrated()) useStore.getState().refreshKidSizes();
 // Explicit return types: these read the store they're used in, which TypeScript can't infer through.
 function market(): Product[] { return useStore.getState().market; }
 function marketSellers(): Record<string, Seller> { return useStore.getState().marketSellers; }
+function archived(): Product[] { return useStore.getState().archived; }
 
 /** Public feed: the user's new listings first, then other parents' real listings, then the demo catalogue. */
 export const allProducts = (mine: Product[]) => [...mine, ...market(), ...PRODUCTS];
@@ -353,7 +374,7 @@ export const useMarket = () => useStore((s) => s.market);
 export const myListings = (mine: Product[]) => [...MY_PAST_LISTINGS, ...mine];
 
 export const productById = (mine: Product[], id: number | null | undefined) =>
-  id == null ? undefined : [...PRODUCTS, ...MY_PAST_LISTINGS, ...mine, ...market()].find((p) => p.id === id);
+  id == null ? undefined : [...PRODUCTS, ...MY_PAST_LISTINGS, ...mine, ...market(), ...archived()].find((p) => p.id === id);
 
 export const sellerById = (id: string | undefined) => (id ? SELLERS[id] ?? marketSellers()[id] : undefined);
 

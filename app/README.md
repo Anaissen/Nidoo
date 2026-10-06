@@ -49,6 +49,6 @@ src/theme/        tokens Organic (couleurs, polices, ombres)
 ## À brancher ensuite
 
 - **Photos** : les annonces publiées ont de vraies photos (galerie ou appareil photo, redimensionnées puis envoyées dans le stockage Supabase). Le catalogue de démo garde ses rayures.
-- **Back-end** : comptes, profils et passeports sont sur Supabase (`src/lib/backend.ts`). Les annonces publiées et les fiches vendeurs aussi (`src/lib/listings.ts`, `supabase/schema-2-annonces.sql`). Messagerie, offres, paiement et suivi restent des données de démo sur l'appareil.
-- **Feuille de route** : 1. messagerie et offres entre vrais parents · 2. paiement réel (Stripe Connect) · 3. **vrais bordereaux d'envoi** (API transporteur ou agrégateur type Boxtal / Sendcloud : étiquette PDF, n° de suivi réel, point relais) · 4. publication App Store / Google Play.
+- **Back-end** : comptes, profils et passeports sont sur Supabase (`src/lib/backend.ts`). Les annonces publiées et les fiches vendeurs aussi (`src/lib/listings.ts`, `supabase/schema-2-annonces.sql`). La messagerie et les offres entre vrais parents aussi, en direct (`src/lib/messaging.ts`, `supabase/schema-3-messages.sql`). Paiement et suivi restent des démos ; les vendeurs de démo gardent leurs réponses simulées.
+- **Feuille de route** : 1. ~~messagerie et offres~~ ✓ · 2. paiement réel (Stripe Connect) · 3. **vrais bordereaux d'envoi** (API transporteur ou agrégateur type Boxtal / Sendcloud : étiquette PDF, n° de suivi réel, point relais) · 4. publication App Store / Google Play.
 - **E-mails** : brancher un SMTP (ex. Resend) dans Supabase avant l'ouverture au public ; l'envoi intégré ne sert qu'aux membres du projet.

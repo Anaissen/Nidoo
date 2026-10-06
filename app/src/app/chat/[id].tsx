@@ -3,11 +3,13 @@ import { Send } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
+
 import { openProduct, Thumb } from '../../components/products';
 import { BackButton, BottomBar, Screen } from '../../components/Screen';
-import { Avatar, ellipsis, H, PrimaryButton, Txt } from '../../components/ui';
+import { Avatar, ellipsis, H, OutlineButton, PrimaryButton, Txt } from '../../components/ui';
 import { fmt } from '../../lib/format';
-import { productById, sellerById, useStore } from '../../store/useStore';
+import { negotiation, respond, sendCounter } from '../../lib/messaging';
+import { OfferKind, productById, sellerById, useStore } from '../../store/useStore';
 import { colors, fonts, ICON_STROKE } from '../../theme/tokens';
 
 const QUICK = ['Est-ce toujours disponible ?', 'Remise en main propre possible ?', "Tu as d'autres pièces dans cette taille ?"];
@@ -21,17 +23,41 @@ export default function ChatScreen() {
   const addToCart = useStore((s) => s.addToCart);
   const offer = useStore((s) => (chat ? s.offers[chat.pid] : undefined));
   const acceptCounter = useStore((s) => s.acceptCounter);
+  const markRead = useStore((s) => s.markRead);
+  const showToast = useStore((s) => s.showToast);
   const [draft, setDraft] = useState('');
+  const [counter, setCounter] = useState<string | null>(null);
   const scroll = useRef<ScrollView>(null);
 
   const count = chat?.msgs.length ?? 0;
   useEffect(() => { scroll.current?.scrollToEnd({ animated: true }); }, [count, typing]);
+  // While this conversation is on screen, incoming messages are read straight away.
+  useEffect(() => {
+    useStore.setState({ viewingCid: id });
+    return () => { if (useStore.getState().viewingCid === id) useStore.setState({ viewingCid: null }); };
+  }, [id]);
+  const unread = !!chat?.unread;
+  useEffect(() => { if (count) markRead(id); }, [count, unread, id, markRead]);
 
-  if (!chat) return <Screen><Txt style={{ padding: 20 }}>Conversation introuvable.</Txt></Screen>;
-  const seller = sellerById(chat.sid)!;
-  const p = productById(mine, chat.pid)!;
+  const person = chat ? sellerById(chat.sid) : undefined;
+  const p = chat ? productById(mine, chat.pid) : undefined;
+  if (!chat || !person || !p) return <Screen><Txt style={{ padding: 20 }}>Conversation introuvable.</Txt></Screen>;
+
+  const remote = chat.remote;
+  const iSell = remote?.role === 'seller' || p.sid === 'me';
+  // Real conversations: the other person's last proposal, still waiting for my answer.
+  const n = remote ? negotiation(chat.msgs) : null;
+  const toAnswer = n && !n.mine && (n.kind === 'offer' || n.kind === 'counter') ? n : null;
 
   const submit = (t: string) => { send(id, t); setDraft(''); };
+  const answer = async (kind: 'accept' | 'decline') => { const err = await respond(id, kind); if (!err && kind === 'accept') showToast('Offre acceptée ✓'); };
+  const submitCounter = async () => {
+    const amount = parseFloat((counter ?? '').replace(',', '.'));
+    if (!toAnswer) return;
+    if (!(amount > toAnswer.amount) || amount >= p.price) { showToast(`Propose un prix entre ${fmt(toAnswer.amount)} et ${fmt(p.price)}`); return; }
+    const err = await sendCounter(id, amount);
+    if (!err) setCounter(null);
+  };
 
   const bottom = (
     <BottomBar style={{ flexDirection: 'column', gap: 8, paddingTop: 10, paddingHorizontal: 16 }}>
@@ -64,10 +90,10 @@ export default function ChatScreen() {
       <View style={{ gap: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 4, paddingBottom: 8 }}>
           <BackButton />
-          <Avatar init={seller.init} size={40} font={16} />
+          <Avatar init={person.init} size={40} font={16} />
           <View style={{ flex: 1 }}>
-            <Txt weight="bold">{seller.name}</Txt>
-            <Txt size={12} color={colors.accent2_700}>Répond en général en 1 h</Txt>
+            <Txt weight="bold">{person.name}</Txt>
+            <Txt size={12} color={colors.accent2_700}>{remote ? (iSell ? 'Intéressé·e par ton annonce' : person.city) : 'Répond en général en 1 h'}</Txt>
           </View>
         </View>
 
@@ -79,7 +105,7 @@ export default function ChatScreen() {
               {offer?.status === 'accepted' ? `${fmt(offer.amount)} · offre acceptée` : fmt(p.price)}
             </Txt>
           </View>
-          {p.sid !== 'me' && (
+          {!iSell && p.price > 0 && (
             <Pressable onPress={() => { addToCart(p.id); router.push('/cart'); }} style={{ height: 38, paddingHorizontal: 16, borderRadius: 999, backgroundColor: colors.accent, justifyContent: 'center' }}>
               <H size={14} color={colors.bg}>Acheter</H>
             </Pressable>
@@ -89,8 +115,8 @@ export default function ChatScreen() {
         <Txt size={12} color={colors.neutral600} style={{ textAlign: 'center', paddingVertical: 4 }}>Aujourd'hui</Txt>
 
         {chat.msgs.map((m, i) => m.offer ? (
-          <OfferBubble key={i} me={m.me} kind={m.offer.kind} amount={m.offer.amount} listPrice={p.price} text={m.t}
-            canAccept={m.offer.kind === 'counter' && offer?.status === 'countered' && offer.counter === m.offer.amount}
+          <OfferBubble key={m.id ?? i} me={m.me} kind={m.offer.kind} amount={m.offer.amount} listPrice={p.price} text={m.t}
+            canAccept={!remote && m.offer.kind === 'counter' && offer?.status === 'countered' && offer.counter === m.offer.amount}
             onAccept={() => acceptCounter(p.id)} />
         ) : (
           <View
@@ -106,7 +132,32 @@ export default function ChatScreen() {
         ))}
         {typing && (
           <View style={{ alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 22, backgroundColor: colors.surface }}>
-            <Txt size={13} color={colors.neutral700}>{seller.name} écrit…</Txt>
+            <Txt size={13} color={colors.neutral700}>{person.name} écrit…</Txt>
+          </View>
+        )}
+
+        {toAnswer && (
+          <View style={{ padding: 14, gap: 10, borderRadius: 22, backgroundColor: colors.accent100 }}>
+            <Txt size={14} weight="semi">
+              {toAnswer.kind === 'offer' ? `${person.name} te propose ${fmt(toAnswer.amount)} au lieu de ${fmt(p.price)}.` : `${person.name} te propose ${fmt(toAnswer.amount)}.`}
+            </Txt>
+            {counter == null ? (
+              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                <PrimaryButton label={`Accepter ${fmt(toAnswer.amount)}`} height={42} size={15} onPress={() => answer('accept')} style={{ flexGrow: 1 }} />
+                <OutlineButton label="Refuser" height={42} size={15} onPress={() => answer('decline')} style={{ paddingHorizontal: 18 }} />
+                {toAnswer.kind === 'offer' && <OutlineButton label="Contre-offre" height={42} size={15} onPress={() => setCounter('')} style={{ paddingHorizontal: 18 }} />}
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <TextInput
+                  value={counter} onChangeText={(t) => setCounter(t.replace(/[^0-9,.]/g, ''))} autoFocus keyboardType="decimal-pad" placeholder="Ton prix (€)"
+                  placeholderTextColor={colors.neutral600} accessibilityLabel="Ton prix"
+                  style={{ flex: 1, minWidth: 0, height: 44, borderRadius: 999, borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.neutral100, paddingHorizontal: 16, fontFamily: fonts.body, fontSize: 15, color: colors.text, outlineWidth: 0 }}
+                />
+                <PrimaryButton label="Envoyer" height={44} size={15} onPress={submitCounter} style={{ paddingHorizontal: 18 }} />
+                <Pressable onPress={() => setCounter(null)} hitSlop={8}><Txt size={14} color={colors.neutral700}>Annuler</Txt></Pressable>
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -114,16 +165,17 @@ export default function ChatScreen() {
   );
 }
 
-const KIND_LABEL = { offer: 'Offre', counter: 'Contre-offre', accept: 'Accord' } as const;
+const KIND_LABEL: Record<OfferKind, string> = { offer: 'Offre', counter: 'Contre-offre', accept: 'Accord', decline: 'Refusée' };
 
 /** Price-offer card inside the conversation. */
 function OfferBubble({ me, kind, amount, listPrice, text, canAccept, onAccept }: {
-  me: boolean; kind: 'offer' | 'counter' | 'accept'; amount: number; listPrice: number; text: string; canAccept: boolean; onAccept: () => void;
+  me: boolean; kind: OfferKind; amount: number; listPrice: number; text: string; canAccept: boolean; onAccept: () => void;
 }) {
   const done = kind === 'accept';
+  const no = kind === 'decline';
   return (
-    <View style={{ alignSelf: me ? 'flex-end' : 'flex-start', width: '72%', padding: 14, gap: 4, borderRadius: 22, borderWidth: 2, borderColor: done ? colors.accent2_500 : colors.accent, backgroundColor: done ? colors.accent2_100 : colors.neutral100 }}>
-      <Txt size={11} weight="bold" color={done ? colors.accent2_800 : colors.accent700} style={{ letterSpacing: 0.9, textTransform: 'uppercase' }}>
+    <View style={{ alignSelf: me ? 'flex-end' : 'flex-start', width: '72%', padding: 14, gap: 4, borderRadius: 22, borderWidth: 2, borderColor: done ? colors.accent2_500 : no ? colors.neutral400 : colors.accent, backgroundColor: done ? colors.accent2_100 : colors.neutral100, opacity: no ? 0.85 : 1 }}>
+      <Txt size={11} weight="bold" color={done ? colors.accent2_800 : no ? colors.neutral700 : colors.accent700} style={{ letterSpacing: 0.9, textTransform: 'uppercase' }}>
         {KIND_LABEL[kind]}{done ? ' ✓' : ''}
       </Txt>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
