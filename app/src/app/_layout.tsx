@@ -47,7 +47,9 @@ export default function RootLayout() {
 
   // Back from the "mot de passe oublié" e-mail: ask for the new password.
   useEffect(() => {
-    if (pendingRecovery && loaded) router.push('/new-password');
+    // (On first load the entry screen redirects there itself.)
+    if (pendingRecovery && loaded && pathname !== '/' && pathname !== '/new-password') router.push('/new-password');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingRecovery, loaded]);
 
   if (!loaded) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;

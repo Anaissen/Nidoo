@@ -9,6 +9,7 @@ import { colors } from '../theme/tokens';
 export default function Index() {
   const [hydrated, setHydrated] = useState(useStore.persist.hasHydrated());
   const onboarded = useStore((s) => s.onboarded);
+  const pendingRecovery = useStore((s) => s.pendingRecovery);
 
   useEffect(() => {
     if (hydrated) return;
@@ -16,5 +17,7 @@ export default function Index() {
   }, [hydrated]);
 
   if (!hydrated) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
+  // Arriving from the "mot de passe oublié" e-mail: straight to the new password.
+  if (pendingRecovery) return <Redirect href="/new-password" />;
   return <Redirect href={onboarded ? '/home' : '/onboarding'} />;
 }

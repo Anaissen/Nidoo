@@ -13,7 +13,7 @@
           <p style="margin:0;">Pas de souci, ça arrive à tout le monde ! Clique sur le bouton pour choisir un nouveau mot de passe pour ton compte Pimou.</p>
         </td></tr>
         <tr><td align="center" style="padding:20px 0 24px;">
-          <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#b2622d;color:#f9f4ed;text-decoration:none;font-weight:bold;font-size:17px;padding:16px 30px;border-radius:999px;">Nouveau mot de passe</a>
+          <a href="{{ .SiteURL }}?token_hash={{ .TokenHash }}&amp;type=recovery" style="display:inline-block;background:#b2622d;color:#f9f4ed;text-decoration:none;font-weight:bold;font-size:17px;padding:16px 30px;border-radius:999px;">Nouveau mot de passe</a>
         </td></tr>
         <tr><td style="font-size:13px;line-height:1.5;color:#645c50;">
           <p style="margin:0;">Ce lien est valable 1 heure. Tu n'as rien demandé ? Ignore cet e-mail : ton mot de passe actuel ne change pas.</p>
