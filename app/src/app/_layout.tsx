@@ -11,12 +11,14 @@ import { Toast } from '../components/Toast';
 import { startBackend } from '../lib/backend';
 import { startMarket } from '../lib/listings';
 import { startMessaging } from '../lib/messaging';
+import { startPayments } from '../lib/payments';
 import { useStore } from '../store/useStore';
 import { applyTheme, colors, shadows } from '../theme/tokens';
 
 startBackend();
 startMarket();
 startMessaging();
+startPayments();
 
 export default function RootLayout() {
   const [loaded] = useFonts({ Caprasimo_400Regular, Figtree_400Regular, Figtree_600SemiBold, Figtree_700Bold });

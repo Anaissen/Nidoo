@@ -21,6 +21,13 @@ export type OfferKind = 'offer' | 'counter' | 'accept' | 'decline';
 export type Msg = { me: boolean; t: string; offer?: { amount: number; kind: OfferKind }; id?: number; at?: string };
 /** Price negotiation on one article (one at a time per article). */
 export type Offer = { amount: number; status: 'pending' | 'countered' | 'accepted'; counter?: number; cid: string };
+/** A real order, paid through Stripe (src/lib/payments.ts). One per article. */
+export type RealOrder = {
+  id: string; groupId: string; listingId: number | null; buyerId: string; sellerId: string; title: string; photo: string | null;
+  price: number; shipping: number; commission: number; delivery: DeliveryId; address: string;
+  status: 'pending' | 'paid' | 'shipped' | 'received' | 'cancelled'; refunded: boolean; createdAt: string;
+};
+
 /** `remote`: a real conversation on the server (src/lib/messaging.ts); otherwise a demo chat with simulated replies. */
 export type Chat = { sid: string; pid: number; when: string; unread: boolean; msgs: Msg[]; remote?: { convId: string; role: 'buyer' | 'seller' } };
 
@@ -80,6 +87,10 @@ type State = {
   archived: Product[];
   /** Conversation on screen right now: new messages there don't need a notice. */
   viewingCid: string | null;
+  /** Real orders, as buyer or seller. */
+  realOrders: RealOrder[];
+  /** Can the parent receive payments for what they sell (Stripe account checked)? null: not asked yet. */
+  payout: { ready: boolean; submitted: boolean } | null;
   lastMineId: number | null;
   del: DeliveryId;
   pay: 'card' | 'apple';
@@ -160,6 +171,8 @@ export const useStore = create<State & Actions>()(
       marketSellers: {},
       archived: [],
       viewingCid: null,
+      realOrders: [],
+      payout: null,
       lastMineId: null,
       del: 'relais',
       pay: 'card',
@@ -348,6 +361,8 @@ export const useStore = create<State & Actions>()(
         onboarded: s.onboarded, commission: s.commission, kids: s.kids, activeKidId: s.activeKidId,
         theme: s.theme, textScale: s.textScale, meVerified: s.meVerified, wardrobes: s.wardrobes, account: s.account,
         signedIn: s.signedIn,
+        // Kept so the basket is still there when coming back from the payment page.
+        cart: s.cart, del: s.del,
       }),
     },
   ),

@@ -1,5 +1,6 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { BadgeCheck, ShoppingBag, X } from 'lucide-react-native';
+import { useEffect } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { openProduct, Thumb, typeLabel } from '../components/products';
@@ -14,6 +15,8 @@ import { colors, ICON_STROKE } from '../theme/tokens';
 export default function Cart() {
   const { items, groups, subtotal } = useCartGroups();
   const remove = useStore((s) => s.removeFromCart);
+  const { cancelled } = useLocalSearchParams<{ cancelled?: string }>();
+  useEffect(() => { if (cancelled) useStore.getState().showToast("Paiement annulé : aucun montant n'a été prélevé"); }, [cancelled]);
 
   const bottom = items.length > 0 ? (
     <BottomBar><PrimaryButton label={`Commander · ${fmt(subtotal)}`} onPress={() => requireAccount('commander') && router.push('/checkout')} style={{ flex: 1 }} /></BottomBar>

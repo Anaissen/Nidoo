@@ -7,6 +7,7 @@ import { ImpactTree } from '../../components/ImpactTree';
 import { Screen } from '../../components/Screen';
 import { Avatar, H, PrimaryButton, Txt } from '../../components/ui';
 import { cityLabel, fullName, initial } from '../../lib/account';
+import { currentUser } from '../../lib/backend';
 import { fmt, fmtInt } from '../../lib/format';
 import { TREE_STAGES, treeStage } from '../../lib/impact';
 import { accountOf, impactStats, myListings, useStore } from '../../store/useStore';
@@ -16,11 +17,13 @@ export default function Profile() {
   const s = useStore();
   const impact = impactStats(s);
   const a = accountOf(s);
+  const me = currentUser()?.id;
 
   const rows: { label: string; meta: string; href: Href }[] = [
     { label: 'Mes informations', meta: a.email, href: '/account' },
-    { label: 'Mes achats', meta: String(s.purchases.length), href: '/orders?tab=achats' },
-    { label: 'Mes ventes', meta: String(s.sales.length), href: '/orders?tab=ventes' },
+    { label: 'Mes achats', meta: String(s.purchases.length + s.realOrders.filter((o) => o.buyerId !== me).length), href: '/orders?tab=achats' },
+    { label: 'Mes ventes', meta: String(s.sales.length + s.realOrders.filter((o) => o.sellerId === me).length), href: '/orders?tab=ventes' },
+    { label: 'Mes versements', meta: s.payout?.ready ? 'Activés' : 'À activer', href: '/payouts' },
     { label: 'Favoris', meta: String(s.favs.length), href: '/favorites' },
     { label: 'Passeports de mes enfants', meta: s.kids.map((k) => k.name).join(', ') || '—', href: '/kids' },
     { label: 'Notifications', meta: '2 nouvelles', href: '/notifications' },
@@ -74,14 +77,14 @@ export default function Profile() {
         </View>
 
         <View style={{ borderRadius: 30, backgroundColor: colors.neutral100, overflow: 'hidden' }}>
-          {rows.filter((r) => s.signedIn || r.href !== '/account').map((r, i) => (
+          {rows.filter((r) => s.signedIn || (r.href !== '/account' && r.href !== '/payouts')).map((r, i) => (
             <Pressable
               key={r.label}
               onPress={() => router.push(r.href)}
               style={({ pressed }) => ({
                 flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, paddingHorizontal: 18,
                 backgroundColor: pressed ? colors.neutral200 : 'transparent',
-                borderBottomWidth: i < rows.length - (s.signedIn ? 1 : 2) ? 1 : 0, borderBottomColor: colors.divider,
+                borderBottomWidth: i < rows.length - (s.signedIn ? 1 : 3) ? 1 : 0, borderBottomColor: colors.divider,
               })}
             >
               <Txt weight="semi" style={{ flex: 1 }}>{r.label}</Txt>

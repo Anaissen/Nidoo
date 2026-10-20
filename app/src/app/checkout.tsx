@@ -11,6 +11,8 @@ import { DELIVERY, DELIVERY_DETAIL, HANDOVER_MAX_KM, SAFE_SPOTS } from '../data/
 import { useCartGroups } from '../lib/cart';
 import { fmt } from '../lib/format';
 import { addressLine, fullName, hasAddress } from '../lib/account';
+import { isRemoteListing } from '../lib/messaging';
+import { payCart } from '../lib/payments';
 import { accountOf, useStore } from '../store/useStore';
 import { colors, fonts, ICON_STROKE } from '../theme/tokens';
 
@@ -39,8 +41,22 @@ export default function Checkout() {
   const ship = DELIVERY.find((d) => d.id === del)!.price * groups.length;
   const total = subtotal + ship;
 
-  const onPay = () => {
+  // Real listings are paid for real (Stripe); the demo catalogue keeps its simulated payment.
+  const real = items.filter(isRemoteListing);
+  const mixed = real.length > 0 && real.length < items.length;
+  const [busy, setBusy] = useState(false);
+
+  const onPay = async () => {
     if (addressMissing) { showToast('Complète ton adresse de livraison'); return; }
+    if (mixed) { showToast("Retire d'abord les articles de démonstration du panier"); return; }
+    if (real.length) {
+      const address = del !== 'domicile' ? '' : addrMode === 'saved' ? addressLine(account) : `${addr.name.trim()}, ${addr.street.trim()}, ${addr.zip.trim()} ${addr.city.trim()}`;
+      setBusy(true);
+      const err = await payCart(real.map((p) => p.remoteId!), del, address);
+      setBusy(false);
+      if (err) showToast(err);
+      return;
+    }
     const { oid, ticked } = placeOrder();
     const kid = useStore.getState().kids.find((k) => k.id === useStore.getState().activeKidId);
     if (ticked && kid) showToast(`✓ Coché dans la garde-robe de ${kid.name}`);
@@ -50,7 +66,7 @@ export default function Checkout() {
 
   return (
     <Screen
-      bottom={<BottomBar><PrimaryButton label={`Payer ${fmt(total)}`} onPress={onPay} disabledLook={!items.length || addressMissing} disabled={!items.length} style={{ flex: 1 }} /></BottomBar>}
+      bottom={<BottomBar><PrimaryButton label={busy ? 'Ouverture du paiement…' : `Payer ${fmt(total)}`} onPress={onPay} disabledLook={!items.length || addressMissing || mixed || busy} disabled={!items.length} style={{ flex: 1 }} /></BottomBar>}
       contentStyle={{ paddingHorizontal: 20 }}
     >
       <View style={{ gap: 18, paddingTop: 4 }}>
@@ -108,10 +124,25 @@ export default function Checkout() {
           )}
         </View>
 
+        {mixed && (
+          <View style={{ padding: 14, borderRadius: 24, backgroundColor: colors.accent100 }}>
+            <Txt size={14} color={colors.accent800}>Ton panier mélange de vraies annonces et des articles de démonstration. Retire les articles de démonstration pour payer les vrais.</Txt>
+          </View>
+        )}
         <View style={{ gap: 8 }}>
           <H size={18}>Moyen de paiement</H>
-          <OptionCard control="radio-inline" on={pay === 'card'} title="Carte bancaire" sub="•••• 4242" onPress={() => set({ pay: 'card' })} />
-          <OptionCard control="radio-inline" on={pay === 'apple'} title="Apple Pay" onPress={() => set({ pay: 'apple' })} />
+          {real.length ? (
+            <View style={{ padding: 16, borderRadius: 24, backgroundColor: colors.neutral100, gap: 6 }}>
+              <Txt weight="semi">Carte bancaire, Apple Pay ou Google Pay</Txt>
+              <Txt size={13} color={colors.neutral700}>Tu choisiras sur la page de paiement sécurisée de Stripe. Ton argent reste protégé par Pimou jusqu'à ce que tu confirmes la réception.</Txt>
+              <Txt size={12} color={colors.accent700}>🧪 Mode test : utilise la carte 4242 4242 4242 4242, une date future et n'importe quel code. Aucun vrai argent n'est prélevé.</Txt>
+            </View>
+          ) : (
+            <>
+              <OptionCard control="radio-inline" on={pay === 'card'} title="Carte bancaire" sub="•••• 4242" onPress={() => set({ pay: 'card' })} />
+              <OptionCard control="radio-inline" on={pay === 'apple'} title="Apple Pay" onPress={() => set({ pay: 'apple' })} />
+            </>
+          )}
         </View>
 
         <View style={{ gap: 8, paddingVertical: 16, paddingHorizontal: 20, borderRadius: 28, backgroundColor: colors.surface }}>

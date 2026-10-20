@@ -65,7 +65,10 @@ export function BottomBar({ children, style }: { children: ReactNode; style?: St
   );
 }
 
-export const BackButton = ({ onPress = () => router.back(), bg = colors.surface }: { onPress?: () => void; bg?: string }) => (
+// Opened straight from a link (e-mail, payment page), there may be nothing to go back to.
+const goBack = () => (router.canGoBack() ? router.back() : router.replace('/home'));
+
+export const BackButton = ({ onPress = goBack, bg = colors.surface }: { onPress?: () => void; bg?: string }) => (
   <CircleButton bg={bg} onPress={onPress} accessibilityLabel="Retour">
     <ChevronLeft size={20} strokeWidth={ICON_STROKE} color={colors.text} />
   </CircleButton>
