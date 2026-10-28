@@ -1,0 +1,19 @@
+# Free Supabase projects go to sleep after a week without use. Once a day, ask the database
+# one tiny question so Pimou's project stays awake. Remove this once the project is on a paid plan.
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: '17 6 * * *'   # every day at 06:17 UTC
+  workflow_dispatch:        # "Run workflow" button, to try it by hand
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read one listing
+        run: |
+          # The publishable key is the one shipped in the app: public by design.
+          curl -fsS -o /dev/null -w "Supabase answered: HTTP %{http_code}\n" \
+            "https://xlnsfinfwmdfuasrtqkd.supabase.co/rest/v1/listings?select=id&limit=1" \
+            -H "apikey: sb_publishable_9aa5g65PnfOJ7MnUd3fuxA_lnuK7r4S"
