@@ -35,6 +35,7 @@ npm run typecheck
 - Panier groupé par vendeur, paiement Stripe (point relais / domicile / main propre)
 - Messagerie avec réponses rapides, favoris, mes achats / ventes, suivi de commande + avis, notifications
 - **Informations légales** (`src/app/legal`, textes dans `src/data/legal.ts`) : CGU, politique de confidentialité, mentions légales, acceptation à l'inscription, « Signaler cette annonce », rappel impôts / URSSAF au vendeur dès 30 ventes ou 2 000 € dans l'année. Les champs de `LEGAL` (éditeur, SIREN, médiateur, région des serveurs) sont à remplir une fois la structure créée ; vides, ils s'affichent « [à compléter] ».
+- **Trace des acceptations** (`supabase/schema-8-cgu.sql`, `src/lib/terms.ts`) : chaque acceptation des CGU et de la confidentialité est enregistrée (version, date et heure du serveur, e-mail, appareil), à l'inscription par la base elle-même, puis dans l'appli pour les comptes plus anciens. Les lignes ne peuvent être ni modifiées ni supprimées depuis l'appli et restent après la fermeture du compte. Changer `TERMS_VERSION` (avec `LEGAL.updated`) redemande l'acceptation à tout le monde.
 
 ## Structure
 

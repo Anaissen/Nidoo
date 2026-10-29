@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthError, createClient, Session } from '@supabase/supabase-js';
 import { AppState, Platform } from 'react-native';
 
+import { TERMS_VERSION } from '../data/legal';
 import { useStore } from '../store/useStore';
 import { Account, EMPTY_ACCOUNT } from './account';
 import { DEMO_KID_IDS, GIFT, Kid, withCurrentSize } from './kids';
@@ -146,6 +147,10 @@ let currentUserId: string | null = null;
 /** The logged-in parent (null when logged out). */
 export const currentUser = () => (currentUserId ? { id: currentUserId } : null);
 
+/** The device, as written in the CGU acceptance record: the browser, or the phone's system. */
+export const deviceLabel = () =>
+  (Platform.OS === 'web' && typeof navigator !== 'undefined' ? navigator.userAgent : `Pimou ${Platform.OS} ${Platform.Version}`).slice(0, 400);
+
 async function applySession(session: Session | null) {
   const user = session?.user;
   currentUserId = user?.id ?? null;
@@ -182,7 +187,8 @@ export async function signUp(a: Account, password: string): Promise<SignUpResult
   const { data, error } = await supabase.auth.signUp({
     email: a.email,
     password,
-    options: { data: toRow(a), emailRedirectTo: WEB_APP_URL },
+    // The ticked box goes with the account: the database records the acceptance (supabase/schema-8-cgu.sql).
+    options: { data: { ...toRow(a), terms_version: TERMS_VERSION, terms_ua: deviceLabel() }, emailRedirectTo: WEB_APP_URL },
   });
   if (error) return { error: frenchError(error), needsConfirmation: false };
   // Supabase answers without error for an e-mail already in use (no identities): say so.

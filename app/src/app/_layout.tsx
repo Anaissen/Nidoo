@@ -7,11 +7,13 @@ import { useEffect } from 'react';
 import { Platform, useColorScheme, useWindowDimensions, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { TermsGate } from '../components/TermsGate';
 import { Toast } from '../components/Toast';
 import { startBackend } from '../lib/backend';
 import { startMarket } from '../lib/listings';
 import { startMessaging } from '../lib/messaging';
 import { startPayments } from '../lib/payments';
+import { startTerms } from '../lib/terms';
 import { useStore } from '../store/useStore';
 import { applyTheme, colors, shadows } from '../theme/tokens';
 
@@ -19,6 +21,7 @@ startBackend();
 startMarket();
 startMessaging();
 startPayments();
+startTerms();
 
 export default function RootLayout() {
   const [loaded] = useFonts({ Caprasimo_400Regular, Figtree_400Regular, Figtree_600SemiBold, Figtree_700Bold });
@@ -68,6 +71,7 @@ export default function RootLayout() {
           <Stack.Screen name="sell-done" options={{ gestureEnabled: false }} />
           <Stack.Screen name="guide" options={{ gestureEnabled: false }} />
         </Stack>
+        <TermsGate />
         <Toast />
       </View>
     </SafeAreaProvider>

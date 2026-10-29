@@ -62,6 +62,8 @@ type State = {
   signedIn: boolean;
   /** Came back from a "mot de passe oublié" e-mail: ask for the new password. */
   pendingRecovery: boolean;
+  /** Logged in, but hasn't accepted the current CGU yet (src/lib/terms.ts): the app asks. */
+  termsToAccept: boolean;
   theme: ThemeMode;
   textScale: number;
   meVerified: boolean;
@@ -141,6 +143,7 @@ export const useStore = create<State & Actions>()(
       account: null,
       signedIn: false,
       pendingRecovery: false,
+      termsToAccept: false,
       theme: 'light',
       textScale: 1,
       meVerified: false,

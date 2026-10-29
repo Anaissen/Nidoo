@@ -1,13 +1,13 @@
-import { router } from 'expo-router';
 import { Check, MailCheck } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 
 import { Account, accountErrors, EMAIL_RE, EMPTY_ACCOUNT, MIN_PASSWORD } from '../lib/account';
 import { sendPasswordReset, signIn, signUp } from '../lib/backend';
 import { useStore } from '../store/useStore';
 import { colors, ICON_STROKE } from '../theme/tokens';
 import { AccountFields, Field, PasswordField } from './AccountForm';
+import { TermsCheckbox } from './TermsCheckbox';
 import { H, LinkButton, PrimaryButton, Segmented, Txt } from './ui';
 
 export type AuthMode = 'signup' | 'login';
@@ -94,16 +94,7 @@ export function AuthPanel({ initialMode = 'signup', onDone }: { initialMode?: Au
         <>
           <AccountFields a={a} onChange={(p) => setA({ ...a, ...p })} errors={tried ? errors : {}} />
           <PasswordField value={pw} onChangeText={setPw} error={tried ? pwError : undefined} isNew />
-          <Pressable onPress={() => setTerms(!terms)} accessibilityRole="checkbox" accessibilityState={{ checked: terms }} style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-            <View style={{ width: 26, height: 26, borderRadius: 8, borderWidth: 2, borderColor: tried && !terms ? colors.accent700 : terms ? colors.accent2_600 : colors.neutral500, backgroundColor: terms ? colors.accent2_600 : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-              {terms && <Check size={16} strokeWidth={3} color={colors.neutral100} />}
-            </View>
-            <Txt size={14} style={{ flex: 1 }}>J'ai au moins 18 ans et j'accepte les conditions d'utilisation et la politique de confidentialité de Pimou.</Txt>
-          </Pressable>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginTop: -8, paddingLeft: 38 }}>
-            <LinkButton label="Lire les conditions" size={13} onPress={() => router.push('/legal/cgu')} />
-            <LinkButton label="Lire la confidentialité" size={13} onPress={() => router.push('/legal/confidentialite')} />
-          </View>
+          <TermsCheckbox on={terms} onChange={setTerms} error={tried} />
           <PrimaryButton label={busy ? 'Création du compte…' : 'Créer mon compte'} height={56} onPress={submitSignup} disabledLook={busy} />
         </>
       ) : (

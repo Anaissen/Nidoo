@@ -7,6 +7,7 @@ import { DEFAULT_COMMISSION, DELIVERY } from './catalog';
  * an empty value shows "[à compléter]" on the pages.
  */
 export const LEGAL = {
+  /** Shown on the pages. Change it with TERMS_VERSION when the texts change in a way that matters. */
   updated: '29 octobre 2026',
   /** e.g. "Anaïs Martin EI" or "Pimou SAS". */
   name: '',
@@ -25,6 +26,12 @@ export const LEGAL = {
   /** Where the Supabase project lives (Project Settings → General → Region), e.g. "en Irlande (Union européenne)". */
   dataRegion: '',
 };
+
+/**
+ * Version recorded each time a parent accepts the CGU and the privacy policy (supabase/schema-8-cgu.sql).
+ * A new value asks every parent to accept again at their next visit.
+ */
+export const TERMS_VERSION = '2026-10-29';
 
 /** Above this, in a calendar year, the platform reports the seller's sales to the tax office (DAC7). */
 export const TAX_REPORT = { sales: 30, amount: 2000 };
@@ -51,7 +58,7 @@ const cgu = (): LegalDoc => ({
       "Pimou est un intermédiaire : la vente est conclue directement entre le vendeur et l'acheteur. Pimou n'est ni le vendeur ni le propriétaire des articles, et ne les vérifie pas un par un.",
     ] },
     { title: '2. Ton compte', body: [
-      "Pour acheter, vendre ou écrire à un parent, il faut un compte. Tu dois avoir au moins 18 ans, donner des informations exactes et les tenir à jour.",
+      "Pour acheter, vendre ou écrire à un parent, il faut un compte. Tu dois avoir au moins 18 ans, donner des informations exactes et les tenir à jour. Ton acceptation de ces conditions est enregistrée (version, date et heure).",
       "Ton compte est personnel. Garde ton mot de passe pour toi : tout ce qui est fait depuis ton compte est réputé fait par toi. Si tu penses qu'il a été utilisé par quelqu'un d'autre, écris-nous tout de suite.",
       "Pimou est réservé aux particuliers qui vendent leurs propres affaires. Acheter pour revendre ou vendre à titre professionnel n'est pas autorisé.",
     ] },
@@ -124,7 +131,7 @@ const cgu = (): LegalDoc => ({
       'Ce que Pimou fait de tes données est expliqué dans la politique de confidentialité.',
     ] },
     { title: '18. Modification de ces conditions', body: [
-      "Pimou peut faire évoluer ces conditions. Tu seras prévenu·e au moins 15 jours avant que les changements importants s'appliquent. Si tu n'es pas d'accord, tu peux fermer ton compte.",
+      "Pimou peut faire évoluer ces conditions. Tu seras prévenu·e au moins 15 jours avant que les changements importants s'appliquent, et l'appli te demandera de les accepter à nouveau. Si tu n'es pas d'accord, tu peux fermer ton compte.",
     ] },
     { title: '19. Litiges et médiation', body: [
       `Ces conditions sont soumises au droit français. En cas de souci avec Pimou, écris-nous d'abord à ${LEGAL.email} : on cherchera une solution ensemble.`,
@@ -149,6 +156,7 @@ const confidentialite = (): LegalDoc => ({
         'Tes annonces : photos, descriptions, prix, et tes favoris.',
         'Tes messages et tes offres avec les autres parents.',
         'Tes commandes et tes avis.',
+        "La trace de ton acceptation des conditions d'utilisation et de cette politique : la version acceptée, la date et l'heure, et l'appareil utilisé (navigateur ou téléphone).",
         "Les paiements : c'est Stripe qui reçoit ta carte bancaire, et l'identité et l'IBAN des vendeurs. Pimou n'a jamais accès à ton numéro de carte ni à tes papiers ; Pimou sait seulement si le paiement a réussi et si les versements d'un vendeur sont activés.",
         "Pour les vendeurs concernés par la déclaration annuelle aux impôts (au moins 30 ventes ou plus de 2 000 € par an) : les informations que la loi impose de transmettre (identité, adresse, date de naissance, numéro fiscal, montant des ventes).",
       ],
@@ -161,6 +169,7 @@ const confidentialite = (): LegalDoc => ({
       [
         "Faire fonctionner le service que tu demandes : ton compte, tes annonces, la messagerie, les commandes, les paiements, les e-mails sur tes commandes, les passeports et l'accueil à la taille de ton enfant. C'est nécessaire au contrat qui nous lie (les CGU).",
         'Assurer la sécurité, éviter les fraudes et traiter les signalements : c\'est notre intérêt légitime, et celui de tous les parents.',
+        "Pouvoir prouver que tu as accepté les conditions, en cas de litige : c'est aussi notre intérêt légitime.",
         'Respecter nos obligations légales : comptabilité, déclarations fiscales, réponses aux autorités.',
       ],
       "Pimou n'envoie pas de publicité, ne revend aucune donnée et n'utilise aucun outil de publicité ou de mesure d'audience.",
@@ -183,6 +192,7 @@ const confidentialite = (): LegalDoc => ({
         'Les avis : tant que le compte du vendeur existe.',
         'Les commandes et les données de facturation : 10 ans, comme la loi l\'impose pour la comptabilité.',
         'Les informations transmises aux impôts : 10 ans.',
+        "La trace de ton acceptation des conditions : 5 ans après la fermeture de ton compte, le temps pendant lequel un litige reste possible.",
       ],
     ] },
     { title: '7. Sur ton téléphone ou ton navigateur', body: [
