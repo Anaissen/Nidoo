@@ -4,6 +4,7 @@ import { Product, Seller } from '../data/catalog';
 import { Chat, Msg, OfferKind, RealOrder, remoteChat, useStore } from '../store/useStore';
 import { currentUser, supabase } from './backend';
 import { fmt } from './format';
+import { everyWhileVisible } from './visible';
 import { ListingRow, marketLoaded, sellerFromRow, SellerRow, toProduct } from './listings';
 
 type ConvRow = { id: string; listing_id: number; buyer_id: string; seller_id: string; created_at: string; last_message_at: string };
@@ -135,10 +136,30 @@ async function fetchAll() {
   rows = nextRows;
   await loadExtras();
   publish();
+  // Messages that came in since the last look (when the live connection missed them).
+  const all = Object.values(rows).flat();
+  if (seen) {
+    const fresh = all.filter((m) => m.sender_id !== me && !seen!.has(m.id));
+    if (fresh.length) notice(fresh[fresh.length - 1], fresh.length);
+  }
+  seen = new Set(all.map((m) => m.id));
+}
+
+/** Ids of the messages already shown or announced; null until the first load (nothing to announce then). */
+let seen: Set<number> | null = null;
+
+/** In-app notice for a message from someone else, unless that conversation is on screen. */
+function notice(m: MsgRow, count = 1) {
+  const s = useStore.getState();
+  const cid = cidOf(m.conversation_id);
+  if (s.viewingCid === cid) return;
+  const who = s.marketSellers[s.chats[cid]?.sid ?? '']?.name ?? 'Un parent';
+  if (count > 1) s.showToast(`💬 ${count} nouveaux messages`);
+  else s.showToast(m.kind === 'text' ? `💬 ${who} : ${m.body.slice(0, 60)}` : `💬 ${who} a répondu à propos du prix`);
 }
 
 function clearAll() {
-  convs = {}; rows = {};
+  convs = {}; rows = {}; seen = null;
   useStore.setState((s) => ({ chats: Object.fromEntries(Object.entries(s.chats).filter(([, c]) => !c.remote)), archived: [] }));
 }
 
@@ -166,12 +187,8 @@ function listen(me: string) {
         convs[m.conversation_id] = { ...convs[m.conversation_id], last_message_at: m.created_at };
       }
       publish();
-      const s = useStore.getState();
-      const cid = cidOf(m.conversation_id);
-      if (m.sender_id !== me && s.viewingCid !== cid) {
-        const who = s.marketSellers[s.chats[cid]?.sid ?? '']?.name ?? 'Un parent';
-        s.showToast(m.kind === 'text' ? `💬 ${who} : ${m.body.slice(0, 60)}` : `💬 ${who} a répondu à propos du prix`);
-      }
+      if (m.sender_id !== me && !seen?.has(m.id)) notice(m);
+      seen?.add(m.id);
     })
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, ({ new: r }) => {
       const m = r as MsgRow;
@@ -183,6 +200,7 @@ function listen(me: string) {
 }
 
 let started = false;
+let stopPolling: (() => void) | null = null;
 /** Call once at startup. */
 export function startMessaging() {
   if (started) return;
@@ -190,6 +208,7 @@ export function startMessaging() {
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT' || !session) {
       channel?.unsubscribe(); channel = null;
+      stopPolling?.(); stopPolling = null;
       clearAll();
       return;
     }
@@ -197,6 +216,9 @@ export function startMessaging() {
       const me = session.user.id;
       // After the session and the listings are in place.
       setTimeout(async () => { await marketLoaded(); await loadAll(); listen(me); }, 30);
+      // Back-up for the live connection: look for new messages every 20 seconds.
+      stopPolling?.();
+      stopPolling = everyWhileVisible(20000, () => { void loadAll(); });
     }
   });
   remoteChat.send = (cid, text) => { void post(cid, 'text', text); };

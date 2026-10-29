@@ -7,6 +7,7 @@ import { DeliveryId, Seller } from '../data/catalog';
 import { RealOrder, useStore } from '../store/useStore';
 import { currentUser, supabase } from './backend';
 import { loadMarket, sellerFromRow, SellerRow } from './listings';
+import { everyWhileVisible } from './visible';
 
 // The money side lives in the "payments" Edge Function (supabase/functions/payments): Stripe keys never
 // reach the phone. Stripe is in test mode for now: test cards only, no real money moves.
@@ -52,6 +53,8 @@ export async function loadOrders() {
     useStore.setState((st) => ({ marketSellers: { ...st.marketSellers, ...people } }));
   }
   useStore.setState({ realOrders: orders });
+  // Something new on an order (sold, shipped…): the listings change too.
+  if (known && orders.some((o) => known![o.id] !== o.status)) void loadMarket();
   announce(orders);
 }
 
@@ -75,6 +78,7 @@ function announce(orders: RealOrder[]) {
 }
 
 let channel: RealtimeChannel | null = null;
+let stopPolling: (() => void) | null = null;
 let started = false;
 /** Call once at startup: finish half-done payments, then keep the orders up to date. */
 export function startPayments() {
@@ -83,6 +87,7 @@ export function startPayments() {
   supabase.auth.onAuthStateChange((event, session) => {
     if (!session) {
       channel?.unsubscribe(); channel = null;
+      stopPolling?.(); stopPolling = null;
       known = null;
       useStore.setState({ realOrders: [], payout: null });
       return;
@@ -95,9 +100,12 @@ export function startPayments() {
       channel?.unsubscribe();
       channel = supabase.channel(`orders-${me}`)
         // An order changed: refresh it, and the listings (a sold article shows as such right away).
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => { void loadOrders(); void loadMarket(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => { void loadOrders(); })
         .subscribe();
     }, 50);
+    // Back-up for the live connection: look at the orders every 20 seconds.
+    stopPolling?.();
+    stopPolling = everyWhileVisible(20000, () => { void loadOrders(); });
   });
 }
 

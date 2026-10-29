@@ -240,8 +240,9 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
         ], { label: 'Voir ma vente', url: `${APP_URL}commande/${o.id}` });
       } else {
         await stripe.refunds.create({ payment_intent: pi.id, amount: cents(Number(o.price) + Number(o.shipping)), metadata: { pimou_order: o.id } }, { idempotencyKey: `refund-${o.id}` });
-        await admin.from('orders').update({ status: 'cancelled' }).eq('id', o.id);
-        out.push({ ...o, status: 'cancelled' });
+        // payment_intent kept: it tells the app this one was paid, then refunded.
+        await admin.from('orders').update({ status: 'cancelled', payment_intent: pi.id }).eq('id', o.id);
+        out.push({ ...o, status: 'cancelled', payment_intent: pi.id });
       }
     }
     return { status: 'paid', orders: out };
