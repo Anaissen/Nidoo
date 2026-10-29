@@ -4,7 +4,7 @@ import { View } from 'react-native';
 
 import { AccountFields } from '../components/AccountForm';
 import { BackHeader, BottomBar, Screen } from '../components/Screen';
-import { OutlineButton, PrimaryButton, Txt } from '../components/ui';
+import { LinkButton, OutlineButton, PrimaryButton, Txt } from '../components/ui';
 import { Account, accountErrors } from '../lib/account';
 import { saveAccount, signOut } from '../lib/backend';
 import { accountOf, useStore } from '../store/useStore';
@@ -45,6 +45,7 @@ export default function AccountScreen() {
         <AccountFields a={a} onChange={(p) => setA({ ...a, ...p })} errors={tried ? errors : {}} />
         <Txt size={13} color={colors.neutral700}>Les autres parents voient seulement ton prénom, l'initiale de ton nom et ta ville.</Txt>
         <OutlineButton label="Se déconnecter" onPress={logout} />
+        <LinkButton label="Supprimer mon compte" size={14} color={colors.neutral700} onPress={() => router.push('/delete-account')} style={{ alignSelf: 'center', paddingVertical: 4 }} />
       </View>
     </Screen>
   );

@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 
 import { DeliveryId, Seller } from '../data/catalog';
 import { RealOrder, useStore } from '../store/useStore';
-import { currentUser, supabase } from './backend';
+import { currentUser, signOut, supabase } from './backend';
 import { loadMarket, sellerFromRow, SellerRow } from './listings';
 import { loadOrderReviews } from './reviews';
 import { everyWhileVisible } from './visible';
@@ -185,4 +185,12 @@ async function act(action: 'mark-shipped' | 'confirm-reception', orderId: string
   return r.error ?? null;
 }
 export const markShipped = (orderId: string) => act('mark-shipped', orderId);
+
+/** Close the account for good (the server keeps only what the law requires), then log out. Returns an error message, or null. */
+export async function deleteAccount() {
+  const r = await call<{ ok: boolean }>('delete-account');
+  if (r.error) return r.error;
+  await signOut();
+  return null;
+}
 export const confirmReception = (orderId: string) => act('confirm-reception', orderId);

@@ -118,7 +118,7 @@ const cgu = (): LegalDoc => ({
       "Pimou traite chaque signalement rapidement et te répond. Si un contenu est retiré ou un compte suspendu, la personne concernée en est informée avec les raisons de la décision et peut la contester en nous répondant, puis auprès du médiateur ou d'un tribunal.",
     ] },
     { title: '14. Suspension et fermeture du compte', body: [
-      `Tu peux fermer ton compte à tout moment en écrivant à ${LEGAL.email}. Les commandes en cours sont d'abord terminées.`,
+      "Tu peux supprimer ton compte à tout moment, depuis Profil → Mes informations → Supprimer mon compte. Une commande en cours doit d'abord être terminée. Ce qui est gardé après la suppression est expliqué dans la politique de confidentialité.",
       "Pimou peut suspendre ou fermer un compte en cas de manquement grave à ces conditions (fraude, article interdit, insultes répétées…), après t'avoir prévenu·e et expliqué pourquoi, sauf urgence.",
     ] },
     { title: '15. Responsabilité', body: [
@@ -189,10 +189,10 @@ const confidentialite = (): LegalDoc => ({
     ] },
     { title: '6. Combien de temps', body: [
       [
-        'Ton compte, tes passeports et tes annonces : tant que ton compte est ouvert. Ils sont supprimés quand tu fermes ton compte, ou après 3 ans sans connexion.',
-        "Tes messages : tant que ton compte est ouvert, et jusqu'à 1 an après ta dernière commande, en cas de litige.",
-        'Les avis : tant que le compte du vendeur existe.',
-        'Les commandes et les données de facturation : 10 ans, comme la loi l\'impose pour la comptabilité.',
+        'Ton compte, tes passeports, tes annonces et leurs photos, tes messages : tant que ton compte est ouvert. Ils sont supprimés dès que tu supprimes ton compte, ou après 3 ans sans connexion.',
+        "Les avis : tant que le compte du vendeur existe. Ceux que tu as laissés restent visibles après la suppression de ton compte, sans ton nom.",
+        "Les commandes : 10 ans, comme la loi l'impose pour la comptabilité. Après la suppression de ton compte, elles sont gardées sans ton nom ni ton adresse.",
+        "Si tu as vendu : ton e-mail et l'identifiant de ton compte Stripe sont gardés après la suppression de ton compte, pour les déclarations obligatoires aux impôts (10 ans). Stripe conserve de son côté les informations que la loi lui impose.",
         'Les informations transmises aux impôts : 10 ans.',
         "La trace de ton acceptation des conditions : 5 ans après la fermeture de ton compte, le temps pendant lequel un litige reste possible.",
       ],
@@ -202,7 +202,7 @@ const confidentialite = (): LegalDoc => ({
     ] },
     { title: '8. Tes droits', body: [
       "Tu peux à tout moment accéder à tes données, les corriger, les faire supprimer, en limiter l'utilisation, t'opposer à certaines utilisations, les récupérer dans un format lisible, et dire ce qu'elles deviennent après ton décès.",
-      `Tu peux déjà corriger ton compte et tes passeports dans l'appli (Profil). Pour le reste, ou pour supprimer ton compte, écris à ${LEGAL.email} : on te répond sous un mois au plus tard.`,
+      `Dans l'appli, tu peux corriger ton compte et tes passeports (Profil), et supprimer ton compte toi-même (Profil → Mes informations → Supprimer mon compte). Pour le reste, écris à ${LEGAL.email} : on te répond sous un mois au plus tard.`,
       "Si tu penses que tes droits ne sont pas respectés, tu peux faire une réclamation auprès de la CNIL : www.cnil.fr.",
     ] },
     { title: '9. Sécurité', body: [

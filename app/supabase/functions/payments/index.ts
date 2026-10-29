@@ -9,6 +9,8 @@
 // file, turn OFF "Verify JWT" (the function checks the user itself), and add the secret
 // STRIPE_SECRET_KEY (sk_test_… in test mode) under Edge Functions → Secrets. Optional: the secret
 // RESEND_API_KEY (the Resend key) sends e-mails on each sale, shipment and payout.
+//
+// It also closes accounts ("delete-account"), which needs the server's rights (supabase/schema-9-suppression-compte.sql).
 
 import Stripe from 'npm:stripe@23.0.0';
 import { createClient, type SupabaseClient, type User } from 'npm:@supabase/supabase-js@2';
@@ -311,6 +313,49 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
     return { order: { ...o, ...patch } };
   }
 
+  // ── Closing an account ─────────────────────────────────────────────────────────────────
+
+  /**
+   * Everything personal goes with the account (profile, passports, listings and their photos, conversations).
+   * What the law makes Pimou keep stays: past orders (accounting) without the address, the CGU acceptance,
+   * and, in closed_accounts, the e-mail and Stripe account (yearly tax declarations). Reviews written stay, unsigned.
+   */
+  async function deleteAccount(user: User) {
+    // A payment left open on Stripe's page: settle it, or close it so it can't go through afterwards.
+    const { data: pending } = await admin.from('orders').select('stripe_session_id').eq('buyer_id', user.id).eq('status', 'pending');
+    for (const id of new Set((pending ?? []).map((r) => r.stripe_session_id).filter(Boolean)) as Set<string>) {
+      if ((await settle(id, user.id)).status !== 'pending') continue;
+      // Paid in the meantime, expiring fails: the second look settles it either way (paid, or cancelled).
+      await stripe.checkout.sessions.expire(id).catch((e: unknown) => console.error('expire', e));
+      await settle(id, user.id);
+    }
+    // Nobody is left waiting for an article or for their money.
+    for (const side of ['buyer_id', 'seller_id']) {
+      const { data: open } = await admin.from('orders').select('id').eq(side, user.id).in('status', ['paid', 'shipped']).limit(1);
+      if (open?.length) {
+        throw new Refusal(side === 'buyer_id'
+          ? "Tu attends encore un article : confirme sa réception (ou écris à reclamation@pimou.fr en cas de problème), puis tu pourras supprimer ton compte."
+          : "Tu as une vente en cours : une fois l'article reçu par l'acheteur, tu pourras supprimer ton compte.");
+      }
+    }
+    const { data: acc } = await admin.from('payout_accounts').select('stripe_account_id').eq('user_id', user.id).maybeSingle();
+    const { error: keptError } = await admin.from('closed_accounts').upsert({ user_id: user.id, email: user.email ?? '', stripe_account_id: acc?.stripe_account_id ?? null });
+    if (keptError) throw new Error(`closed_accounts: ${keptError.message}`);
+    // Orders stay for the accounts, without the delivery address or the photo (the photos go below).
+    await admin.from('orders').update({ address: '' }).eq('buyer_id', user.id);
+    await admin.from('orders').update({ photo: null }).eq('seller_id', user.id);
+    // Photos: they live in photos/<user id>/, and only the storage API may delete them.
+    for (let round = 0; round < 50; round++) {
+      const { data: files } = await admin.storage.from('photos').list(user.id, { limit: 100 });
+      if (!files?.length) break;
+      await admin.storage.from('photos').remove(files.map((f) => `${user.id}/${f.name}`));
+    }
+    // The rest goes with the account itself (profile, passports, listings, conversations…).
+    const { error } = await admin.auth.admin.deleteUser(user.id);
+    if (error) throw new Error(`deleteUser: ${error.message}`);
+    return { ok: true };
+  }
+
   // ── Entry point ───────────────────────────────────────────────────────────────────────
 
   return async (req: Request) => {
@@ -351,6 +396,14 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
           return reply(await markShipped(user, body.orderId));
         case 'confirm-reception':
           return reply(await confirmReception(user, body.orderId));
+        case 'delete-account':
+          try {
+            return reply(await deleteAccount(user));
+          } catch (e) {
+            if (e instanceof Refusal) throw e;
+            console.error('delete-account', e);
+            return reply({ error: "La suppression n'a pas pu aboutir, réessaie dans un instant ou écris à reclamation@pimou.fr." }, 500);
+          }
         default:
           return reply({ error: 'Action inconnue' }, 400);
       }
