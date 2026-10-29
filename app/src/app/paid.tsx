@@ -6,6 +6,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { Screen } from '../components/Screen';
 import { H, OutlineButton, PrimaryButton, Txt } from '../components/ui';
 import { fmt } from '../lib/format';
+import { loadMarket } from '../lib/listings';
 import { checkoutStatus, loadOrders } from '../lib/payments';
 import { productById, RealOrder, useStore } from '../store/useStore';
 import { colors, ICON_STROKE } from '../theme/tokens';
@@ -32,6 +33,7 @@ export default function Paid() {
         const bought = new Set(r.orders.map((o) => o.listingId));
         useStore.setState((s) => ({ cart: s.cart.filter((pid) => !bought.has(productById(s.mine, pid)?.remoteId ?? null)) }));
         void loadOrders();
+        void loadMarket();
       } else if (r.status === 'pending' && ++tries < 8) setTimeout(check, 2500);
     };
     void check();

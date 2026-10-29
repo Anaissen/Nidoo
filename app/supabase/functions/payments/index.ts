@@ -221,6 +221,10 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
     const out: Order[] = [];
     for (const o of orders) {
       if (o.status !== 'pending') { out.push(o); continue; }
+      // The app may ask twice at once (payment page + background check): only one of them handles
+      // each order. Stamping paid_at on a pending order is the atomic "I'm on it".
+      const { data: mine } = await admin.from('orders').update({ paid_at: now }).eq('id', o.id).eq('status', 'pending').is('paid_at', null).select('id');
+      if (!mine?.length) { out.push(await settledElsewhere(o)); continue; }
       // Atomic: only one buyer can turn the listing from active to sold.
       const { data: claimed } = await admin.from('listings').update({ status: 'sold' }).eq('id', o.listing_id).eq('status', 'active').select('id');
       if (claimed?.length) {
@@ -241,6 +245,16 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
       }
     }
     return { status: 'paid', orders: out };
+  }
+
+  /** Another call is settling this order: wait (briefly) for its result. */
+  async function settledElsewhere(o: Order) {
+    for (let i = 0; i < 10; i++) {
+      const { data } = await admin.from('orders').select('*').eq('id', o.id).single();
+      if (data && data.status !== 'pending') return data as Order;
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    return o;
   }
 
   async function orderFor(user: User, orderId: unknown, role: 'buyer' | 'seller') {

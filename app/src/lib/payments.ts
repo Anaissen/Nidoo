@@ -6,7 +6,7 @@ import { Platform } from 'react-native';
 import { DeliveryId, Seller } from '../data/catalog';
 import { RealOrder, useStore } from '../store/useStore';
 import { currentUser, supabase } from './backend';
-import { sellerFromRow, SellerRow } from './listings';
+import { loadMarket, sellerFromRow, SellerRow } from './listings';
 
 // The money side lives in the "payments" Edge Function (supabase/functions/payments): Stripe keys never
 // reach the phone. Stripe is in test mode for now: test cards only, no real money moves.
@@ -94,7 +94,8 @@ export function startPayments() {
       void call('sync').then(loadOrders);
       channel?.unsubscribe();
       channel = supabase.channel(`orders-${me}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => { void loadOrders(); })
+        // An order changed: refresh it, and the listings (a sold article shows as such right away).
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => { void loadOrders(); void loadMarket(); })
         .subscribe();
     }, 50);
   });
