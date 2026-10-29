@@ -105,7 +105,8 @@ export default function ChatScreen() {
               {offer?.status === 'accepted' ? `${fmt(offer.amount)} · offre acceptée` : fmt(p.price)}
             </Txt>
           </View>
-          {!iSell && p.price > 0 && (
+          {p.sold && <Txt size={12} weight="semi" color={colors.accent2_700}>Vendu</Txt>}
+          {!iSell && p.price > 0 && !p.sold && (
             <Pressable onPress={() => { addToCart(p.id); router.push('/cart'); }} style={{ height: 38, paddingHorizontal: 16, borderRadius: 999, backgroundColor: colors.accent, justifyContent: 'center' }}>
               <H size={14} color={colors.bg}>Acheter</H>
             </Pressable>

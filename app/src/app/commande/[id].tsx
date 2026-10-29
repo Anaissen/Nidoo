@@ -8,9 +8,9 @@ import { ellipsis, H, OutlineButton, PrimaryButton, Txt } from '../../components
 import { DELIVERY } from '../../data/catalog';
 import { currentUser } from '../../lib/backend';
 import { fmt } from '../../lib/format';
-import { chatFor } from '../../lib/messaging';
+import { chatForOrder } from '../../lib/messaging';
 import { confirmReception, markShipped } from '../../lib/payments';
-import { productById, RealOrder, useStore } from '../../store/useStore';
+import { RealOrder, useStore } from '../../store/useStore';
 import { colors, ICON_STROKE } from '../../theme/tokens';
 
 const STEP: Record<RealOrder['status'], number> = { pending: -1, paid: 0, shipped: 1, received: 2, cancelled: -1 };
@@ -33,7 +33,6 @@ export default function RealOrderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const o = useStore((s) => s.realOrders.find((x) => x.id === id));
   const people = useStore((s) => s.marketSellers);
-  const mine = useStore((s) => s.mine);
   const showToast = useStore((s) => s.showToast);
   const [busy, setBusy] = useState(false);
 
@@ -42,7 +41,6 @@ export default function RealOrderScreen() {
   const other = people[isSale ? o.buyerId : o.sellerId];
   const step = o.delivery === 'main' && o.status === 'shipped' ? 1 : STEP[o.status];
   const del = DELIVERY.find((d) => d.id === o.delivery)!;
-  const listing = o.listingId != null ? productById(mine, 100000 + o.listingId) : undefined;
 
   const run = async (fn: () => Promise<string | null>, ok: string) => {
     setBusy(true);
@@ -51,9 +49,8 @@ export default function RealOrderScreen() {
     showToast(err ?? ok);
   };
   const talk = async () => {
-    if (listing) { const cid = await chatFor(listing); if (cid) router.push(`/chat/${cid}`); return; }
-    const chat = Object.entries(useStore.getState().chats).find(([, c]) => c.remote && c.pid === 100000 + (o.listingId ?? -1));
-    router.push(chat ? `/chat/${chat[0]}` : '/messages');
+    const cid = await chatForOrder(o);
+    if (cid) router.push(`/chat/${cid}`);
   };
 
   const canShip = isSale && o.status === 'paid' && o.delivery !== 'main';

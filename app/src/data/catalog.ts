@@ -72,6 +72,8 @@ export type Product = {
   photos?: string[];
   /** Row id in the Supabase `listings` table, for listings that live on the server. */
   remoteId?: number;
+  /** Already sold (still shown in conversations and orders). */
+  sold?: boolean;
 };
 
 const P = (

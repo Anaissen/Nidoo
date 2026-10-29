@@ -1,7 +1,7 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 import { Product, Seller } from '../data/catalog';
-import { Chat, Msg, OfferKind, remoteChat, useStore } from '../store/useStore';
+import { Chat, Msg, OfferKind, RealOrder, remoteChat, useStore } from '../store/useStore';
 import { currentUser, supabase } from './backend';
 import { fmt } from './format';
 import { ListingRow, marketLoaded, sellerFromRow, SellerRow, toProduct } from './listings';
@@ -94,26 +94,45 @@ async function loadExtras() {
     const { data } = await supabase.from('listings').select('*').in('id', missing);
     const found = (data as ListingRow[] | null) ?? [];
     const me = currentUser()?.id;
-    // A listing taken down by its seller is no longer readable: keep a stand-in so the chat still opens.
-    const ghosts: Product[] = missing.filter((id) => !found.some((r) => r.id === id)).map((id) => ({
-      id: LISTING_OFFSET + id, remoteId: id, type: 'unique', title: 'Annonce retirée', brand: '', age: '', size: '', gender: '', season: '',
-      condition: '', price: 0, color: 'Beige', sid: Object.values(convs).find((c) => c.listing_id === id)!.seller_id,
-    }));
+    // A listing sold or taken down is no longer readable by the buyer: keep a stand-in so the chat still
+    // opens, from the order when there is one.
+    const orders = useStore.getState().realOrders;
+    const ghosts: Product[] = missing.filter((id) => !found.some((r) => r.id === id)).map((id) => {
+      const o = orders.find((x) => x.listingId === id);
+      return {
+        id: LISTING_OFFSET + id, remoteId: id, type: 'unique', title: o?.title ?? 'Annonce retirée', brand: '', age: '', size: '', gender: '', season: '',
+        condition: '', price: o?.price ?? 0, color: 'Beige', sid: Object.values(convs).find((c) => c.listing_id === id)!.seller_id,
+        photos: o?.photo ? [o.photo] : undefined, sold: !!o,
+      };
+    });
     useStore.setState((st) => ({ archived: [...st.archived, ...found.map((r) => toProduct(r, r.seller_id === me)), ...ghosts] }));
   }
 }
 
-async function loadAll() {
+let loadingAll: Promise<void> = Promise.resolve();
+/** Fetch the conversations and their messages. Calls queue up: two loads at once would mix their results. */
+function loadAll() {
+  loadingAll = loadingAll.then(fetchAll, fetchAll);
+  return loadingAll;
+}
+
+async function fetchAll() {
   const me = currentUser()?.id;
   if (!me) return;
   const { data: cs, error } = await supabase.from('conversations').select('*').order('last_message_at', { ascending: false }).limit(100);
   if (error || !cs) return;
-  convs = Object.fromEntries((cs as ConvRow[]).map((c) => [c.id, c]));
-  rows = {};
+  const nextRows: Record<string, MsgRow[]> = {};
   if (cs.length) {
     const { data: ms } = await supabase.from('messages').select('*').in('conversation_id', cs.map((c) => c.id)).order('created_at').limit(2000);
-    (ms as MsgRow[] | null)?.forEach((m) => { (rows[m.conversation_id] ??= []).push(m); });
+    (ms as MsgRow[] | null)?.forEach((m) => { (nextRows[m.conversation_id] ??= []).push(m); });
   }
+  // Messages that arrived live while this was loading are kept (once).
+  for (const [cid, list] of Object.entries(rows)) {
+    const into = (nextRows[cid] ??= []);
+    list.forEach((m) => { if (!into.some((x) => x.id === m.id)) into.push(m); });
+  }
+  convs = { ...convs, ...Object.fromEntries((cs as ConvRow[]).map((c) => [c.id, c])) };
+  rows = nextRows;
   await loadExtras();
   publish();
 }
@@ -219,6 +238,21 @@ export async function chatFor(p: Product): Promise<string | null> {
   if (error || !data) { useStore.getState().showToast("La conversation n'a pas pu s'ouvrir, réessaie."); return null; }
   convs[data.id] = data as ConvRow;
   rows[data.id] ??= [];
+  publish();
+  return cidOf(data.id);
+}
+
+/** Conversation about an order, opened by the buyer or the seller (also once the article is sold). */
+export async function chatForOrder(o: RealOrder): Promise<string | null> {
+  if (!currentUser() || o.listingId == null) return null;
+  const existing = Object.values(convs).find((c) => c.listing_id === o.listingId && c.buyer_id === o.buyerId);
+  if (existing) return cidOf(existing.id);
+  let { data, error } = await supabase.from('conversations').insert({ listing_id: o.listingId, buyer_id: o.buyerId, seller_id: o.sellerId }).select('*').single();
+  if (error?.code === '23505') ({ data, error } = await supabase.from('conversations').select('*').eq('listing_id', o.listingId).eq('buyer_id', o.buyerId).single());
+  if (error || !data) { useStore.getState().showToast("La conversation n'a pas pu s'ouvrir, réessaie."); return null; }
+  convs[data.id] = data as ConvRow;
+  rows[data.id] ??= [];
+  await loadExtras();
   publish();
   return cidOf(data.id);
 }

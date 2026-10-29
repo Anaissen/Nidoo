@@ -14,7 +14,7 @@ const PHOTO_WIDTH = 1280;
 export type ListingRow = {
   id: number; seller_id: string; type: 'unique' | 'lot'; title: string; description: string; brand: string; age: string; gender: string; season: string;
   condition: string; price: number | string; color: string; count: number | null; contents: Product['contents'] | null;
-  negotiable: boolean; washed: boolean; photos: string[]; created_at: string;
+  negotiable: boolean; washed: boolean; photos: string[]; created_at: string; status?: string;
 };
 export type SellerRow = { id: string; display_name: string; city: string; zip: string; verified: boolean; created_at: string };
 
@@ -24,6 +24,7 @@ export const toProduct = (r: ListingRow, mine: boolean): Product => ({
   // The person's own listings use the 'me' seller, like everywhere else in the app.
   sid: mine ? 'me' : r.seller_id,
   count: r.count ?? undefined, contents: r.contents ?? undefined, negotiable: r.negotiable, washed: r.washed, photos: r.photos,
+  sold: r.status === 'sold',
 });
 
 /** Rough distance from the zip codes until addresses are geocoded: same zip, same département, or further. */
