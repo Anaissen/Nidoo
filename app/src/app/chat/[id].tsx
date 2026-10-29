@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { Send } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Linking, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 
 import { openProduct, Thumb } from '../../components/products';
+import { mailtoReclamation } from '../../components/Reclamation';
 import { BackButton, BottomBar, Screen } from '../../components/Screen';
 import { Avatar, ellipsis, H, OutlineButton, PrimaryButton, Txt } from '../../components/ui';
 import { fmt } from '../../lib/format';
@@ -94,6 +95,14 @@ export default function ChatScreen() {
             <Txt weight="bold">{person.name}</Txt>
             <Txt size={12} color={colors.accent2_700}>{remote ? (iSell ? 'Intéressé·e par ton annonce' : person.city) : 'Répond en général en 1 h'}</Txt>
           </View>
+          {/* Insults, scams, payment asked outside Pimou: anyone can report the conversation. */}
+          <Pressable
+            hitSlop={8}
+            onPress={() => Linking.openURL(mailtoReclamation(`Signalement · conversation avec ${person.name}`, [`Conversation avec : ${person.name}`, `Article : ${p.title}`, `Conversation n° ${remote?.convId ?? id}`]))}
+            accessibilityLabel="Signaler cette conversation"
+          >
+            <Txt size={12} weight="semi" color={colors.neutral700}>Signaler</Txt>
+          </Pressable>
         </View>
 
         <Pressable onPress={() => openProduct(p.id)} style={{ flexDirection: 'row', gap: 12, alignItems: 'center', padding: 10, borderRadius: 22, backgroundColor: colors.surface }}>

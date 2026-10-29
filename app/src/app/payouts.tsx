@@ -3,6 +3,7 @@ import { BadgeCheck, Landmark, ShieldCheck } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
+import { Reclamation } from '../components/Reclamation';
 import { BackHeader, Screen } from '../components/Screen';
 import { H, OutlineButton, PrimaryButton, Txt } from '../components/ui';
 import { openPayoutDashboard, refreshPayout, startOnboarding } from '../lib/payments';
@@ -70,6 +71,7 @@ export default function Payouts() {
             Les paiements passent par Stripe, le service utilisé par de nombreuses applis de vente en ligne. Pimou ne voit jamais ta pièce d'identité ni tes coordonnées bancaires.
           </Txt>
         </View>
+        <Reclamation subject="Réclamation · versement" before="Un souci avec un versement ? Écris à " />
         <Txt size={12} color={colors.neutral600}>🧪 Mode test : aucun vrai argent ne circule. Dans le formulaire Stripe, utilise les données de test proposées (par exemple le code 000 000 pour le téléphone).</Txt>
       </View>
     </Screen>

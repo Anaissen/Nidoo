@@ -41,6 +41,10 @@ class Refusal extends Error {}
 const cents = (euros: number) => Math.round(euros * 100);
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const euros = (n: number) => `${n.toFixed(2).replace('.', ',')} €`;
+/** Where parents write when something goes wrong. The e-mails themselves can't be answered. */
+const CLAIM_EMAIL = 'reclamation@pimou.fr';
+const claimLink = `<a href="mailto:${CLAIM_EMAIL}" style="color:#b2622d;">${CLAIM_EMAIL}</a>`;
+
 /** Platforms must remind sellers of their tax and social duties at each sale (article 242 bis du CGI). */
 const TAX_NOTE = "Impôts : vendre tes propres affaires d'occasion n'est en principe pas imposable. Acheter pour revendre, ou vendre très souvent, peut être une activité à déclarer. Plus d'informations sur <a href=\"https://www.impots.gouv.fr\" style=\"color:#8a8070;\">impots.gouv.fr</a> et <a href=\"https://www.urssaf.fr\" style=\"color:#8a8070;\">urssaf.fr</a>.";
 
@@ -48,14 +52,14 @@ const escapeHtml = (t: string) => t.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', 
 
 export type SendMail = (to: string, subject: string, html: string) => Promise<void>;
 
-/** Through Resend, from bonjour@pimou.fr (send-only); a reply goes to reclamation@pimou.fr. Without a RESEND_API_KEY secret, no e-mail is sent. */
+/** Through Resend, from a no-reply address (no mailbox behind it). Without a RESEND_API_KEY secret, no e-mail is sent. */
 export const resendMail: SendMail = async (to, subject, html) => {
   const key = Deno.env.get('RESEND_API_KEY');
   if (!key) return;
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: 'Pimou <bonjour@pimou.fr>', reply_to: 'reclamation@pimou.fr', to: [to], subject, html }),
+    body: JSON.stringify({ from: 'Pimou <ne-pas-repondre@pimou.fr>', to: [to], subject, html }),
   });
   if (!res.ok) console.error('Resend', res.status, await res.text());
 };
@@ -70,7 +74,8 @@ function mailHtml(title: string, paragraphs: string[], cta: { label: string; url
 <tr><td style="font-size:16px;line-height:1.55;color:#474238;">${paragraphs.map((p) => `<p style="margin:0 0 12px;">${p}</p>`).join('')}</td></tr>
 <tr><td align="center" style="padding:12px 0 20px;"><a href="${cta.url}" style="display:inline-block;background:#b2622d;color:#f9f4ed;text-decoration:none;font-weight:bold;font-size:17px;padding:16px 30px;border-radius:999px;">${cta.label}</a></td></tr>
 <tr><td style="font-size:13px;line-height:1.5;color:#645c50;">À très vite,<br>L'équipe Pimou 🌱</td></tr>
-${note ? `<tr><td style="height:20px;line-height:20px;font-size:0;">&nbsp;</td></tr><tr><td style="font-size:12px;line-height:1.5;color:#8a8070;padding-top:16px;border-top:1px solid #e8dcc8;">${note}</td></tr>` : ''}
+<tr><td style="height:20px;line-height:20px;font-size:0;">&nbsp;</td></tr>
+<tr><td style="font-size:12px;line-height:1.5;color:#8a8070;padding-top:16px;border-top:1px solid #e8dcc8;">${note ? `${note}<br><br>` : ''}Cet e-mail est envoyé automatiquement : merci de ne pas y répondre. Un souci avec une commande ? Écris à ${claimLink} en indiquant l'article concerné.</td></tr>
 </table></td></tr></table></body></html>`;
 }
 
@@ -277,6 +282,7 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
     await mailTo(o.buyer_id, `« ${o.title} » est en route 📦`, [
       `${escapeHtml(await displayName(o.seller_id))} a expédié <strong>« ${escapeHtml(o.title)} »</strong>.`,
       'Dès que tu l\'as entre les mains, confirme la réception dans Pimou : c\'est ce qui déclenche le paiement du vendeur.',
+      `Un problème à la réception (colis abîmé, article différent de l'annonce) ? Ne confirme pas et écris à ${claimLink} avec des photos.`,
     ], { label: 'Voir ma commande', url: `${APP_URL}commande/${o.id}` });
     return { order: { ...o, ...patch } };
   }

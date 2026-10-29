@@ -5,11 +5,11 @@ import { Alert, Linking, NativeScrollEvent, NativeSyntheticEvent, Platform, Pres
 
 import { DistancePill, formatKm, VerifiedBadge, WashedBadge } from '../../components/Badges';
 import { OfferSheet } from '../../components/OfferSheet';
+import { mailtoReclamation } from '../../components/Reclamation';
 import { HeartButton, openProduct, perPiece, ProductPhoto } from '../../components/products';
 import { BackButton, BottomBar, Screen } from '../../components/Screen';
 import { Avatar, ellipsis, H, LinkButton, OutlineButton, PrimaryButton, Tag, Txt } from '../../components/ui';
 import { categoryOf, HANDOVER_MAX_KM, unitOf } from '../../data/catalog';
-import { LEGAL } from '../../data/legal';
 import { fmt } from '../../lib/format';
 import { requireAccount } from '../../lib/auth';
 import { removeListing } from '../../lib/listings';
@@ -267,7 +267,7 @@ export default function ProductScreen() {
             label="Signaler cette annonce"
             size={13}
             color={colors.neutral700}
-            onPress={() => Linking.openURL(`mailto:${LEGAL.email}?subject=${encodeURIComponent(`Signalement de l'annonce n° ${p.remoteId} « ${p.title} »`)}&body=${encodeURIComponent("Bonjour,\n\nCette annonce me semble poser problème parce que :\n\n")}`)}
+            onPress={() => Linking.openURL(mailtoReclamation(`Signalement · annonce « ${p.title} »`, [`Annonce : ${p.title}`, `Annonce n° ${p.remoteId}`, `Vendeur : ${seller.name}`]))}
             style={{ alignSelf: 'center' }}
           />
         )}

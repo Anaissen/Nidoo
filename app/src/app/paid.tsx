@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 import { Screen } from '../components/Screen';
+import { Reclamation } from '../components/Reclamation';
 import { H, OutlineButton, PrimaryButton, Txt } from '../components/ui';
 import type { Product } from '../data/catalog';
 import { fmt } from '../lib/format';
@@ -107,6 +108,7 @@ export default function Paid() {
               ? <PrimaryButton label="Suivre ma commande" onPress={() => router.replace('/orders?tab=achats')} />
               : <PrimaryButton label="Retour au panier" onPress={() => router.replace('/cart')} />}
             <OutlineButton label="Retour à l'accueil" onPress={() => { if (router.canDismiss()) router.dismissAll(); router.replace('/home'); }} />
+            <Reclamation subject="Réclamation · paiement" details={[`Paiement n° ${sessionId ?? ''}`]} before="Un souci avec ton paiement ? Écris à " />
           </View>
         )}
       </View>

@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { Image, Pressable, TextInput, View } from 'react-native';
 
 import { LegalText } from '../../components/LegalText';
+import { Reclamation } from '../../components/Reclamation';
 import { BackHeader, Screen } from '../../components/Screen';
 import { ellipsis, H, OutlineButton, PrimaryButton, Txt } from '../../components/ui';
 import { DELIVERY } from '../../data/catalog';
-import { LEGAL, TAX_REPORT } from '../../data/legal';
+import { TAX_REPORT } from '../../data/legal';
 import { currentUser } from '../../lib/backend';
 import { fmt, fmtInt, plural } from '../../lib/format';
 import { chatForOrder } from '../../lib/messaging';
@@ -48,6 +49,8 @@ export default function RealOrderScreen() {
   const other = people[isSale ? o.buyerId : o.sellerId];
   const step = o.delivery === 'main' && o.status === 'shipped' ? 1 : STEP[o.status];
   const del = DELIVERY.find((d) => d.id === o.delivery)!;
+  // What a réclamation e-mail starts with, so Pimou knows which order it is about.
+  const claim = { subject: `Réclamation · ${o.title}`, details: [`Article : ${o.title}`, `Commande n° ${o.id}`, `${isSale ? 'Acheteur' : 'Vendeur'} : ${other?.name ?? 'un parent'}`] };
 
   const run = async (fn: () => Promise<string | null>, ok: string) => {
     setBusy(true);
@@ -131,6 +134,11 @@ export default function RealOrderScreen() {
           />
         )}
         {canConfirm && <Txt size={12} color={colors.neutral700}>Confirme seulement quand tu as l'article entre les mains : c'est ce qui déclenche le paiement du vendeur.</Txt>}
+        {canConfirm && (
+          <View style={{ padding: 14, borderRadius: 20, backgroundColor: colors.accent100 }}>
+            <Reclamation size={13} color={colors.accent800} {...claim} before="Un problème (colis abîmé, article différent de l'annonce, rien reçu) ? Ne confirme pas la réception et écris à " after=" avec des photos : on s'en occupe." />
+          </View>
+        )}
         {o.status === 'received' && (
           <View style={{ padding: 16, borderRadius: 24, backgroundColor: colors.accent2_100 }}>
             <Txt color={colors.accent2_800}>{isSale ? `Bravo pour ta vente ! ${fmt(o.price - o.commission)} sont en route vers ton compte bancaire.` : 'Commande terminée. Merci d\'avoir donné une seconde vie à ce vêtement 🌱'}</Txt>
@@ -143,13 +151,14 @@ export default function RealOrderScreen() {
             <Txt size={18} color={colors.accent}>{stars(review.rating)}</Txt>
             {!!review.comment && <Txt size={14} color={colors.neutral800}>« {review.comment} »</Txt>}
             {review.washedOk && <Txt size={12} color={colors.accent2_700}>✓ Lavé et plié confirmé</Txt>}
+            <Reclamation {...claim} subject={`Avis à vérifier · ${o.title}`} before="Un avis injuste ou insultant ? Écris à " />
           </View>
         )}
 
         <OutlineButton label={`Écrire à ${other?.name ?? (isSale ? "l'acheteur" : 'au vendeur')}`} height={48} size={15} onPress={talk} />
         <View style={{ alignSelf: 'center', flexDirection: 'row', gap: 6, alignItems: 'center' }}>
           <MessageCircle size={14} strokeWidth={ICON_STROKE} color={colors.neutral600} />
-          <Txt size={12} color={colors.neutral600}>Un problème avec la commande ? Écris-nous à {LEGAL.email}</Txt>
+          <Reclamation {...claim} color={colors.neutral600} before="Un problème avec la commande ? Écris à " />
         </View>
         {isSale && o.status !== 'cancelled' && reported && (
           // Once the seller reaches the yearly tax report (the CGU explain it to everyone).
