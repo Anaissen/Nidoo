@@ -7,7 +7,8 @@
 //
 // Setup (Supabase dashboard): Edge Functions → Deploy a new function → name "payments", paste this
 // file, turn OFF "Verify JWT" (the function checks the user itself), and add the secret
-// STRIPE_SECRET_KEY (sk_test_… in test mode) under Edge Functions → Secrets.
+// STRIPE_SECRET_KEY (sk_test_… in test mode) under Edge Functions → Secrets. Optional: the secret
+// RESEND_API_KEY (the Resend key) sends e-mails on each sale, shipment and payout.
 
 import Stripe from 'npm:stripe@23.0.0';
 import { createClient, type SupabaseClient, type User } from 'npm:@supabase/supabase-js@2';
@@ -39,8 +40,52 @@ class Refusal extends Error {}
 
 const cents = (euros: number) => Math.round(euros * 100);
 const round2 = (n: number) => Math.round(n * 100) / 100;
+const euros = (n: number) => `${n.toFixed(2).replace('.', ',')} €`;
+const escapeHtml = (t: string) => t.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
-export function makeHandler(stripe: Stripe, admin: SupabaseClient) {
+export type SendMail = (to: string, subject: string, html: string) => Promise<void>;
+
+/** Through Resend, from bonjour@pimou.fr. Without a RESEND_API_KEY secret, no e-mail is sent. */
+export const resendMail: SendMail = async (to, subject, html) => {
+  const key = Deno.env.get('RESEND_API_KEY');
+  if (!key) return;
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: 'Pimou <bonjour@pimou.fr>', to: [to], subject, html }),
+  });
+  if (!res.ok) console.error('Resend', res.status, await res.text());
+};
+
+/** Same look as the account e-mails (supabase/emails). `paragraphs` are already HTML-escaped. */
+function mailHtml(title: string, paragraphs: string[], cta: { label: string; url: string }) {
+  return `<!doctype html><html lang="fr"><body style="margin:0;padding:0;background:#f5ead8;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5ead8;padding:32px 16px;"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#f9f4ed;border-radius:28px;padding:32px 28px;font-family:Helvetica,Arial,sans-serif;color:#201e1d;">
+<tr><td align="center" style="padding-bottom:8px;"><img src="${APP_URL}email-logo.png" width="140" alt="Pimou" style="display:block;width:140px;height:auto;border:0;"></td></tr>
+<tr><td style="font-size:24px;font-weight:bold;line-height:1.3;padding:8px 0 12px;">${title}</td></tr>
+<tr><td style="font-size:16px;line-height:1.55;color:#474238;">${paragraphs.map((p) => `<p style="margin:0 0 12px;">${p}</p>`).join('')}</td></tr>
+<tr><td align="center" style="padding:12px 0 20px;"><a href="${cta.url}" style="display:inline-block;background:#b2622d;color:#f9f4ed;text-decoration:none;font-weight:bold;font-size:17px;padding:16px 30px;border-radius:999px;">${cta.label}</a></td></tr>
+<tr><td style="font-size:13px;line-height:1.5;color:#645c50;">À très vite,<br>L'équipe Pimou 🌱</td></tr>
+</table></td></tr></table></body></html>`;
+}
+
+export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: SendMail = resendMail) {
+  /** E-mail a parent about one of their orders. Never blocks or breaks the payment itself. */
+  async function mailTo(userId: string, subject: string, paragraphs: string[], cta: { label: string; url: string }) {
+    try {
+      const { data } = await admin.auth.admin.getUserById(userId);
+      const to = data?.user?.email;
+      if (to) await sendMail(to, subject, mailHtml(escapeHtml(subject), paragraphs, cta));
+    } catch (e) {
+      console.error('mail', e);
+    }
+  }
+  async function displayName(userId: string) {
+    const { data } = await admin.from('public_profiles').select('display_name').eq('id', userId).maybeSingle();
+    return (data?.display_name as string | undefined) || 'Un parent';
+  }
+
   // ── Sellers ───────────────────────────────────────────────────────────────────────────
 
   async function payoutAccount(user: User) {
@@ -182,6 +227,13 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient) {
         const patch = { status: 'paid' as const, payment_intent: pi.id, charge_id: charge, paid_at: now };
         await admin.from('orders').update(patch).eq('id', o.id);
         out.push({ ...o, ...patch });
+        const buyer = escapeHtml(await displayName(o.buyer_id));
+        await mailTo(o.seller_id, `Tu as vendu « ${o.title} » sur Pimou 🎉`, [
+          `Bonne nouvelle : ${buyer} vient d'acheter <strong>« ${escapeHtml(o.title)} »</strong>. Tu recevras ${euros(Number(o.price) - Number(o.commission))} dès que l'acheteur aura confirmé la réception.`,
+          o.delivery === 'main'
+            ? 'Fixez ensemble le lieu et l\'heure de la remise en main propre dans la messagerie de Pimou.'
+            : 'Prépare le colis et expédie-le sous 3 jours, puis indique-le dans l\'appli.',
+        ], { label: 'Voir ma vente', url: `${APP_URL}commande/${o.id}` });
       } else {
         await stripe.refunds.create({ payment_intent: pi.id, amount: cents(Number(o.price) + Number(o.shipping)), metadata: { pimou_order: o.id } }, { idempotencyKey: `refund-${o.id}` });
         await admin.from('orders').update({ status: 'cancelled' }).eq('id', o.id);
@@ -203,6 +255,10 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient) {
     if (o.status !== 'paid') throw new Refusal(o.status === 'shipped' ? 'Déjà indiqué comme expédié' : "Cette commande n'est pas à expédier");
     const patch = { status: 'shipped' as const, shipped_at: new Date().toISOString() };
     await admin.from('orders').update(patch).eq('id', o.id);
+    await mailTo(o.buyer_id, `« ${o.title} » est en route 📦`, [
+      `${escapeHtml(await displayName(o.seller_id))} a expédié <strong>« ${escapeHtml(o.title)} »</strong>.`,
+      'Dès que tu l\'as entre les mains, confirme la réception dans Pimou : c\'est ce qui déclenche le paiement du vendeur.',
+    ], { label: 'Voir ma commande', url: `${APP_URL}commande/${o.id}` });
     return { order: { ...o, ...patch } };
   }
 
@@ -223,6 +279,10 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient) {
     }, { idempotencyKey: `release-${o.id}` });
     const patch = { status: 'received' as const, transfer_id: transfer.id, received_at: new Date().toISOString() };
     await admin.from('orders').update(patch).eq('id', o.id);
+    await mailTo(o.seller_id, 'Ton argent est en route 💶', [
+      `${escapeHtml(await displayName(o.buyer_id))} a bien reçu <strong>« ${escapeHtml(o.title)} »</strong>.`,
+      `${euros(Number(o.price) - Number(o.commission))} sont en route vers ton compte bancaire : ils arrivent en général en quelques jours ouvrés.`,
+    ], { label: 'Voir ma vente', url: `${APP_URL}commande/${o.id}` });
     return { order: { ...o, ...patch } };
   }
 

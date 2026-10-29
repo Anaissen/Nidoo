@@ -76,10 +76,12 @@ export default function ProductScreen() {
     <BottomBar>
       {isMine ? (
         <>
-          <View style={{ flex: 1, height: 54, borderRadius: 999, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
-            <Txt weight="semi">C'est ton annonce</Txt>
+          <View style={{ flex: 1, height: 54, borderRadius: 999, backgroundColor: p.sold ? colors.accent2_100 : colors.surface, alignItems: 'center', justifyContent: 'center' }}>
+            <Txt weight="semi" color={p.sold ? colors.accent2_800 : colors.text}>{p.sold ? 'Vendu 🎉' : "C'est ton annonce"}</Txt>
           </View>
-          {p.remoteId != null && <OutlineButton label="Retirer" size={15} onPress={withdraw} style={{ paddingHorizontal: 20 }} />}
+          {p.sold
+            ? <OutlineButton label="Voir la vente" size={15} onPress={() => router.push('/orders?tab=ventes')} style={{ paddingHorizontal: 20 }} />
+            : p.remoteId != null && <OutlineButton label="Retirer" size={15} onPress={withdraw} style={{ paddingHorizontal: 20 }} />}
         </>
       ) : (
         <>

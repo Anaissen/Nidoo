@@ -4,6 +4,7 @@ import { Pressable, View } from 'react-native';
 import { useSearchWith } from '../components/home/shared';
 import { BackHeader, Screen } from '../components/Screen';
 import { H, Txt } from '../components/ui';
+import { currentUser } from '../lib/backend';
 import { growthAlert } from '../lib/kids';
 import { productById, useStore } from '../store/useStore';
 import { colors } from '../theme/tokens';
@@ -16,7 +17,22 @@ export default function Notifications() {
   const sales = useStore((s) => s.sales);
   const mine = useStore((s) => s.mine);
   const grow = kids.map((k) => ({ k, a: growthAlert(k) })).filter((x) => x.a);
+  const realOrders = useStore((s) => s.realOrders);
+  const people = useStore((s) => s.marketSellers);
+  const me = currentUser()?.id;
+  const who = (id: string) => people[id]?.name ?? 'Un parent';
+  // Real orders: what needs doing (or just happened) on each side.
+  const orderItems = realOrders.flatMap((o) => {
+    const open = () => router.push(`/commande/${o.id}`);
+    const when = new Date(o.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    if (o.sellerId === me && o.status === 'paid') return [{ init: '€', bg: colors.accent2_300, text: o.delivery === 'main' ? `Vendu ! ${who(o.buyerId)} a acheté « ${o.title} ». Fixez le rendez-vous dans la messagerie.` : `Vendu ! ${who(o.buyerId)} a acheté « ${o.title} ». Expédie-le sous 3 jours.`, when, unread: true, open }];
+    if (o.sellerId === me && o.status === 'received') return [{ init: '💶', bg: colors.accent2_200, text: `${who(o.buyerId)} a bien reçu « ${o.title} » : ton argent est en route vers ton compte bancaire.`, when, unread: false, open }];
+    if (o.buyerId === me && o.status === 'shipped') return [{ init: '📦', bg: colors.accent200, text: `« ${o.title} » est en route ! Confirme la réception dès que tu l'as.`, when, unread: true, open }];
+    if (o.buyerId === me && o.status === 'cancelled') return [{ init: '↩', bg: colors.neutral300, text: `« ${o.title} » a été vendu juste avant ton paiement : tu as été remboursé·e.`, when, unread: false, open }];
+    return [];
+  });
   const items = [
+    ...orderItems,
     ...grow.map(({ k, a }) => ({ init: '🌱', bg: colors.accent2_200, text: `Il grandit ! ${a!.text}. Prépare sa nouvelle garde-robe.`, when: "Aujourd'hui", unread: true, open: () => router.push(`/passport/${k.id}`) })),
     ...sales.filter((o) => o.status === 0 && o.del !== 'Main propre').map((o) => ({ init: '€', bg: colors.accent2_300, text: `Vendu ! ${o.buyer} a acheté « ${productById(mine, o.pid)?.title} ». Ton bordereau est prêt.`, when: "Aujourd'hui", unread: true, open: () => router.push(`/label/${o.id}`) })),
     { init: 'J', bg: colors.accent2_300, text: 'Julie M. a répondu à propos de « Robe en lin smockée »', when: 'il y a 12 min', unread: true, open: () => router.push(`/chat/${openChatFor('s2', 2)}`) },

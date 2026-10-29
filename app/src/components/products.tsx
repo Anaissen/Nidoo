@@ -54,7 +54,8 @@ export function ProductTile({ p, meta = 'size', showHeart = true, showLabel = tr
     <Pressable onPress={() => openProduct(p.id)} style={{ flex: 1, minWidth: 0, gap: 5 }}>
       <ProductPhoto p={p} label={showLabel ? p.ph ?? 'photo' : undefined} style={{ aspectRatio: 4 / 5, borderRadius: 22 }}>
         {p.type === 'lot' && <LotBadge label={`Lot · ${p.count}`} style={{ top: 10, left: 10 }} />}
-        {showHeart && <HeartButton id={p.id} style={{ position: 'absolute', top: 8, right: 8 }} />}
+        {showHeart && !p.sold && <HeartButton id={p.id} style={{ position: 'absolute', top: 8, right: 8 }} />}
+        {p.sold && <LotBadge label="Vendu ✓" bg={colors.accent2_700} fg={colors.neutral100} style={{ bottom: 10, left: 10 }} />}
       </ProductPhoto>
       <Txt size={15} weight="bold" style={{ paddingLeft: 2 }}>{fmt(p.price)}</Txt>
       <Txt size={13} lh={1.3} style={{ paddingLeft: 2 }} {...ellipsis}>{p.title}</Txt>

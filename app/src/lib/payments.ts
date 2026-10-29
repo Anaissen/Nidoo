@@ -52,6 +52,26 @@ export async function loadOrders() {
     useStore.setState((st) => ({ marketSellers: { ...st.marketSellers, ...people } }));
   }
   useStore.setState({ realOrders: orders });
+  announce(orders);
+}
+
+/** Status of each order at the last load; null until the first load (no notice for what was already there). */
+let known: Record<string, RealOrder['status']> | null = null;
+
+/** A notice for what just happened to the other side of an order: sold, shipped, paid out. */
+function announce(orders: RealOrder[]) {
+  const me = currentUser()?.id;
+  const s = useStore.getState();
+  const name = (id: string) => s.marketSellers[id]?.name ?? 'Un parent';
+  if (known) {
+    for (const o of orders) {
+      if (known[o.id] === o.status) continue;
+      if (o.sellerId === me && o.status === 'paid') s.showToast(`🎉 Vendu ! ${name(o.buyerId)} a acheté « ${o.title} »`);
+      else if (o.buyerId === me && o.status === 'shipped') s.showToast(`📦 « ${o.title} » est en route !`);
+      else if (o.sellerId === me && o.status === 'received') s.showToast(`💶 ${name(o.buyerId)} a bien reçu « ${o.title} » : ton argent est en route`);
+    }
+  }
+  known = Object.fromEntries(orders.map((o) => [o.id, o.status]));
 }
 
 let channel: RealtimeChannel | null = null;
@@ -63,6 +83,7 @@ export function startPayments() {
   supabase.auth.onAuthStateChange((event, session) => {
     if (!session) {
       channel?.unsubscribe(); channel = null;
+      known = null;
       useStore.setState({ realOrders: [], payout: null });
       return;
     }

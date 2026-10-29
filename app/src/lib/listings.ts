@@ -49,11 +49,12 @@ export const loadMarket = () => (loading = fetchMarket());
 export const marketLoaded = () => loading;
 
 async function fetchMarket() {
-  const { data, error } = await supabase.from('listings').select('*').eq('status', 'active').order('created_at', { ascending: false }).limit(200);
+  // Sold listings only come back for their seller (row level security): they stay in "Mon dressing".
+  const { data, error } = await supabase.from('listings').select('*').in('status', ['active', 'sold']).order('created_at', { ascending: false }).limit(200);
   if (error || !data) return;
   const me = currentUser()?.id;
   const rows = data as ListingRow[];
-  const others = rows.filter((r) => r.seller_id !== me);
+  const others = rows.filter((r) => r.seller_id !== me && r.status !== 'sold');
   const ids = [...new Set(others.map((r) => r.seller_id))];
   const sellers: Record<string, Seller> = {};
   if (ids.length) {
