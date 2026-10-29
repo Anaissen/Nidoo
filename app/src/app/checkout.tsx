@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { MapPin } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { TextInput, View } from 'react-native';
@@ -5,7 +6,7 @@ import { TextInput, View } from 'react-native';
 import { formatKm } from '../components/Badges';
 import { OptionCard } from '../components/OptionCard';
 import { BackHeader, BottomBar, Screen } from '../components/Screen';
-import { H, PrimaryButton, Txt } from '../components/ui';
+import { H, LinkButton, PrimaryButton, Txt } from '../components/ui';
 import { DELIVERY, HANDOVER_MAX_KM } from '../data/catalog';
 import { useCartGroups } from '../lib/cart';
 import { fmt } from '../lib/format';
@@ -112,6 +113,10 @@ export default function Checkout() {
             <Txt size={17} weight="bold">Total</Txt>
             <Txt size={17} weight="bold">{fmt(total)}</Txt>
           </View>
+        </View>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 4 }}>
+          <Txt size={12} color={colors.neutral700}>En payant, tu acceptes les</Txt>
+          <LinkButton label="conditions d'utilisation de Pimou." size={12} onPress={() => router.push('/legal/cgu')} />
         </View>
       </View>
     </Screen>

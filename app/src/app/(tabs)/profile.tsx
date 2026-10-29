@@ -33,6 +33,7 @@ export default function Profile() {
     { label: 'Mon impact', meta: `${impact.pieces} vêtements`, href: '/impact' },
     { label: 'Comment ça marche', meta: 'Guide', href: '/guide' },
     { label: 'Guide des états', meta: 'Neuf, très bon…', href: '/conditions' },
+    { label: 'Informations légales', meta: 'CGU, confidentialité', href: '/legal' },
     { label: 'Réglages', meta: 'Affichage, compte', href: '/settings' },
   ];
 

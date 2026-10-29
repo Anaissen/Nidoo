@@ -20,20 +20,21 @@ npm run typecheck
 - **Accueil « par enfant »** (direction 1c) : un flux par passeport, à sa taille, trié selon ses couleurs préférées, avec rappel d'anniversaire et option « taille au-dessus »
 - **Passeport enfant** : prénom, avatar, date de naissance complète (âge calculé), taille portée, cm, pointure, couleurs, style, petits mots. Conservé sur l'appareil.
 - **Sans enfant** : « 🎁 Pour offrir » sur l'accueil pour dénicher à toutes les tailles sans passeport
-- **Bordereau d'envoi** après une vente (QR code, n° de suivi, étapes d'envoi) et confirmation / saisie de l'adresse à domicile au paiement
+- Confirmation / saisie de l'adresse à domicile au paiement (les vrais bordereaux d'envoi sont dans la feuille de route)
 - **Prix négociables** : « Faire une offre », contre-offre du vendeur dans la messagerie, prix négocié appliqué au panier. Le vendeur peut refuser les offres sur son annonce.
 - **Il grandit** : alerte quand un enfant approche de la taille suivante (≤ 3 mois), sur l'accueil, le passeport et les notifications
 - **Garde-robe de saison** par enfant (liste automne-hiver / printemps-été), « Trouver » lance la recherche, les achats cochent la liste
-- **Badges** « Parent vérifié » (vérification du compte dans Réglages, simulée) et « Lavé et plié » (promis par le vendeur, confirmé par l'acheteur à la réception)
+- **Badges** « Parent vérifié » (vérification d'identité à venir) et « Lavé et plié » (promis par le vendeur, confirmé par l'acheteur à la réception)
 - **Guide des états** (de « Neuf avec étiquette » à « Satisfaisant »), accessible depuis la fiche, la vente et le profil
-- **Près de chez toi** : distance du vendeur, filtre « moins de 2 / 5 / 10 km », lieux sûrs proposés pour la remise en main propre
+- **Près de chez toi** : distance du vendeur, filtre « moins de 2 / 5 / 10 km », conseils de lieu public pour la remise en main propre
 - **Compteur d'impact** : vêtements sauvés, estimations CO₂ et eau, et un **arbre qui grandit** (graine → petite pousse 10 → jeune arbre 25 → grand chêne 50 → forêt entière 100), aussi sur le profil et dans le guide
 - **Mode sombre** (clair par défaut, ou sombre / automatique) et **taille du texte** (normal / grand / très grand) dans Réglages
 - Recherche + filtres (âge, distance, fille/garçon, saison, état, prix, marque, couleur), Tout / Pièces / Lots
 - Fiche pièce ou lot (contenu du lot, prix à la pièce), profil vendeur (dressing, avis, suivre)
 - Vendre en 4 étapes (type, photos, description, prix avec montant reçu, modes de livraison)
-- Panier groupé par vendeur, paiement (point relais / domicile / main propre, carte / Apple Pay)
-- Messagerie avec réponses rapides, favoris, mes achats / ventes, suivi de commande + notation, notifications
+- Panier groupé par vendeur, paiement Stripe (point relais / domicile / main propre)
+- Messagerie avec réponses rapides, favoris, mes achats / ventes, suivi de commande + avis, notifications
+- **Informations légales** (`src/app/legal`, textes dans `src/data/legal.ts`) : CGU, politique de confidentialité, mentions légales, acceptation à l'inscription, « Signaler cette annonce », rappel impôts / URSSAF au vendeur à chaque vente. Les champs de `LEGAL` (éditeur, SIREN, médiateur, région des serveurs) sont à remplir une fois la structure créée ; vides, ils s'affichent « [à compléter] ».
 
 ## Structure
 

@@ -3,9 +3,11 @@ import { Check, MessageCircle, Star } from 'lucide-react-native';
 import { useState } from 'react';
 import { Image, Pressable, TextInput, View } from 'react-native';
 
+import { LegalText } from '../../components/LegalText';
 import { BackHeader, Screen } from '../../components/Screen';
 import { ellipsis, H, OutlineButton, PrimaryButton, Txt } from '../../components/ui';
 import { DELIVERY } from '../../data/catalog';
+import { LEGAL } from '../../data/legal';
 import { currentUser } from '../../lib/backend';
 import { fmt } from '../../lib/format';
 import { chatForOrder } from '../../lib/messaging';
@@ -144,8 +146,14 @@ export default function RealOrderScreen() {
         <OutlineButton label={`Écrire à ${other?.name ?? (isSale ? "l'acheteur" : 'au vendeur')}`} height={48} size={15} onPress={talk} />
         <View style={{ alignSelf: 'center', flexDirection: 'row', gap: 6, alignItems: 'center' }}>
           <MessageCircle size={14} strokeWidth={ICON_STROKE} color={colors.neutral600} />
-          <Txt size={12} color={colors.neutral600}>Un problème avec la commande ? Écris-nous à bonjour@pimou.fr</Txt>
+          <Txt size={12} color={colors.neutral600}>Un problème avec la commande ? Écris-nous à {LEGAL.email}</Txt>
         </View>
+        {isSale && o.status !== 'cancelled' && (
+          // Platforms must remind sellers of their tax and social duties at each sale (article 242 bis du CGI).
+          <View style={{ padding: 14, borderRadius: 20, backgroundColor: colors.neutral100 }}>
+            <LegalText size={12} color={colors.neutral700} text="Impôts : vendre tes propres affaires d'occasion n'est en principe pas imposable. Acheter pour revendre, ou vendre très souvent, peut être une activité à déclarer. Au-delà de 30 ventes ou 2 000 € par an, Pimou transmet le montant de tes ventes aux impôts. En savoir plus : impots.gouv.fr et urssaf.fr." />
+          </View>
+        )}
       </View>
     </Screen>
   );
