@@ -16,7 +16,10 @@ export type ListingRow = {
   condition: string; price: number | string; color: string; count: number | null; contents: Product['contents'] | null;
   negotiable: boolean; washed: boolean; photos: string[]; created_at: string; status?: string;
 };
-export type SellerRow = { id: string; display_name: string; city: string; zip: string; verified: boolean; created_at: string };
+export type SellerRow = {
+  id: string; display_name: string; city: string; zip: string; verified: boolean; created_at: string;
+  sales_count?: number; rating_count?: number; rating_avg?: number | string | null; washed_confirms?: number;
+};
 
 export const toProduct = (r: ListingRow, mine: boolean): Product => ({
   id: REMOTE_ID_OFFSET + r.id, remoteId: r.id, type: r.type, title: r.title, description: r.description, brand: r.brand || 'Sans marque', age: r.age, size: r.age,
@@ -37,9 +40,10 @@ function guessKm(zip: string) {
 }
 
 export const sellerFromRow = (r: SellerRow): Seller => ({
-  id: r.id, name: r.display_name || 'Un parent', city: r.city, rating: '–', reviews: 0, sales: 0,
+  id: r.id, name: r.display_name || 'Un parent', city: r.city,
+  rating: r.rating_avg != null ? Number(r.rating_avg).toFixed(1).replace('.', ',') : '–', reviews: r.rating_count ?? 0, sales: r.sales_count ?? 0,
   init: (r.display_name || '?').slice(0, 1).toUpperCase(), since: r.created_at.slice(0, 4), ship: '48 h',
-  verified: r.verified, distanceKm: guessKm(r.zip), washedConfirms: 0,
+  verified: r.verified, distanceKm: guessKm(r.zip), washedConfirms: r.washed_confirms ?? 0,
 });
 
 let loading: Promise<void> = Promise.resolve();
@@ -55,15 +59,19 @@ async function fetchMarket() {
   const me = currentUser()?.id;
   const rows = data as ListingRow[];
   const others = rows.filter((r) => r.seller_id !== me && r.status !== 'sold');
-  const ids = [...new Set(others.map((r) => r.seller_id))];
+  // The sellers' cards, and the person's own (their real rating and sales on "Mon dressing").
+  const ids = [...new Set([...others.map((r) => r.seller_id), ...(me ? [me] : [])])];
   const sellers: Record<string, Seller> = {};
   if (ids.length) {
     const res = await supabase.from('public_profiles').select('*').in('id', ids);
     (res.data as SellerRow[] | null)?.forEach((r) => { sellers[r.id] = sellerFromRow(r); });
   }
+  const myCard = me ? sellers[me] ?? null : null;
+  if (me) delete sellers[me];
   useStore.setState((s) => ({
     market: others.filter((r) => sellers[r.seller_id]).map((r) => toProduct(r, false)),
-    marketSellers: sellers,
+    marketSellers: { ...s.marketSellers, ...sellers },
+    myCard,
     // Own listings from the server, plus any published on this phone before logging in.
     mine: [...rows.filter((r) => r.seller_id === me).map((r) => toProduct(r, true)), ...s.mine.filter((p) => !p.remoteId)],
   }));

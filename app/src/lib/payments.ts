@@ -7,6 +7,7 @@ import { DeliveryId, Seller } from '../data/catalog';
 import { RealOrder, useStore } from '../store/useStore';
 import { currentUser, supabase } from './backend';
 import { loadMarket, sellerFromRow, SellerRow } from './listings';
+import { loadOrderReviews } from './reviews';
 import { everyWhileVisible } from './visible';
 
 // The money side lives in the "payments" Edge Function (supabase/functions/payments): Stripe keys never
@@ -52,11 +53,23 @@ export async function loadOrders() {
     (res.data as SellerRow[] | null)?.forEach((r) => { people[r.id] = sellerFromRow(r); });
     useStore.setState((st) => ({ marketSellers: { ...st.marketSellers, ...people } }));
   }
-  useStore.setState({ realOrders: orders });
-  // Something new on an order (sold, shipped…): the listings change too.
-  if (known && orders.some((o) => known![o.id] !== o.status)) void loadMarket();
+  const orderReviews = await loadOrderReviews(orders.filter((o) => o.status === 'received').map((o) => o.id));
+  useStore.setState({ realOrders: orders, orderReviews });
+  // Something new on an order (sold, shipped, reviewed…): the listings and figures change too.
+  const reviewed = Object.keys(orderReviews).filter((id) => knownReviews && !knownReviews.has(id));
+  if ((known && orders.some((o) => known![o.id] !== o.status)) || reviewed.length) void loadMarket();
   announce(orders);
+  // New reviews of my sales.
+  for (const id of reviewed) {
+    const r = orderReviews[id];
+    const o = orders.find((x) => x.id === id);
+    if (r && o && r.sellerId === me) s.showToast(`⭐ ${useStore.getState().marketSellers[r.buyerId]?.name ?? 'Un parent'} t'a laissé ${r.rating} étoile${r.rating > 1 ? 's' : ''} pour « ${o.title} »`);
+  }
+  knownReviews = new Set(Object.keys(orderReviews));
 }
+
+/** Orders already reviewed at the last load; null until the first load. */
+let knownReviews: Set<string> | null = null;
 
 /** Status of each order at the last load; null until the first load (no notice for what was already there). */
 let known: Record<string, RealOrder['status']> | null = null;
@@ -89,7 +102,8 @@ export function startPayments() {
       channel?.unsubscribe(); channel = null;
       stopPolling?.(); stopPolling = null;
       known = null;
-      useStore.setState({ realOrders: [], payout: null });
+      knownReviews = null;
+      useStore.setState({ realOrders: [], payout: null, orderReviews: {} });
       return;
     }
     if (event !== 'INITIAL_SESSION' && event !== 'SIGNED_IN') return;
@@ -101,6 +115,8 @@ export function startPayments() {
       channel = supabase.channel(`orders-${me}`)
         // An order changed: refresh it, and the listings (a sold article shows as such right away).
         .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => { void loadOrders(); })
+        // Reviews are public: only listen to those about me.
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews', filter: `seller_id=eq.${me}` }, () => { void loadOrders(); })
         .subscribe();
     }, 50);
     // Back-up for the live connection: look at the orders every 20 seconds.

@@ -42,7 +42,7 @@ export default function Profile() {
             <Avatar init={initial(a)} size={76} bg={colors.accent300} font={30} />
             <View style={{ gap: 4, flex: 1 }}>
               <H size={26} numberOfLines={1}>{fullName(a) || a.email}</H>
-              <Txt size={14} color={colors.neutral700}>{[cityLabel(a), '★ 4,9 (12 avis)'].filter(Boolean).join(' · ')}</Txt>
+              <Txt size={14} color={colors.neutral700}>{[cityLabel(a), s.myCard ? (s.myCard.reviews ? `★ ${s.myCard.rating} (${s.myCard.reviews} avis)` : 'Nouveau sur Pimou') : '★ 4,9 (12 avis)'].filter(Boolean).join(' · ')}</Txt>
               {s.meVerified && <VerifiedBadge small />}
             </View>
           </Pressable>

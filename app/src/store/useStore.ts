@@ -8,6 +8,7 @@ import {
 } from '../data/catalog';
 import { fmt } from '../lib/format';
 import { Account, cityLabel, DEMO_ACCOUNT, shortName } from '../lib/account';
+import type { Review } from '../lib/reviews';
 import { DEMO_KIDS, Kid, withCurrentSize } from '../lib/kids';
 
 export type TypeFilter = 'all' | 'unique' | 'lot';
@@ -91,6 +92,10 @@ type State = {
   realOrders: RealOrder[];
   /** Can the parent receive payments for what they sell (Stripe account checked)? null: not asked yet. */
   payout: { ready: boolean; submitted: boolean } | null;
+  /** Reviews of the person's real orders, by order id. */
+  orderReviews: Record<string, Review>;
+  /** The person's own public seller card (real rating, sales…), once logged in. */
+  myCard: Seller | null;
   lastMineId: number | null;
   del: DeliveryId;
   pay: 'card' | 'apple';
@@ -173,6 +178,8 @@ export const useStore = create<State & Actions>()(
       viewingCid: null,
       realOrders: [],
       payout: null,
+      orderReviews: {},
+      myCard: null,
       lastMineId: null,
       del: 'relais',
       pay: 'card',
@@ -446,11 +453,13 @@ export function impactStats(s: Pick<State, 'purchases' | 'sales' | 'mine'>) {
 export const IMPACT_PER_PIECE = { co2Kg: 5, waterL: 1500 };
 
 /** Seller as shown to others: the user's own badge follows their verification. */
-export const sellerView = (s: Pick<State, 'meVerified'> & Partial<Pick<State, 'account'>>, id: string | undefined) => {
+export const sellerView = (s: Pick<State, 'meVerified'> & Partial<Pick<State, 'account' | 'myCard'>>, id: string | undefined) => {
   const seller = sellerById(id);
   if (!seller || seller.id !== 'me') return seller;
   const a = s.account ?? DEMO_ACCOUNT;
-  return { ...seller, verified: s.meVerified, name: shortName(a), init: a.firstName.slice(0, 1).toUpperCase() || seller.init, city: cityLabel(a) };
+  // Logged in: the real figures (reviews, sales…) instead of the demo ones.
+  const real = s.myCard ? { rating: s.myCard.rating, reviews: s.myCard.reviews, sales: s.myCard.sales, washedConfirms: s.myCard.washedConfirms, since: s.myCard.since, ship: s.myCard.ship } : {};
+  return { ...seller, ...real, verified: s.meVerified, name: shortName(a), init: a.firstName.slice(0, 1).toUpperCase() || seller.init, city: cityLabel(a) };
 };
 
 /** The signed-in person, or the demo profile for installs from before sign-up. */

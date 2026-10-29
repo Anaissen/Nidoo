@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { DistancePill, VerifiedBadge, WashedBadge } from '../../components/Badges';
@@ -8,6 +8,8 @@ import { BackButton, Screen } from '../../components/Screen';
 import { Avatar, H, Segmented, Txt } from '../../components/ui';
 import { REVIEWS } from '../../data/catalog';
 import { requireAccount } from '../../lib/auth';
+import { currentUser } from '../../lib/backend';
+import { loadSellerReviews, Review, stars } from '../../lib/reviews';
 import { chatFor, isRemoteListing } from '../../lib/messaging';
 import { allProducts, myListings, sellerView, useMarket, useStore } from '../../store/useStore';
 import { colors, GUTTER } from '../../theme/tokens';
@@ -23,12 +25,20 @@ export default function SellerScreen() {
 
   const meVerified = useStore((s) => s.meVerified);
   const account = useStore((s) => s.account);
-  const sel = sellerView({ meVerified, account }, id);
+  const myCard = useStore((s) => s.myCard);
+  const signedIn = useStore((s) => s.signedIn);
+  const sel = sellerView({ meVerified, account, myCard }, id);
+  // Real parents (and me, logged in): their real reviews. Demo sellers keep the sample ones.
+  const realId = id === 'me' ? (signedIn ? currentUser()?.id : undefined) : useStore.getState().marketSellers[id] ? id : undefined;
+  const [reviews, setReviews] = useState<(Review & { who: string })[] | null>(null);
+  useEffect(() => {
+    if (tab === 'reviews' && realId) void loadSellerReviews(realId).then(setReviews);
+  }, [tab, realId]);
   if (!sel) return <Screen><Txt style={{ padding: GUTTER }}>Vendeur introuvable.</Txt></Screen>;
   const isMe = id === 'me';
   const items = isMe ? myListings(mine) : allProducts(mine).filter((p) => p.sid === id);
 
-  const stats = [sel.reviews ? [`★ ${sel.rating}`, `${sel.reviews} avis`] : ['Nouveau', 'sur Pimou'], [String(sel.sales), 'ventes'], [sel.ship, 'pour expédier']];
+  const stats = [sel.reviews ? [`★ ${sel.rating}`, `${sel.reviews} avis`] : ['Nouveau', 'sur Pimou'], [String(sel.sales), sel.sales === 1 ? 'vente' : 'ventes'], [sel.ship, 'pour expédier']];
 
   return (
     <Screen>
@@ -59,7 +69,7 @@ export default function SellerScreen() {
         {sel.washedConfirms > 0 && (
           <View style={{ marginHorizontal: GUTTER, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 22, backgroundColor: colors.accent100 }}>
             <WashedBadge />
-            <Txt size={13} color={colors.accent800} style={{ flex: 1 }}>Confirmé par {sel.washedConfirms} acheteurs à la réception</Txt>
+            <Txt size={13} color={colors.accent800} style={{ flex: 1 }}>Confirmé par {sel.washedConfirms} acheteur{sel.washedConfirms > 1 ? 's' : ''} à la réception</Txt>
           </View>
         )}
 
@@ -90,7 +100,22 @@ export default function SellerScreen() {
           </View>
         ) : (
           <View style={{ gap: 10, paddingHorizontal: GUTTER }}>
-            {REVIEWS.map((r) => (
+            {realId && reviews?.length === 0 && (
+              <View style={{ padding: 20, borderRadius: 24, backgroundColor: colors.neutral100 }}>
+                <Txt color={colors.neutral800} style={{ textAlign: 'center' }}>Pas encore d'avis. Ils arrivent après les premières ventes.</Txt>
+              </View>
+            )}
+            {realId && reviews?.map((r) => (
+              <View key={r.orderId} style={{ padding: 16, borderRadius: 24, backgroundColor: colors.neutral100, gap: 4 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Txt weight="bold">{r.who}</Txt>
+                  <Txt size={13} color={colors.accent700}>{stars(r.rating)}</Txt>
+                </View>
+                {!!r.comment && <Txt size={14} color={colors.neutral800}>{r.comment}</Txt>}
+                <Txt size={12} color={colors.neutral600}>{new Date(r.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}{r.washedOk ? ' · lavé et plié ✓' : ''}</Txt>
+              </View>
+            ))}
+            {!realId && REVIEWS.map((r) => (
               <View key={r.who} style={{ padding: 16, borderRadius: 24, backgroundColor: colors.neutral100, gap: 4 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                   <Txt weight="bold">{r.who}</Txt>

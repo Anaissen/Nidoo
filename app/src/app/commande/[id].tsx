@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Check, MessageCircle } from 'lucide-react-native';
+import { Check, MessageCircle, Star } from 'lucide-react-native';
 import { useState } from 'react';
-import { Image, View } from 'react-native';
+import { Image, Pressable, TextInput, View } from 'react-native';
 
 import { BackHeader, Screen } from '../../components/Screen';
 import { ellipsis, H, OutlineButton, PrimaryButton, Txt } from '../../components/ui';
@@ -10,8 +10,9 @@ import { currentUser } from '../../lib/backend';
 import { fmt } from '../../lib/format';
 import { chatForOrder } from '../../lib/messaging';
 import { confirmReception, markShipped } from '../../lib/payments';
+import { stars, submitReview } from '../../lib/reviews';
 import { RealOrder, useStore } from '../../store/useStore';
-import { colors, ICON_STROKE } from '../../theme/tokens';
+import { colors, fonts, ICON_STROKE } from '../../theme/tokens';
 
 const STEP: Record<RealOrder['status'], number> = { pending: -1, paid: 0, shipped: 1, received: 2, cancelled: -1 };
 
@@ -35,6 +36,7 @@ export default function RealOrderScreen() {
   const people = useStore((s) => s.marketSellers);
   const showToast = useStore((s) => s.showToast);
   const [busy, setBusy] = useState(false);
+  const review = useStore((s) => (id ? s.orderReviews[id] : undefined));
 
   if (!o) return <Screen><BackHeader title="Commande" style={{ margin: 20 }} /><Txt style={{ padding: 20 }}>Commande introuvable.</Txt></Screen>;
   const isSale = o.sellerId === currentUser()?.id;
@@ -129,6 +131,15 @@ export default function RealOrderScreen() {
             <Txt color={colors.accent2_800}>{isSale ? `Bravo pour ta vente ! ${fmt(o.price - o.commission)} sont en route vers ton compte bancaire.` : 'Commande terminée. Merci d\'avoir donné une seconde vie à ce vêtement 🌱'}</Txt>
           </View>
         )}
+        {o.status === 'received' && !isSale && <ReviewBox order={o} sellerName={other?.name ?? 'le vendeur'} />}
+        {o.status === 'received' && isSale && review && (
+          <View style={{ padding: 16, borderRadius: 24, backgroundColor: colors.neutral100, gap: 4 }}>
+            <Txt size={13} weight="semi">Avis de {other?.name ?? "l'acheteur"}</Txt>
+            <Txt size={18} color={colors.accent}>{stars(review.rating)}</Txt>
+            {!!review.comment && <Txt size={14} color={colors.neutral800}>« {review.comment} »</Txt>}
+            {review.washedOk && <Txt size={12} color={colors.accent2_700}>✓ Lavé et plié confirmé</Txt>}
+          </View>
+        )}
 
         <OutlineButton label={`Écrire à ${other?.name ?? (isSale ? "l'acheteur" : 'au vendeur')}`} height={48} size={15} onPress={talk} />
         <View style={{ alignSelf: 'center', flexDirection: 'row', gap: 6, alignItems: 'center' }}>
@@ -137,5 +148,66 @@ export default function RealOrderScreen() {
         </View>
       </View>
     </Screen>
+  );
+}
+
+/** The buyer rates the seller once the article is received (and can change their mind later). */
+function ReviewBox({ order, sellerName }: { order: RealOrder; sellerName: string }) {
+  const existing = useStore((s) => s.orderReviews[order.id]);
+  const showToast = useStore((s) => s.showToast);
+  const [editing, setEditing] = useState(!existing);
+  const [rating, setRating] = useState(existing?.rating ?? 0);
+  const [comment, setComment] = useState(existing?.comment ?? '');
+  const [washed, setWashed] = useState<boolean | null>(existing?.washedOk ?? null);
+  const [busy, setBusy] = useState(false);
+
+  if (existing && !editing) {
+    return (
+      <View style={{ padding: 16, borderRadius: 24, backgroundColor: colors.neutral100, gap: 4 }}>
+        <Txt size={13} weight="semi">Ton avis sur {sellerName}</Txt>
+        <Txt size={18} color={colors.accent}>{stars(existing.rating)}</Txt>
+        {!!existing.comment && <Txt size={14} color={colors.neutral800}>« {existing.comment} »</Txt>}
+        <Pressable onPress={() => setEditing(true)} style={{ alignSelf: 'flex-start', paddingTop: 4 }}>
+          <Txt size={13} weight="semi" color={colors.accent700}>Modifier</Txt>
+        </Pressable>
+      </View>
+    );
+  }
+
+  const send = async () => {
+    if (!rating) { showToast('Choisis une note de 1 à 5 étoiles'); return; }
+    setBusy(true);
+    const err = await submitReview(order, rating, comment, washed);
+    setBusy(false);
+    if (err) { showToast(err); return; }
+    showToast('Merci pour ton avis !');
+    setEditing(false);
+  };
+
+  return (
+    <View style={{ padding: 18, borderRadius: 28, backgroundColor: colors.surface, gap: 12 }}>
+      <H size={18}>Note {sellerName}</H>
+      <View style={{ flexDirection: 'row', gap: 6 }}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <Pressable key={n} hitSlop={4} onPress={() => setRating(n)} accessibilityLabel={`${n} étoile${n > 1 ? 's' : ''}`} style={{ padding: 2 }}>
+            <Star size={34} strokeWidth={2.25} color={colors.accent} fill={n <= rating ? colors.accent : 'none'} />
+          </Pressable>
+        ))}
+      </View>
+      <TextInput
+        value={comment} onChangeText={(t) => setComment(t.slice(0, 500))} multiline
+        placeholder="Un petit mot pour les autres parents (facultatif)" placeholderTextColor={colors.neutral600}
+        style={{ minHeight: 80, borderRadius: 20, borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.neutral100, padding: 14, fontFamily: fonts.body, fontSize: 15, color: colors.text, textAlignVertical: 'top', outlineWidth: 0 }}
+      />
+      <Txt size={14} weight="semi">Le vêtement était-il lavé et bien plié ?</Txt>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {([[true, 'Oui 👍'], [false, 'Pas vraiment']] as const).map(([v, l]) => (
+          <Pressable key={l} onPress={() => setWashed(washed === v ? null : v)} style={{ flex: 1, height: 44, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: washed === v ? colors.text : colors.neutral100, borderWidth: 1, borderColor: colors.divider }}>
+            <Txt weight="semi" color={washed === v ? colors.bg : colors.text}>{l}</Txt>
+          </Pressable>
+        ))}
+      </View>
+      <PrimaryButton label={busy ? 'Envoi…' : 'Publier mon avis'} height={48} size={16} onPress={send} disabledLook={busy || !rating} />
+    </View>
   );
 }

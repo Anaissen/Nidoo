@@ -26,6 +26,7 @@ export default function ProductScreen() {
   const offer = useStore((s) => s.offers[Number(id)]);
   const meVerified = useStore((s) => s.meVerified);
   const account = useStore((s) => s.account);
+  const myCard = useStore((s) => s.myCard);
   const acceptCounter = useStore((s) => s.acceptCounter);
   const [offerOpen, setOfferOpen] = useState(false);
   const { width } = useWindowDimensions();
@@ -34,7 +35,7 @@ export default function ProductScreen() {
   const p = productById(mine, Number(id));
   if (!p) return <Screen><Txt style={{ padding: GUTTER }}>Annonce introuvable.</Txt></Screen>;
 
-  const seller = sellerView({ meVerified, account }, p.sid)!;
+  const seller = sellerView({ meVerified, account, myCard }, p.sid)!;
   const nearby = seller.distanceKm <= HANDOVER_MAX_KM;
   const isLot = p.type === 'lot';
   const isMine = p.sid === 'me';
