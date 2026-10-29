@@ -20,7 +20,8 @@ export const LEGAL = {
   vat: '',
   phone: '',
   director: '',
-  email: 'bonjour@pimou.fr',
+  /** Where parents write when something goes wrong (a Zimbra mailbox at OVH). */
+  email: 'reclamation@pimou.fr',
   /** Médiateur de la consommation Pimou signs up with (mandatory for a business serving consumers). */
   mediator: { name: '', address: '', url: '' },
   /** Where the Supabase project lives (Project Settings → General → Region), e.g. "en Irlande (Union européenne)". */

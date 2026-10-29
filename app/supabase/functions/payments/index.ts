@@ -48,14 +48,14 @@ const escapeHtml = (t: string) => t.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', 
 
 export type SendMail = (to: string, subject: string, html: string) => Promise<void>;
 
-/** Through Resend, from bonjour@pimou.fr. Without a RESEND_API_KEY secret, no e-mail is sent. */
+/** Through Resend, from bonjour@pimou.fr (send-only); a reply goes to reclamation@pimou.fr. Without a RESEND_API_KEY secret, no e-mail is sent. */
 export const resendMail: SendMail = async (to, subject, html) => {
   const key = Deno.env.get('RESEND_API_KEY');
   if (!key) return;
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: 'Pimou <bonjour@pimou.fr>', to: [to], subject, html }),
+    body: JSON.stringify({ from: 'Pimou <bonjour@pimou.fr>', reply_to: 'reclamation@pimou.fr', to: [to], subject, html }),
   });
   if (!res.ok) console.error('Resend', res.status, await res.text());
 };
