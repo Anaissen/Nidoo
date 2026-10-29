@@ -46,15 +46,19 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient) {
   async function payoutAccount(user: User) {
     const { data } = await admin.from('payout_accounts').select('*').eq('user_id', user.id).maybeSingle();
     if (data) return data as { stripe_account_id: string; ready: boolean };
-    // A Stripe account that only receives transfers from Pimou; Stripe collects the identity checks.
+    // The seller's Stripe account, where Pimou sends their money; Stripe collects the identity checks.
+    // (Stripe's lighter "recipient" agreement isn't available for a French platform paying French sellers.)
     const account = await stripe.accounts.create({
       type: 'express',
       country: 'FR',
       email: user.email,
       business_type: 'individual',
-      capabilities: { transfers: { requested: true } },
-      tos_acceptance: { service_agreement: 'recipient' },
-      business_profile: { product_description: "Vente de vêtements d'enfants d'occasion entre particuliers sur Pimou", url: APP_URL },
+      capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
+      business_profile: {
+        mcc: '5931', // used merchandise and second-hand stores
+        product_description: "Vente de vêtements d'enfants d'occasion entre particuliers sur Pimou",
+        url: APP_URL,
+      },
       metadata: { pimou_user: user.id },
     });
     const row = { user_id: user.id, stripe_account_id: account.id, ready: false };
@@ -268,6 +272,10 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient) {
     } catch (e) {
       if (e instanceof Refusal) return reply({ error: e.message }, 400);
       console.error(e);
+      // In test mode, show Stripe's own explanation: it makes setting things up much easier.
+      const testMode = (Deno.env.get('STRIPE_SECRET_KEY') ?? '').startsWith('sk_test_');
+      const stripeMessage = (e as { type?: string; message?: string })?.type?.startsWith('Stripe') ? (e as Error).message : null;
+      if (testMode && stripeMessage) return reply({ error: `Stripe (test) : ${stripeMessage}` }, 500);
       return reply({ error: "Le paiement n'a pas pu aboutir, réessaie dans un instant." }, 500);
     }
   };
