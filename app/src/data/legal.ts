@@ -173,6 +173,7 @@ const confidentialite = (): LegalDoc => ({
         'Respecter nos obligations légales : comptabilité, déclarations fiscales, réponses aux autorités.',
       ],
       "Pimou n'envoie pas de publicité, ne revend aucune donnée et n'utilise aucun outil de publicité ou de mesure d'audience.",
+      "Pimou n'utilise pas tes données avec une intelligence artificielle, ne s'en sert pas pour en entraîner une, et ne prend aucune décision te concernant de façon automatique. Seul Stripe, notre prestataire de paiement, utilise ses propres outils automatiques pour repérer les paiements frauduleux.",
     ] },
     { title: '5. Qui reçoit tes données', body: [
       'Seulement les prestataires qui font tourner Pimou, chacun pour sa partie et sous contrat :',
@@ -243,6 +244,11 @@ const mentions = (): LegalDoc => ({
     ] },
     { title: 'Propriété intellectuelle', body: [
       "Le nom Pimou, son logo, ses illustrations et son design sont protégés. Les photos et les textes des annonces appartiennent aux parents qui les ont publiés.",
+    ] },
+    { title: 'Intelligence artificielle', body: [
+      "Pimou a été conçu et développé avec l'aide d'outils d'intelligence artificielle.",
+      "L'application, elle, n'utilise pas d'intelligence artificielle avec toi : il n'y a pas de robot de discussion (les messages viennent toujours de vrais parents), et Pimou ne s'en sert ni pour classer les annonces, ni pour prendre des décisions te concernant, ni pour analyser tes données.",
+      "Si Pimou ajoute un jour une fonction qui utilise l'intelligence artificielle (par exemple une aide pour rédiger une annonce), ce sera indiqué clairement là où elle est utilisée, comme le prévoit le règlement européen sur l'intelligence artificielle.",
     ] },
     { title: 'Contact et signalement', body: [
       `Pour toute question ou pour signaler un contenu : ${LEGAL.email}.`,
