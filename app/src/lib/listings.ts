@@ -2,7 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { Platform } from 'react-native';
 
-import { DeliveryId, Product, Seller } from '../data/catalog';
+import { Category, DeliveryId, Product, Seller, sizeLabel } from '../data/catalog';
 import { useStore } from '../store/useStore';
 import { currentUser, supabase } from './backend';
 
@@ -15,6 +15,7 @@ export type ListingRow = {
   id: number; seller_id: string; type: 'unique' | 'lot'; title: string; description: string; brand: string; age: string; gender: string; season: string;
   condition: string; price: number | string; color: string; count: number | null; contents: Product['contents'] | null;
   negotiable: boolean; washed: boolean; photos: string[]; created_at: string; status?: string;
+  category?: Category | null; shoe_size?: number | null; sock_size?: string | null;
 };
 export type SellerRow = {
   id: string; display_name: string; city: string; zip: string; verified: boolean; created_at: string;
@@ -22,7 +23,9 @@ export type SellerRow = {
 };
 
 export const toProduct = (r: ListingRow, mine: boolean): Product => ({
-  id: REMOTE_ID_OFFSET + r.id, remoteId: r.id, type: r.type, title: r.title, description: r.description, brand: r.brand || 'Sans marque', age: r.age, size: r.age,
+  id: REMOTE_ID_OFFSET + r.id, remoteId: r.id, type: r.type, title: r.title, description: r.description, brand: r.brand || 'Sans marque', age: r.age,
+  category: r.category ?? 'vetement', shoeSize: r.shoe_size ?? undefined, sockSize: r.sock_size ?? undefined,
+  size: sizeLabel({ category: r.category ?? 'vetement', shoeSize: r.shoe_size ?? undefined, sockSize: r.sock_size ?? undefined, age: r.age }),
   gender: r.gender, season: r.season, condition: r.condition, price: Number(r.price), color: r.color,
   // The person's own listings use the 'me' seller, like everywhere else in the app.
   sid: mine ? 'me' : r.seller_id,
@@ -139,11 +142,18 @@ export async function publishListing(l: NewListing): Promise<{ id?: number; erro
   try {
     const photos: string[] = [];
     for (let i = 0; i < l.photos.length; i++) photos.push(await uploadPhoto(l.photos[i], user.id, i));
-    const { data, error } = await supabase.from('listings').insert({
+    const row = {
       seller_id: user.id, type: l.type, title: l.title, description: l.description ?? '', brand: l.brand, age: l.age, gender: l.gender, season: l.season,
       condition: l.condition, price: l.price, color: l.color, count: l.count ?? null, contents: l.contents ?? null,
       negotiable: l.negotiable ?? true, washed: !!l.washed, delivery: l.delivery, photos,
-    }).select('*').single();
+    };
+    const sizes = { category: l.category ?? 'vetement', shoe_size: l.shoeSize ?? null, sock_size: l.sockSize ?? null };
+    let { data, error } = await supabase.from('listings').insert({ ...row, ...sizes }).select('*').single();
+    // Database not yet updated for shoes and socks (supabase/schema-7): clothes can still be listed.
+    if (error && /category|shoe_size|sock_size/.test(error.message ?? '')) {
+      if (sizes.category !== 'vetement') return { error: "La vente de chaussures et chaussettes n'est pas encore activée sur le serveur." };
+      ({ data, error } = await supabase.from('listings').insert(row).select('*').single());
+    }
     if (error || !data) throw error ?? new Error('insert failed');
     const p = toProduct(data as ListingRow, true);
     useStore.setState((s) => ({ mine: [p, ...s.mine], lastMineId: p.id }));

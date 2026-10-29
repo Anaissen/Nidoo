@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import {
-  DEFAULT_COMMISSION, DeliveryId, DELIVERY, DISTANCES, MY_PAST_LISTINGS, PRICES, Product, PRODUCTS, Seller, SELLERS,
+  categoryOf, DEFAULT_COMMISSION, DeliveryId, DELIVERY, DISTANCES, MY_PAST_LISTINGS, PRICES, Product, PRODUCTS, Seller, SELLERS, sockFits,
   WARDROBE_TEMPLATES, WardrobeLine,
 } from '../data/catalog';
 import { fmt } from '../lib/format';
@@ -12,7 +12,7 @@ import type { Review } from '../lib/reviews';
 import { DEMO_KIDS, Kid, withCurrentSize } from '../lib/kids';
 
 export type TypeFilter = 'all' | 'unique' | 'lot';
-export type FilterKey = 'ages' | 'genders' | 'seasons' | 'brands' | 'conds' | 'colors' | 'price' | 'distance';
+export type FilterKey = 'cats' | 'shoes' | 'ages' | 'genders' | 'seasons' | 'brands' | 'conds' | 'colors' | 'price' | 'distance';
 export type ThemeMode = 'auto' | 'light' | 'dark';
 export type Wardrobe = { season: keyof typeof WARDROBE_TEMPLATES; lines: WardrobeLine[] };
 export type Filters = Record<FilterKey, string[]>;
@@ -41,7 +41,7 @@ export const remoteChat: {
 // status: 0 payée · 1 expédiée · 2 en relais / rdv fixé · 3 reçue
 export type Order = { id: string; pid: number; status: number; del: string; rating?: number; buyer?: string; price?: number; washedOk?: boolean };
 
-export const emptyFilters = (): Filters => ({ ages: [], genders: [], seasons: [], brands: [], conds: [], colors: [], price: [], distance: [] });
+export const emptyFilters = (): Filters => ({ cats: [], shoes: [], ages: [], genders: [], seasons: [], brands: [], conds: [], colors: [], price: [], distance: [] });
 
 /** Season to prepare for: from August the autumn-winter list, from February spring-summer. */
 export const currentWardrobeSeason = (now = new Date()): Wardrobe['season'] => {
@@ -405,14 +405,17 @@ export const filterProducts = (s: Pick<State, 'mine' | 'f' | 'q' | 'ftype'>) => 
   const ql = q.trim().toLowerCase();
   return allProducts(s.mine).filter((p) =>
     (ftype === 'all' || p.type === ftype) &&
-    (!ql || `${p.title} ${p.brand}`.toLowerCase().includes(ql)) &&
+    (!ql || `${p.title} ${p.brand} ${categoryOf(p).label}`.toLowerCase().includes(ql)) &&
+    (!f.cats.length || f.cats.includes(categoryOf(p).label)) &&
+    // A shoe size picked: the shoes of that size, and the socks / tights that fit it.
+    (!f.shoes.length || f.shoes.some((n) => (p.category === 'chaussures' && p.shoeSize === Number(n)) || (p.category === 'chaussettes' && sockFits(p.sockSize, Number(n))))) &&
     (!f.ages.length || f.ages.includes(p.age)) &&
     (!f.genders.length || f.genders.includes(p.gender)) &&
     (!f.seasons.length || f.seasons.includes(p.season)) &&
     (!f.brands.length || f.brands.includes(p.brand)) &&
     (!f.conds.length || f.conds.includes(p.condition)) &&
     (!f.colors.length || f.colors.includes(p.color)) &&
-    (!f.distance.length || f.distance.some((l) => SELLERS[p.sid].distanceKm <= DISTANCES.find((d) => d.l === l)!.km)) &&
+    (!f.distance.length || f.distance.some((l) => (sellerById(p.sid)?.distanceKm ?? Infinity) <= DISTANCES.find((d) => d.l === l)!.km)) &&
     (!f.price.length || f.price.some((l) => {
       const r = PRICES.find((x) => x.l === l)!;
       return p.price >= r.min && p.price < r.max;

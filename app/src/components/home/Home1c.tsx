@@ -3,7 +3,7 @@ import { ChevronRight, Layers, Plus } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 
-import { AGES } from '../../data/catalog';
+import { AGES, Category, CATEGORIES, Product, sockFits } from '../../data/catalog';
 
 import { fmt, plural } from '../../lib/format';
 import { ageLabel, birthdayNote, GIFT, nextSize, prevSize } from '../../lib/kids';
@@ -34,6 +34,14 @@ export function Home1c() {
   const tile = (width - GUTTER * 2 - 12) / 2;
 
   const [giftSize, setGiftSize] = useState<string | null>(null);
+  const [cat, setCat] = useState<Category | 'all'>('all');
+  const inCat = (p: Product) => cat === 'all' || (p.category ?? 'vetement') === cat;
+  const catRow = (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: GUTTER }}>
+      <Chip label="Tout" on={cat === 'all'} onPress={() => setCat('all')} height={36} />
+      {CATEGORIES.map((c) => <Chip key={c.id} label={`${c.emoji} ${c.short}`} on={cat === c.id} onPress={() => setCat(cat === c.id ? 'all' : c.id)} height={36} />)}
+    </ScrollView>
+  );
   // "Pour offrir" (or no passport at all): browse every size without a child's profile.
   const kid = activeKidId === GIFT ? undefined : kids.find((k) => k.id === activeKidId) ?? kids[0];
 
@@ -91,7 +99,7 @@ export function Home1c() {
   );
 
   if (!kid) {
-    const giftFeed = allProducts(mine).filter((p) => (!giftSize || p.age === giftSize) && (homeType === 'all' || p.type === homeType));
+    const giftFeed = allProducts(mine).filter((p) => (!giftSize || p.age === giftSize) && (homeType === 'all' || p.type === homeType) && inCat(p));
     return (
       <View style={{ gap: 20, paddingTop: 4 }}>
         {header}
@@ -107,6 +115,7 @@ export function Home1c() {
           ))}
         </ScrollView>
         <Segmented style={{ marginHorizontal: GUTTER }} options={[['all', 'Tout'], ['unique', 'Pièces'], ['lot', 'Les lots']]} value={homeType} onChange={(v) => set({ homeType: v })} />
+        {catRow}
         <Txt size={14} color={colors.neutral800} style={{ paddingHorizontal: GUTTER }}>{plural(giftFeed.length, 'article')}{giftSize ? ` en ${giftSize}` : ''}</Txt>
         <View style={{ paddingHorizontal: GUTTER }}>
           <ProductGrid items={giftFeed} render={(p) => <ProductTile p={p} />} />
@@ -117,8 +126,16 @@ export function Home1c() {
 
   const sizes = kid.showNextSize ? [kid.size, nextSize(kid.size)] : [kid.size];
   const isFav = (color: string) => kid.favColors.includes(color);
+  // Shoes and socks by the child's shoe size when the passport has it, everything else by age.
+  const shoe = kid.shoeSize ? Math.round(kid.shoeSize) : undefined;
+  const shoes = shoe ? (kid.showNextSize ? [shoe, shoe + 1] : [shoe]) : [];
+  const fits = (p: Product) => {
+    if (shoe && p.category === 'chaussures' && p.shoeSize) return shoes.includes(p.shoeSize);
+    if (shoe && p.category === 'chaussettes' && p.sockSize) return shoes.some((n) => sockFits(p.sockSize, n));
+    return sizes.includes(p.age);
+  };
   const feed = allProducts(mine)
-    .filter((p) => sizes.includes(p.age)
+    .filter((p) => fits(p) && inCat(p)
       && (kid.gender === 'Mixte' || p.gender === kid.gender || p.gender === 'Mixte')
       && (homeType === 'all' || p.type === homeType))
     // Their favourite colours first.
@@ -164,6 +181,14 @@ export function Home1c() {
 
       <View style={{ gap: 10, paddingHorizontal: GUTTER }}>
         <Segmented options={[['all', 'Tout'], ['unique', 'Pièces'], ['lot', 'Les lots']]} value={homeType} onChange={(v) => set({ homeType: v })} />
+      </View>
+      {catRow}
+      <View style={{ gap: 10, paddingHorizontal: GUTTER }}>
+        {!shoe && (cat === 'chaussures' || cat === 'chaussettes') && (
+          <Pressable onPress={() => router.push(`/passport/edit?id=${kid.id}`)} style={{ padding: 12, borderRadius: 18, backgroundColor: colors.accent100 }}>
+            <Txt size={13} color={colors.accent800}>👟 Ajoute la pointure de {kid.name} dans son passeport pour voir les chaussures à sa taille →</Txt>
+          </Pressable>
+        )}
         <Pressable
           onPress={() => saveKid({ ...kid, showNextSize: !kid.showNextSize })}
           style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, height: 36, paddingHorizontal: 14, borderRadius: 999, backgroundColor: kid.showNextSize ? colors.accent2_700 : colors.accent2_100 }}
@@ -175,7 +200,7 @@ export function Home1c() {
       </View>
 
       <Txt size={14} color={colors.neutral800} style={{ paddingHorizontal: GUTTER }}>
-        {plural(feed.length, 'article')} pour {kid.name}, en {sizes.join(' et ')}
+        {plural(feed.length, 'article')} pour {kid.name}, en {sizes.join(' et ')}{shoe && cat !== 'vetement' ? ` · pointure ${shoes.join(' et ')}` : ''}
       </Txt>
 
       {feed.length > 0 ? (

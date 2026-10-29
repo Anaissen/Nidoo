@@ -8,7 +8,7 @@ import { OfferSheet } from '../../components/OfferSheet';
 import { HeartButton, openProduct, perPiece, ProductPhoto } from '../../components/products';
 import { BackButton, BottomBar, Screen } from '../../components/Screen';
 import { Avatar, ellipsis, H, OutlineButton, PrimaryButton, Tag, Txt } from '../../components/ui';
-import { HANDOVER_MAX_KM } from '../../data/catalog';
+import { categoryOf, HANDOVER_MAX_KM, unitOf } from '../../data/catalog';
 import { fmt } from '../../lib/format';
 import { requireAccount } from '../../lib/auth';
 import { removeListing } from '../../lib/listings';
@@ -44,9 +44,16 @@ export default function ProductScreen() {
   const photoNames = isLot ? ["vue d'ensemble du lot", ...(p.contents ?? []).map((c) => c.n.toLowerCase()), 'étiquettes'] : ['vue de face', 'vue de dos', 'étiquette'];
   const nPhotos = p.photos?.length || (isLot ? 5 : 3);
   const photoW = width - 24;
-  const similar = allProducts(mine).filter((x) => x.age === p.age && x.id !== p.id).slice(0, 6);
+  // Same size: same shoe size for shoes, same range for socks, same age for clothes.
+  const sameSize = (x: typeof p) => (x.category ?? 'vetement') === (p.category ?? 'vetement')
+    && (p.category === 'chaussures' ? x.shoeSize === p.shoeSize : p.category === 'chaussettes' ? x.sockSize === p.sockSize : x.age === p.age);
+  const similar = allProducts(mine).filter((x) => sameSize(x) && x.id !== p.id).slice(0, 6);
+  // Shoes and socks: their size first, the age is only a guide.
+  const sizeSpecs = p.category === 'chaussures' && p.shoeSize ? [['Pointure', String(p.shoeSize)], ['Âge (environ)', p.age]]
+    : p.category === 'chaussettes' && p.sockSize ? [['Taille', p.sockSize], ['Âge (environ)', p.age]]
+    : [['Âge / taille', p.size]];
   const specs = [
-    ['Âge / taille', p.size], ['Pour', p.gender], ['Marque', p.brand],
+    ...sizeSpecs, ['Pour', p.gender], ['Marque', p.brand],
     ['Saison', p.season], ['Couleur', p.color], ['État', p.condition],
   ];
   // Real listings show what the seller wrote; the demo catalogue keeps a sample text.
@@ -141,8 +148,9 @@ export default function ProductScreen() {
         <View style={{ gap: 10, paddingHorizontal: GUTTER }}>
           <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
             {isLot
-              ? <Tag label={`Lot de ${p.count} pièces`} bg={colors.text} fg={colors.bg} size={12} style={{ paddingHorizontal: 12 }} />
-              : <Tag label="Pièce unique" bg={colors.accent100} fg={colors.accent800} size={12} style={{ paddingHorizontal: 12 }} />}
+              ? <Tag label={`Lot de ${p.count} ${unitOf(p, true)}`} bg={colors.text} fg={colors.bg} size={12} style={{ paddingHorizontal: 12 }} />
+              : <Tag label={p.category && p.category !== 'vetement' ? '1 paire' : 'Pièce unique'} bg={colors.accent100} fg={colors.accent800} size={12} style={{ paddingHorizontal: 12 }} />}
+            {p.category && p.category !== 'vetement' && <Tag label={`${categoryOf(p).emoji} ${categoryOf(p).short}`} bg={colors.surface} fg={colors.text} size={12} weight="semi" style={{ paddingHorizontal: 12 }} />}
             <Pressable onPress={() => router.push(`/conditions?focus=${encodeURIComponent(p.condition)}`)} accessibilityHint="Ouvre le guide des états">
               <Tag label={`${p.condition}  ⓘ`} bg={colors.accent2_100} fg={colors.accent2_800} size={12} weight="semi" style={{ paddingHorizontal: 12 }} />
             </Pressable>
@@ -151,7 +159,7 @@ export default function ProductScreen() {
           <H size={26}>{p.title}</H>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
             <Txt size={26} weight="bold">{fmt(p.price)}</Txt>
-            {isLot && <Txt size={14} weight="semi" color={colors.accent2_700}>soit {perPiece(p)} la pièce</Txt>}
+            {isLot && <Txt size={14} weight="semi" color={colors.accent2_700}>soit {perPiece(p)} la {unitOf(p)}</Txt>}
           </View>
           {negotiable && !offer && (
             <Pressable onPress={() => setOfferOpen(true)} style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, backgroundColor: colors.accent2_100 }}>

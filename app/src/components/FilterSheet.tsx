@@ -2,15 +2,17 @@ import { X } from 'lucide-react-native';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AGES, COLORS, CONDS, DISTANCES, GENDERS, PRICES, PRODUCTS, SEASONS } from '../data/catalog';
+import { AGES, CATEGORIES, COLORS, CONDS, DISTANCES, GENDERS, PRICES, PRODUCTS, SEASONS, SHOE_SIZES } from '../data/catalog';
 import { FilterKey, filterProducts, useStore } from '../store/useStore';
 import { colors, GUTTER, ICON_STROKE, shadows } from '../theme/tokens';
 import { Chip, CircleButton, H, OutlineButton, PrimaryButton, Txt } from './ui';
 
 const BRANDS = [...new Set(PRODUCTS.map((p) => p.brand))].sort();
 
-const GROUPS: { title: string; key: FilterKey; opts: string[]; dots?: boolean }[] = [
+const GROUPS: { title: string; key: FilterKey; opts: string[]; dots?: boolean; hint?: string }[] = [
+  { title: 'Catégorie', key: 'cats', opts: CATEGORIES.map((c) => c.label) },
   { title: 'Âge / taille', key: 'ages', opts: [...AGES] },
+  { title: 'Pointure', key: 'shoes', opts: SHOE_SIZES.map(String), hint: 'Chaussures de cette pointure, et chaussettes ou collants qui vont avec.' },
   { title: 'Près de chez moi (main propre)', key: 'distance', opts: DISTANCES.map((d) => d.l) },
   { title: 'Pour', key: 'genders', opts: [...GENDERS] },
   { title: 'Saison', key: 'seasons', opts: [...SEASONS] },
@@ -59,6 +61,7 @@ export function FilterSheet({ visible, onClose }: { visible: boolean; onClose: (
             {GROUPS.map((g) => (
               <View key={g.key} style={{ gap: 10 }}>
                 <Txt weight="bold">{g.title}</Txt>
+                {g.hint && <Txt size={12} color={colors.neutral700} style={{ marginTop: -6 }}>{g.hint}</Txt>}
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                   {g.opts.map((o) => (
                     <Chip key={o} label={o} on={f[g.key].includes(o)} onPress={() => toggle(g.key, o)} left={g.dots ? <ColorDot name={o} /> : undefined} />

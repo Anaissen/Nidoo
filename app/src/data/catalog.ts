@@ -5,6 +5,39 @@ export const GENDERS = ['Fille', 'Garçon', 'Mixte'] as const;
 export const SEASONS = ['Printemps', 'Été', 'Automne', 'Hiver', 'Toutes saisons'] as const;
 export const CONDS = ['Neuf avec étiquette', 'Très bon état', 'Bon état', 'Satisfaisant'] as const;
 
+/** What is sold: clothes (sized by age), shoes (by EU size) or socks & tights (by size range). */
+export type Category = 'vetement' | 'chaussures' | 'chaussettes';
+export const CATEGORIES: { id: Category; label: string; short: string; emoji: string }[] = [
+  { id: 'vetement', label: 'Vêtements', short: 'Vêtements', emoji: '👕' },
+  { id: 'chaussures', label: 'Chaussures', short: 'Chaussures', emoji: '👟' },
+  { id: 'chaussettes', label: 'Chaussettes & collants', short: 'Chaussettes', emoji: '🧦' },
+];
+export const categoryOf = (p: { category?: Category }) => CATEGORIES.find((c) => c.id === (p.category ?? 'vetement'))!;
+/** Children's shoe sizes (EU), from first steps to 10 years. */
+export const SHOE_SIZES = Array.from({ length: 22 }, (_, i) => 15 + i);
+/** Usual size ranges on socks and tights (EU shoe size they fit). */
+export const SOCK_SIZES = ['15-18', '19-22', '23-26', '27-30', '31-34', '35-38'] as const;
+export const sockFits = (range: string | undefined, shoe: number) => {
+  const [lo, hi] = (range ?? '').split('-').map(Number);
+  return shoe >= lo && shoe <= hi;
+};
+/** Rough age for a shoe size, so shoes also show up when browsing by age. */
+export function ageForShoe(size: number): (typeof AGES)[number] {
+  if (size <= 17) return AGES[0];
+  if (size <= 19) return AGES[1];
+  if (size <= 22) return AGES[2];
+  if (size <= 26) return AGES[3];
+  if (size <= 30) return AGES[4];
+  if (size <= 33) return AGES[5];
+  return AGES[6];
+}
+export const ageForSock = (range: string) => ageForShoe(Number(range.split('-')[0]) + 1);
+/** "Pointure 25", "T. 23-26" or the age, as shown on a listing. */
+export const sizeLabel = (p: { category?: Category; shoeSize?: number; sockSize?: string; age: string }) =>
+  p.category === 'chaussures' && p.shoeSize ? `Pointure ${p.shoeSize}` : p.category === 'chaussettes' && p.sockSize ? `T. ${p.sockSize}` : p.age;
+/** "pièce" for clothes, "paire" for shoes and socks. */
+export const unitOf = (p: { category?: Category }, plural = false) => (p.category && p.category !== 'vetement' ? 'paire' : 'pièce') + (plural ? 's' : '');
+
 // Swatch shown in the colour filter. Multicolore is drawn as a conic gradient in the design.
 export const COLORS: Record<string, string | string[]> = {
   Blanc: '#f4efe6',
@@ -74,6 +107,12 @@ export type Product = {
   remoteId?: number;
   /** Already sold (still shown in conversations and orders). */
   sold?: boolean;
+  /** Clothes when not set. */
+  category?: Category;
+  /** Shoes: EU size. */
+  shoeSize?: number;
+  /** Socks and tights: size range, e.g. "23-26". */
+  sockSize?: string;
 };
 
 const P = (
@@ -97,6 +136,11 @@ export const PRODUCTS: Product[] = [
   P(12, 'unique', 'Gilet en maille écru', 'Bonton', '2-4 ans', 'Mixte', 'Automne', 'Très bon état', 16, 'Blanc', 's4', { washed: true, ph: 'photo · gilet' }),
   P(13, 'lot', 'Lot fille 6 pièces mi-saison', 'Jacadi', '2-4 ans', 'Fille', 'Printemps', 'Très bon état', 26, 'Rose', 's1', { washed: true, count: 6, contents: [{ n: 'Robes', q: 2 }, { n: 'Leggings', q: 2 }, { n: 'Gilets', q: 2 }], ph: 'photo · lot mi-saison' }),
   P(14, 'unique', 'Combinaison pilote', 'Petit Bateau', '6-12 mois', 'Garçon', 'Hiver', 'Bon état', 19, 'Marine', 's4', { ph: 'photo · combinaison' }),
+  P(15, 'unique', 'Baskets à scratch', 'Geox', '2-4 ans', 'Mixte', 'Toutes saisons', 'Très bon état', 14, 'Bleu', 's1', { category: 'chaussures', shoeSize: 25, size: 'Pointure 25', washed: true, ph: 'photo · baskets' }),
+  P(16, 'unique', 'Bottes de pluie', 'Aigle', '4-6 ans', 'Mixte', 'Automne', 'Bon état', 9, 'Jaune', 's3', { category: 'chaussures', shoeSize: 28, size: 'Pointure 28', ph: 'photo · bottes' }),
+  P(17, 'unique', 'Chaussons en cuir souple', 'Robeez', '6-12 mois', 'Mixte', 'Toutes saisons', 'Très bon état', 8, 'Beige', 's2', { category: 'chaussures', shoeSize: 19, size: 'Pointure 19', ph: 'photo · chaussons' }),
+  P(18, 'lot', 'Lot 6 paires de chaussettes', 'Petit Bateau', '2-4 ans', 'Mixte', 'Toutes saisons', 'Très bon état', 6, 'Multicolore', 's4', { category: 'chaussettes', sockSize: '23-26', size: 'T. 23-26', count: 6, contents: [{ n: 'Paires de chaussettes', q: 6 }], washed: true, ph: 'photo · chaussettes' }),
+  P(19, 'lot', 'Lot 3 collants fille', 'DPAM', '4-6 ans', 'Fille', 'Hiver', 'Bon état', 7, 'Rose', 's2', { category: 'chaussettes', sockSize: '27-30', size: 'T. 27-30', count: 3, contents: [{ n: 'Collants', q: 3 }], ph: 'photo · collants' }),
   P(15, 'unique', 'Pantalon en velours', 'Cyrillus', '2-4 ans', 'Garçon', 'Automne', 'Bon état', 9, 'Beige', 's2', { ph: 'photo · pantalon' }),
   P(16, 'lot', 'Lot sport garçon 5 pièces', 'Kiabi', '8-10 ans', 'Garçon', 'Toutes saisons', 'Satisfaisant', 12, 'Marine', 's3', { washed: true, count: 5, contents: [{ n: 'Joggings', q: 2 }, { n: 'T-shirts techniques', q: 3 }], ph: 'photo · lot sport' }),
 ];

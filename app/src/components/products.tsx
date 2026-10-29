@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { Heart } from 'lucide-react-native';
 import { Image, Pressable, StyleProp, View, ViewStyle } from 'react-native';
 
-import { Product, TONES } from '../data/catalog';
+import { Product, TONES, unitOf } from '../data/catalog';
 import { fmt } from '../lib/format';
 import { useStore } from '../store/useStore';
 import { colors, ICON_STROKE, shadows } from '../theme/tokens';
@@ -10,7 +10,7 @@ import { ellipsis, Stripes, Tag, Txt } from './ui';
 
 export const tonesFor = (p: Product): [string, string] => TONES[p.color] ?? TONES.Beige;
 export const perPiece = (p: Product) => (p.type === 'lot' && p.count ? fmt(p.price / p.count) : '');
-export const typeLabel = (p: Product) => (p.type === 'lot' ? `Lot de ${p.count}` : 'Pièce unique');
+export const typeLabel = (p: Product) => (p.type === 'lot' ? `Lot de ${p.count}` : p.category && p.category !== 'vetement' ? 'À l\'unité' : 'Pièce unique');
 export const openProduct = (id: number) => router.push(`/product/${id}`);
 
 /** A listing's photo: the real one when there is one, otherwise the striped placeholder. */
@@ -85,12 +85,12 @@ export function LotCard({ p }: { p: Product }) {
   return (
     <Pressable onPress={() => openProduct(p.id)} style={{ width: 220, gap: 6 }}>
       <ProductPhoto p={p} label={p.ph} style={{ height: 150, borderRadius: 24 }}>
-        <LotBadge label={`Lot · ${p.count} pièces`} style={{ top: 10, left: 10 }} />
+        <LotBadge label={`Lot · ${p.count} ${unitOf(p, (p.count ?? 0) > 1)}`} style={{ top: 10, left: 10 }} />
         <HeartButton id={p.id} style={{ position: 'absolute', top: 8, right: 8 }} />
       </ProductPhoto>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <Txt size={16} weight="bold">{fmt(p.price)}</Txt>
-        <Txt size={12} color={colors.neutral700}>{perPiece(p)} / pièce</Txt>
+        <Txt size={12} color={colors.neutral700}>{perPiece(p)} / {unitOf(p)}</Txt>
       </View>
       <Txt size={13} {...ellipsis}>{p.title}</Txt>
       <Txt size={12} color={colors.neutral700}>{p.size} · {p.condition}</Txt>
