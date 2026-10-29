@@ -41,6 +41,9 @@ class Refusal extends Error {}
 const cents = (euros: number) => Math.round(euros * 100);
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const euros = (n: number) => `${n.toFixed(2).replace('.', ',')} €`;
+/** Platforms must remind sellers of their tax and social duties at each sale (article 242 bis du CGI). */
+const TAX_NOTE = "Impôts : vendre tes propres affaires d'occasion n'est en principe pas imposable. Acheter pour revendre, ou vendre très souvent, peut être une activité à déclarer. Plus d'informations sur <a href=\"https://www.impots.gouv.fr\" style=\"color:#8a8070;\">impots.gouv.fr</a> et <a href=\"https://www.urssaf.fr\" style=\"color:#8a8070;\">urssaf.fr</a>.";
+
 const escapeHtml = (t: string) => t.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
 export type SendMail = (to: string, subject: string, html: string) => Promise<void>;
@@ -57,8 +60,8 @@ export const resendMail: SendMail = async (to, subject, html) => {
   if (!res.ok) console.error('Resend', res.status, await res.text());
 };
 
-/** Same look as the account e-mails (supabase/emails). `paragraphs` are already HTML-escaped. */
-function mailHtml(title: string, paragraphs: string[], cta: { label: string; url: string }) {
+/** Same look as the account e-mails (supabase/emails). `paragraphs` and `note` are already HTML-escaped. */
+function mailHtml(title: string, paragraphs: string[], cta: { label: string; url: string }, note?: string) {
   return `<!doctype html><html lang="fr"><body style="margin:0;padding:0;background:#f5ead8;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5ead8;padding:32px 16px;"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#f9f4ed;border-radius:28px;padding:32px 28px;font-family:Helvetica,Arial,sans-serif;color:#201e1d;">
@@ -67,16 +70,17 @@ function mailHtml(title: string, paragraphs: string[], cta: { label: string; url
 <tr><td style="font-size:16px;line-height:1.55;color:#474238;">${paragraphs.map((p) => `<p style="margin:0 0 12px;">${p}</p>`).join('')}</td></tr>
 <tr><td align="center" style="padding:12px 0 20px;"><a href="${cta.url}" style="display:inline-block;background:#b2622d;color:#f9f4ed;text-decoration:none;font-weight:bold;font-size:17px;padding:16px 30px;border-radius:999px;">${cta.label}</a></td></tr>
 <tr><td style="font-size:13px;line-height:1.5;color:#645c50;">À très vite,<br>L'équipe Pimou 🌱</td></tr>
+${note ? `<tr><td style="height:20px;line-height:20px;font-size:0;">&nbsp;</td></tr><tr><td style="font-size:12px;line-height:1.5;color:#8a8070;padding-top:16px;border-top:1px solid #e8dcc8;">${note}</td></tr>` : ''}
 </table></td></tr></table></body></html>`;
 }
 
 export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: SendMail = resendMail) {
   /** E-mail a parent about one of their orders. Never blocks or breaks the payment itself. */
-  async function mailTo(userId: string, subject: string, paragraphs: string[], cta: { label: string; url: string }) {
+  async function mailTo(userId: string, subject: string, paragraphs: string[], cta: { label: string; url: string }, note?: string) {
     try {
       const { data } = await admin.auth.admin.getUserById(userId);
       const to = data?.user?.email;
-      if (to) await sendMail(to, subject, mailHtml(escapeHtml(subject), paragraphs, cta));
+      if (to) await sendMail(to, subject, mailHtml(escapeHtml(subject), paragraphs, cta, note));
     } catch (e) {
       console.error('mail', e);
     }
@@ -237,7 +241,7 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
           o.delivery === 'main'
             ? 'Fixez ensemble le lieu et l\'heure de la remise en main propre dans la messagerie de Pimou.'
             : 'Prépare le colis et expédie-le sous 3 jours, puis indique-le dans l\'appli.',
-        ], { label: 'Voir ma vente', url: `${APP_URL}commande/${o.id}` });
+        ], { label: 'Voir ma vente', url: `${APP_URL}commande/${o.id}` }, TAX_NOTE);
       } else {
         await stripe.refunds.create({ payment_intent: pi.id, amount: cents(Number(o.price) + Number(o.shipping)), metadata: { pimou_order: o.id } }, { idempotencyKey: `refund-${o.id}` });
         // payment_intent kept: it tells the app this one was paid, then refunded.
