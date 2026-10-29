@@ -37,6 +37,13 @@ async function call<T>(action: string, body: Record<string, unknown> = {}): Prom
 
 // ── Orders ──────────────────────────────────────────────────────────────────────────────
 
+/** The seller's sales this calendar year (the yearly tax report counts these). */
+export function salesThisYear(orders: RealOrder[], me: string | undefined) {
+  const year = String(new Date().getFullYear());
+  const sold = orders.filter((o) => o.sellerId === me && o.status !== 'cancelled' && o.createdAt.startsWith(year));
+  return { count: sold.length, total: sold.reduce((n, o) => n + o.price, 0) };
+}
+
 export async function loadOrders() {
   const me = currentUser()?.id;
   if (!me) return;

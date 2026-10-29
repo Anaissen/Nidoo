@@ -7,11 +7,11 @@ import { LegalText } from '../../components/LegalText';
 import { BackHeader, Screen } from '../../components/Screen';
 import { ellipsis, H, OutlineButton, PrimaryButton, Txt } from '../../components/ui';
 import { DELIVERY } from '../../data/catalog';
-import { LEGAL } from '../../data/legal';
+import { LEGAL, TAX_REPORT } from '../../data/legal';
 import { currentUser } from '../../lib/backend';
-import { fmt } from '../../lib/format';
+import { fmt, fmtInt, plural } from '../../lib/format';
 import { chatForOrder } from '../../lib/messaging';
-import { confirmReception, markShipped } from '../../lib/payments';
+import { confirmReception, markShipped, salesThisYear } from '../../lib/payments';
 import { stars, submitReview } from '../../lib/reviews';
 import { RealOrder, useStore } from '../../store/useStore';
 import { colors, fonts, ICON_STROKE } from '../../theme/tokens';
@@ -39,9 +39,12 @@ export default function RealOrderScreen() {
   const showToast = useStore((s) => s.showToast);
   const [busy, setBusy] = useState(false);
   const review = useStore((s) => (id ? s.orderReviews[id] : undefined));
+  const realOrders = useStore((s) => s.realOrders);
 
   if (!o) return <Screen><BackHeader title="Commande" style={{ margin: 20 }} /><Txt style={{ padding: 20 }}>Commande introuvable.</Txt></Screen>;
   const isSale = o.sellerId === currentUser()?.id;
+  const year = salesThisYear(realOrders, currentUser()?.id);
+  const reported = year.count >= TAX_REPORT.sales || year.total >= TAX_REPORT.amount;
   const other = people[isSale ? o.buyerId : o.sellerId];
   const step = o.delivery === 'main' && o.status === 'shipped' ? 1 : STEP[o.status];
   const del = DELIVERY.find((d) => d.id === o.delivery)!;
@@ -148,10 +151,10 @@ export default function RealOrderScreen() {
           <MessageCircle size={14} strokeWidth={ICON_STROKE} color={colors.neutral600} />
           <Txt size={12} color={colors.neutral600}>Un problème avec la commande ? Écris-nous à {LEGAL.email}</Txt>
         </View>
-        {isSale && o.status !== 'cancelled' && (
-          // Platforms must remind sellers of their tax and social duties at each sale (article 242 bis du CGI).
+        {isSale && o.status !== 'cancelled' && reported && (
+          // Once the seller reaches the yearly tax report (the CGU explain it to everyone).
           <View style={{ padding: 14, borderRadius: 20, backgroundColor: colors.neutral100 }}>
-            <LegalText size={12} color={colors.neutral700} text="Impôts : vendre tes propres affaires d'occasion n'est en principe pas imposable. Acheter pour revendre, ou vendre très souvent, peut être une activité à déclarer. Au-delà de 30 ventes ou 2 000 € par an, Pimou transmet le montant de tes ventes aux impôts. En savoir plus : impots.gouv.fr et urssaf.fr." />
+            <LegalText size={12} color={colors.neutral700} text={`Impôts : cette année, tu as fait ${plural(year.count, 'vente')} pour ${fmt(year.total)}. À partir de ${TAX_REPORT.sales} ventes ou ${fmtInt(TAX_REPORT.amount)} € par an, Pimou doit transmettre le montant de tes ventes aux impôts ; tu en recevras une copie avant le 31 janvier. Vendre tes propres affaires d'occasion reste en principe non imposable, mais acheter pour revendre peut être une activité à déclarer. En savoir plus : impots.gouv.fr et urssaf.fr.`} />
           </View>
         )}
       </View>

@@ -1,5 +1,5 @@
 // Conditions d'utilisation, confidentialité et mentions légales, shown in src/app/legal.
-import { fmt } from '../lib/format';
+import { fmt, fmtInt } from '../lib/format';
 import { DEFAULT_COMMISSION, DELIVERY } from './catalog';
 
 /**
@@ -25,6 +25,9 @@ export const LEGAL = {
   /** Where the Supabase project lives (Project Settings → General → Region), e.g. "en Irlande (Union européenne)". */
   dataRegion: '',
 };
+
+/** Above this, in a calendar year, the platform reports the seller's sales to the tax office (DAC7). */
+export const TAX_REPORT = { sales: 30, amount: 2000 };
 
 export const TODO = '[à compléter]';
 const v = (s: string) => s || TODO;
@@ -93,7 +96,7 @@ const cgu = (): LegalDoc => ({
     ] },
     { title: '10. Impôts et URSSAF', body: [
       "Vendre ses propres affaires d'occasion n'est en principe pas imposable. En revanche, acheter pour revendre ou vendre très régulièrement peut être une activité commerciale, à déclarer aux impôts et à l'URSSAF. Pour savoir ce qui s'applique à toi : impots.gouv.fr et urssaf.fr.",
-      "Comme toutes les plateformes, Pimou doit transmettre chaque année à l'administration fiscale l'identité et le montant des ventes des vendeurs qui ont fait au moins 30 ventes ou plus de 2 000 € de ventes dans l'année. Ces vendeurs reçoivent une copie de ces informations au plus tard le 31 janvier de l'année suivante.",
+      `Comme toutes les plateformes, Pimou doit transmettre chaque année à l'administration fiscale l'identité et le montant des ventes des vendeurs qui ont fait au moins ${TAX_REPORT.sales} ventes ou ${fmtInt(TAX_REPORT.amount)} € de ventes dans l'année. Ces vendeurs sont prévenus dans l'appli et reçoivent une copie de ces informations au plus tard le 31 janvier de l'année suivante.`,
     ] },
     { title: '11. Les avis', body: [
       "Seul l'acheteur d'une commande reçue peut laisser un avis sur le vendeur, une fois par commande : chaque avis correspond donc à un vrai achat. Il comprend une note de 1 à 5 étoiles, un commentaire facultatif et, si l'annonce le promettait, la confirmation « lavé et plié ». L'acheteur peut le modifier ensuite. Personne n'est payé pour laisser un avis.",

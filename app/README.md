@@ -34,7 +34,7 @@ npm run typecheck
 - Vendre en 4 étapes (type, photos, description, prix avec montant reçu, modes de livraison)
 - Panier groupé par vendeur, paiement Stripe (point relais / domicile / main propre)
 - Messagerie avec réponses rapides, favoris, mes achats / ventes, suivi de commande + avis, notifications
-- **Informations légales** (`src/app/legal`, textes dans `src/data/legal.ts`) : CGU, politique de confidentialité, mentions légales, acceptation à l'inscription, « Signaler cette annonce », rappel impôts / URSSAF au vendeur à chaque vente. Les champs de `LEGAL` (éditeur, SIREN, médiateur, région des serveurs) sont à remplir une fois la structure créée ; vides, ils s'affichent « [à compléter] ».
+- **Informations légales** (`src/app/legal`, textes dans `src/data/legal.ts`) : CGU, politique de confidentialité, mentions légales, acceptation à l'inscription, « Signaler cette annonce », rappel impôts / URSSAF au vendeur dès 30 ventes ou 2 000 € dans l'année. Les champs de `LEGAL` (éditeur, SIREN, médiateur, région des serveurs) sont à remplir une fois la structure créée ; vides, ils s'affichent « [à compléter] ».
 
 ## Structure
 
