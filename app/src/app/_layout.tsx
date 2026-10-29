@@ -66,7 +66,6 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
           <Stack.Screen name="sell" options={{ presentation: 'fullScreenModal' }} />
           <Stack.Screen name="sell-done" options={{ gestureEnabled: false }} />
-          <Stack.Screen name="order-done" options={{ gestureEnabled: false }} />
           <Stack.Screen name="guide" options={{ gestureEnabled: false }} />
         </Stack>
         <Toast />

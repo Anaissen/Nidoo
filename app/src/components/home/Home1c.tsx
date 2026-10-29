@@ -117,9 +117,16 @@ export function Home1c() {
         <Segmented style={{ marginHorizontal: GUTTER }} options={[['all', 'Tout'], ['unique', 'Pièces'], ['lot', 'Les lots']]} value={homeType} onChange={(v) => set({ homeType: v })} />
         {catRow}
         <Txt size={14} color={colors.neutral800} style={{ paddingHorizontal: GUTTER }}>{plural(giftFeed.length, 'article')}{giftSize ? ` en ${giftSize}` : ''}</Txt>
-        <View style={{ paddingHorizontal: GUTTER }}>
-          <ProductGrid items={giftFeed} render={(p) => <ProductTile p={p} />} />
-        </View>
+        {giftFeed.length > 0 ? (
+          <View style={{ paddingHorizontal: GUTTER }}>
+            <ProductGrid items={giftFeed} render={(p) => <ProductTile p={p} />} />
+          </View>
+        ) : (
+          <View style={{ marginHorizontal: GUTTER, padding: 24, borderRadius: 28, backgroundColor: colors.surface, gap: 12, alignItems: 'center' }}>
+            <Txt color={colors.neutral800} style={{ textAlign: 'center' }}>Pas encore d'annonce ici. Des vêtements qui ne vont plus ? Sois parmi les premiers parents à vendre !</Txt>
+            <LinkButton label="Vendre un article →" weight="bold" onPress={() => router.push('/sell')} />
+          </View>
+        )}
       </View>
     );
   }

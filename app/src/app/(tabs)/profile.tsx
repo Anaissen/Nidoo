@@ -8,9 +8,10 @@ import { Screen } from '../../components/Screen';
 import { Avatar, H, PrimaryButton, Txt } from '../../components/ui';
 import { cityLabel, fullName, initial } from '../../lib/account';
 import { currentUser } from '../../lib/backend';
-import { fmt, fmtInt } from '../../lib/format';
+import { fmtInt, plural } from '../../lib/format';
 import { TREE_STAGES, treeStage } from '../../lib/impact';
-import { accountOf, impactStats, myListings, useStore } from '../../store/useStore';
+import { useNotifications } from '../../lib/notifications';
+import { accountOf, impactStats, useStore } from '../../store/useStore';
 import { colors, ICON_STROKE } from '../../theme/tokens';
 
 export default function Profile() {
@@ -18,20 +19,21 @@ export default function Profile() {
   const impact = impactStats(s);
   const a = accountOf(s);
   const me = currentUser()?.id;
+  const unread = useNotifications().filter((n) => n.unread).length;
 
   const rows: { label: string; meta: string; href: Href }[] = [
     { label: 'Mes informations', meta: a.email, href: '/account' },
-    { label: 'Mes achats', meta: String(s.purchases.length + s.realOrders.filter((o) => o.buyerId !== me).length), href: '/orders?tab=achats' },
-    { label: 'Mes ventes', meta: String(s.sales.length + s.realOrders.filter((o) => o.sellerId === me).length), href: '/orders?tab=ventes' },
+    { label: 'Mes achats', meta: String(s.realOrders.filter((o) => o.buyerId === me).length), href: '/orders?tab=achats' },
+    { label: 'Mes ventes', meta: String(s.realOrders.filter((o) => o.sellerId === me).length), href: '/orders?tab=ventes' },
     { label: 'Mes versements', meta: s.payout?.ready ? 'Activés' : 'À activer', href: '/payouts' },
     { label: 'Favoris', meta: String(s.favs.length), href: '/favorites' },
     { label: 'Passeports de mes enfants', meta: s.kids.map((k) => k.name).join(', ') || '—', href: '/kids' },
-    { label: 'Notifications', meta: '2 nouvelles', href: '/notifications' },
-    { label: 'Mon dressing', meta: `${myListings(s.mine).length} annonces`, href: '/seller/me' },
+    { label: 'Notifications', meta: unread ? plural(unread, 'nouvelle') : '—', href: '/notifications' },
+    { label: 'Mon dressing', meta: plural(s.mine.length, 'annonce'), href: '/seller/me' },
     { label: 'Mon impact', meta: `${impact.pieces} vêtements`, href: '/impact' },
     { label: 'Comment ça marche', meta: 'Guide', href: '/guide' },
     { label: 'Guide des états', meta: 'Neuf, très bon…', href: '/conditions' },
-    { label: 'Réglages', meta: s.meVerified ? 'Affichage, compte' : 'Vérifier mon compte', href: '/settings' },
+    { label: 'Réglages', meta: 'Affichage, compte', href: '/settings' },
   ];
 
   return (
@@ -42,7 +44,7 @@ export default function Profile() {
             <Avatar init={initial(a)} size={76} bg={colors.accent300} font={30} />
             <View style={{ gap: 4, flex: 1 }}>
               <H size={26} numberOfLines={1}>{fullName(a) || a.email}</H>
-              <Txt size={14} color={colors.neutral700}>{[cityLabel(a), s.myCard ? (s.myCard.reviews ? `★ ${s.myCard.rating} (${s.myCard.reviews} avis)` : 'Nouveau sur Pimou') : '★ 4,9 (12 avis)'].filter(Boolean).join(' · ')}</Txt>
+              <Txt size={14} color={colors.neutral700}>{[cityLabel(a), s.myCard && (s.myCard.reviews ? `★ ${s.myCard.rating} (${s.myCard.reviews} avis)` : 'Nouveau sur Pimou')].filter(Boolean).join(' · ')}</Txt>
               {s.meVerified && <VerifiedBadge small />}
             </View>
           </Pressable>
@@ -65,16 +67,6 @@ export default function Profile() {
           </View>
           <ChevronRight size={18} strokeWidth={ICON_STROKE} color={colors.accent2_800} />
         </Pressable>
-
-        <View style={{ padding: 20, borderRadius: 32, backgroundColor: colors.accent2_500, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <View>
-            <Txt size={13} color={colors.neutral100}>Porte-monnaie</Txt>
-            <H size={30} color={colors.neutral100}>{fmt(s.wallet)}</H>
-          </View>
-          <Pressable onPress={s.withdraw} style={{ height: 44, paddingHorizontal: 18, borderRadius: 999, backgroundColor: colors.neutral100, justifyContent: 'center' }}>
-            <H size={15} color={colors.accent2_800}>Virer</H>
-          </Pressable>
-        </View>
 
         <View style={{ borderRadius: 30, backgroundColor: colors.neutral100, overflow: 'hidden' }}>
           {rows.filter((r) => s.signedIn || (r.href !== '/account' && r.href !== '/payouts')).map((r, i) => (

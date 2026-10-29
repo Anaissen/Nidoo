@@ -6,7 +6,7 @@ import { AppState, Platform } from 'react-native';
 
 import { useStore } from '../store/useStore';
 import { Account, EMPTY_ACCOUNT } from './account';
-import { DEMO_KIDS, GIFT, Kid, withCurrentSize } from './kids';
+import { DEMO_KID_IDS, GIFT, Kid, withCurrentSize } from './kids';
 
 // Pimou's Supabase project. The publishable key is meant to ship inside the app: what each
 // person can read or change is enforced on the server (row level security, see supabase/schema.sql).
@@ -111,9 +111,8 @@ async function loadKids(userId: string) {
   if (error) return;
   const remote = (data ?? []).map((r) => withCurrentSize(r.data as Kid));
   syncedKids = Object.fromEntries((data ?? []).map((r) => [r.id, JSON.stringify(r.data)]));
-  // Passports typed on this phone before logging in are kept and sent up; the demo children (Léa, Tom) never are.
-  const demoIds = new Set(DEMO_KIDS.map((k) => k.id));
-  const localOnly = useStore.getState().kids.filter((k) => !demoIds.has(k.id) && !remote.some((r) => r.id === k.id));
+  // Passports typed on this phone before logging in are kept and sent up; the old example children never are.
+  const localOnly = useStore.getState().kids.filter((k) => !DEMO_KID_IDS.includes(k.id) && !remote.some((r) => r.id === k.id));
   const kids = [...remote, ...localOnly];
   setLocally((s) => ({
     kids,
@@ -188,7 +187,7 @@ export async function signUp(a: Account, password: string): Promise<SignUpResult
   if (error) return { error: frenchError(error), needsConfirmation: false };
   // Supabase answers without error for an e-mail already in use (no identities): say so.
   if (data.user && !data.user.identities?.length) return { error: 'Un compte existe déjà avec cet e-mail. Connecte-toi.', needsConfirmation: false };
-  // A new account starts with no passports (the demo children stay out of it).
+  // A new account starts with no passports.
   setLocally({ account: a, kids: [], activeKidId: GIFT, wardrobes: {} });
   return { error: null, needsConfirmation: !data.session };
 }

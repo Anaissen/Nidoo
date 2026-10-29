@@ -6,12 +6,11 @@ import { DistancePill, VerifiedBadge, WashedBadge } from '../../components/Badge
 import { ProductGrid, ProductTile } from '../../components/products';
 import { BackButton, Screen } from '../../components/Screen';
 import { Avatar, H, Segmented, Txt } from '../../components/ui';
-import { REVIEWS } from '../../data/catalog';
 import { requireAccount } from '../../lib/auth';
 import { currentUser } from '../../lib/backend';
 import { loadSellerReviews, Review, stars } from '../../lib/reviews';
 import { chatFor, isRemoteListing } from '../../lib/messaging';
-import { allProducts, myListings, sellerView, useMarket, useStore } from '../../store/useStore';
+import { allProducts, sellerView, useMarket, useStore } from '../../store/useStore';
 import { colors, GUTTER } from '../../theme/tokens';
 
 export default function SellerScreen() {
@@ -21,22 +20,22 @@ export default function SellerScreen() {
   const mine = useStore((s) => s.mine);
   const following = useStore((s) => s.following.includes(id));
   const toggleFollow = useStore((s) => s.toggleFollow);
-  const openChatFor = useStore((s) => s.openChatFor);
+  const showToast = useStore((s) => s.showToast);
 
   const meVerified = useStore((s) => s.meVerified);
   const account = useStore((s) => s.account);
   const myCard = useStore((s) => s.myCard);
   const signedIn = useStore((s) => s.signedIn);
   const sel = sellerView({ meVerified, account, myCard }, id);
-  // Real parents (and me, logged in): their real reviews. Demo sellers keep the sample ones.
-  const realId = id === 'me' ? (signedIn ? currentUser()?.id : undefined) : useStore.getState().marketSellers[id] ? id : undefined;
+  // Their reviews (mine once logged in).
+  const realId = id === 'me' ? (signedIn ? currentUser()?.id : undefined) : id;
   const [reviews, setReviews] = useState<(Review & { who: string })[] | null>(null);
   useEffect(() => {
     if (tab === 'reviews' && realId) void loadSellerReviews(realId).then(setReviews);
   }, [tab, realId]);
   if (!sel) return <Screen><Txt style={{ padding: GUTTER }}>Vendeur introuvable.</Txt></Screen>;
   const isMe = id === 'me';
-  const items = isMe ? myListings(mine) : allProducts(mine).filter((p) => p.sid === id);
+  const items = isMe ? mine : allProducts(mine).filter((p) => p.sid === id);
 
   const stats = [sel.reviews ? [`★ ${sel.rating}`, `${sel.reviews} avis`] : ['Nouveau', 'sur Pimou'], [String(sel.sales), sel.sales === 1 ? 'vente' : 'ventes'], [sel.ship, 'pour expédier']];
 
@@ -79,13 +78,12 @@ export default function SellerScreen() {
               <H size={16} color={following ? colors.text : colors.bg}>{following ? 'Abonné·e' : 'Suivre'}</H>
             </Pressable>
             <Pressable onPress={async () => {
-              // A real parent: talk about their latest listing. Demo sellers keep their simulated chat.
-              const p = items[0];
-              if (p && isRemoteListing(p)) {
-                if (!requireAccount('écrire à ce parent')) return;
-                const cid = await chatFor(p);
-                if (cid) router.push(`/chat/${cid}`);
-              } else router.push(`/chat/${openChatFor(id, null)}`);
+              // Conversations are about a listing: their latest one.
+              const p = items.find(isRemoteListing);
+              if (!p) { showToast("Ce parent n'a pas d'annonce en ce moment"); return; }
+              if (!requireAccount('écrire à ce parent')) return;
+              const cid = await chatFor(p);
+              if (cid) router.push(`/chat/${cid}`);
             }} style={{ flex: 1, height: 48, borderRadius: 999, borderWidth: 1, borderColor: colors.divider, alignItems: 'center', justifyContent: 'center' }}>
               <H size={16}>Message</H>
             </Pressable>
@@ -113,16 +111,6 @@ export default function SellerScreen() {
                 </View>
                 {!!r.comment && <Txt size={14} color={colors.neutral800}>{r.comment}</Txt>}
                 <Txt size={12} color={colors.neutral600}>{new Date(r.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}{r.washedOk ? ' · lavé et plié ✓' : ''}</Txt>
-              </View>
-            ))}
-            {!realId && REVIEWS.map((r) => (
-              <View key={r.who} style={{ padding: 16, borderRadius: 24, backgroundColor: colors.neutral100, gap: 4 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Txt weight="bold">{r.who}</Txt>
-                  <Txt size={13} color={colors.accent700}>{r.stars}</Txt>
-                </View>
-                <Txt size={14} color={colors.neutral800}>{r.text}</Txt>
-                <Txt size={12} color={colors.neutral600}>{r.when}</Txt>
               </View>
             ))}
           </View>

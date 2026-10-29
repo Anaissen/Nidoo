@@ -2,12 +2,10 @@ import { X } from 'lucide-react-native';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AGES, CATEGORIES, COLORS, CONDS, DISTANCES, GENDERS, PRICES, PRODUCTS, SEASONS, SHOE_SIZES } from '../data/catalog';
-import { FilterKey, filterProducts, useStore } from '../store/useStore';
+import { AGES, CATEGORIES, COLORS, CONDS, DISTANCES, GENDERS, PRICES, SEASONS, SHOE_SIZES } from '../data/catalog';
+import { allProducts, FilterKey, filterProducts, useMarket, useStore } from '../store/useStore';
 import { colors, GUTTER, ICON_STROKE, shadows } from '../theme/tokens';
 import { Chip, CircleButton, H, OutlineButton, PrimaryButton, Txt } from './ui';
-
-const BRANDS = [...new Set(PRODUCTS.map((p) => p.brand))].sort();
 
 const GROUPS: { title: string; key: FilterKey; opts: string[]; dots?: boolean; hint?: string }[] = [
   { title: 'Catégorie', key: 'cats', opts: CATEGORIES.map((c) => c.label) },
@@ -18,7 +16,8 @@ const GROUPS: { title: string; key: FilterKey; opts: string[]; dots?: boolean; h
   { title: 'Saison', key: 'seasons', opts: [...SEASONS] },
   { title: 'État', key: 'conds', opts: [...CONDS] },
   { title: 'Prix', key: 'price', opts: PRICES.map((p) => p.l) },
-  { title: 'Marque', key: 'brands', opts: BRANDS },
+  // Filled with the brands of the listings online.
+  { title: 'Marque', key: 'brands', opts: [] },
   { title: 'Couleur', key: 'colors', opts: Object.keys(COLORS), dots: true },
 ];
 
@@ -42,6 +41,9 @@ export function FilterSheet({ visible, onClose }: { visible: boolean; onClose: (
   const toggle = useStore((s) => s.toggleFilter);
   const clear = useStore((s) => s.clearFilters);
   const count = useStore((s) => filterProducts(s).length);
+  const mine = useStore((s) => s.mine);
+  const brands = [...new Set(allProducts(mine).map((p) => p.brand))].sort();
+  useMarket();
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -58,7 +60,7 @@ export function FilterSheet({ visible, onClose }: { visible: boolean; onClose: (
             </CircleButton>
           </View>
           <ScrollView contentContainerStyle={{ paddingTop: 4, paddingHorizontal: GUTTER, paddingBottom: 16, gap: 18 }}>
-            {GROUPS.map((g) => (
+            {GROUPS.map((g) => (g.key === 'brands' ? { ...g, opts: brands } : g)).filter((g) => g.opts.length > 0).map((g) => (
               <View key={g.key} style={{ gap: 10 }}>
                 <Txt weight="bold">{g.title}</Txt>
                 {g.hint && <Txt size={12} color={colors.neutral700} style={{ marginTop: -6 }}>{g.hint}</Txt>}

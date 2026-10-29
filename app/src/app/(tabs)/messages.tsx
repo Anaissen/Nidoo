@@ -11,15 +11,25 @@ export default function Messages() {
   const chats = useStore((s) => s.chats);
   const mine = useStore((s) => s.mine);
   const markRead = useStore((s) => s.markRead);
+  const signedIn = useStore((s) => s.signedIn);
+  const list = Object.entries(chats).flatMap(([id, c]) => {
+    const seller = sellerById(c.sid);
+    const p = productById(mine, c.pid);
+    return seller && p ? [{ id, c, seller, p }] : [];
+  });
 
   return (
     <Screen contentStyle={{ paddingHorizontal: 20 }}>
       <View style={{ gap: 8, paddingTop: 4 }}>
         <H size={28} style={{ marginBottom: 8 }}>Messages</H>
-        {Object.entries(chats).map(([id, c]) => {
-          const seller = sellerById(c.sid);
-          const p = productById(mine, c.pid);
-          if (!seller || !p) return null;
+        {list.length === 0 && (
+          <View style={{ paddingVertical: 32, paddingHorizontal: 20, borderRadius: 28, backgroundColor: colors.surface }}>
+            <Txt color={colors.neutral800} style={{ textAlign: 'center' }}>
+              {signedIn ? "Pas encore de message. Pour écrire à un parent, ouvre son annonce et touche la bulle de discussion." : 'Connecte-toi pour retrouver tes messages.'}
+            </Txt>
+          </View>
+        )}
+        {list.map(({ id, c, seller, p }) => {
           const last = c.msgs[c.msgs.length - 1];
           return (
             <Pressable

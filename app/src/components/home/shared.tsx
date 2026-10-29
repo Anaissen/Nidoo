@@ -4,16 +4,18 @@ import { Pressable, useWindowDimensions } from 'react-native';
 import { View } from 'react-native';
 
 import { initial } from '../../lib/account';
+import { useNotifications } from '../../lib/notifications';
 import { accountOf, TypeFilter, useStore } from '../../store/useStore';
 import { colors, ICON_STROKE } from '../../theme/tokens';
 import { Avatar, CircleButton, H, Txt } from '../ui';
 import type { Filters } from '../../store/useStore';
 
 export function BellButton() {
+  const unread = useNotifications().some((n) => n.unread);
   return (
     <CircleButton onPress={() => router.push('/notifications')} accessibilityLabel="Notifications">
       <Bell size={20} strokeWidth={ICON_STROKE} color={colors.text} />
-      <View style={{ position: 'absolute', top: 10, right: 11, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent }} />
+      {unread && <View style={{ position: 'absolute', top: 10, right: 11, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent }} />}
     </CircleButton>
   );
 }

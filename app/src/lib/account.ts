@@ -9,12 +9,6 @@ export type Account = {
   city: string;
 };
 
-/** Shown for installs that finished the onboarding before sign-up existed. */
-export const DEMO_ACCOUNT: Account = {
-  firstName: 'Élodie', lastName: 'Martin', email: 'elodie@exemple.fr', phone: '',
-  street: '34 avenue Parmentier', zip: '75011', city: 'Paris',
-};
-
 export const EMPTY_ACCOUNT: Account = { firstName: '', lastName: '', email: '', phone: '', street: '', zip: '', city: '' };
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;

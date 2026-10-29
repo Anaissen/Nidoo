@@ -5,8 +5,9 @@ import { ActivityIndicator, View } from 'react-native';
 
 import { Screen } from '../components/Screen';
 import { H, OutlineButton, PrimaryButton, Txt } from '../components/ui';
+import type { Product } from '../data/catalog';
 import { fmt } from '../lib/format';
-import { loadMarket } from '../lib/listings';
+import { appIdOf, loadMarket } from '../lib/listings';
 import { checkoutStatus, loadOrders } from '../lib/payments';
 import { productById, RealOrder, useStore } from '../store/useStore';
 import { colors, ICON_STROKE } from '../theme/tokens';
@@ -29,9 +30,16 @@ export default function Paid() {
       if (r.error) { setSt({ status: 'error', orders: [], error: r.error }); return; }
       setSt({ status: r.status, orders: r.orders });
       if (r.status === 'paid') {
-        // Bought: out of the basket.
-        const bought = new Set(r.orders.map((o) => o.listingId));
-        useStore.setState((s) => ({ cart: s.cart.filter((pid) => !bought.has(productById(s.mine, pid)?.remoteId ?? null)) }));
+        // Bought: out of the basket, and ticked in the child's garde-robe (once: the basket no longer has them).
+        const s = useStore.getState();
+        const inCart = r.orders.filter((o) => o.listingId != null && s.cart.includes(appIdOf(o.listingId)));
+        // The listing may already be out of the feed (sold): its title is enough to find the garde-robe line.
+        const bought = inCart.filter((o) => o.status === 'paid').map((o) => productById(s.mine, appIdOf(o.listingId!)) ?? ({ type: 'unique', title: o.title } as Product));
+        const ticked = s.tickWardrobe(bought);
+        const kid = s.kids.find((k) => k.id === s.activeKidId);
+        if (ticked && kid) s.showToast(`✓ Coché dans la garde-robe de ${kid.name}`);
+        const gone = new Set(inCart.map((o) => appIdOf(o.listingId!)));
+        useStore.setState((x) => ({ cart: x.cart.filter((pid) => !gone.has(pid)) }));
         void loadOrders();
         void loadMarket();
       } else if (r.status === 'pending' && ++tries < 8) setTimeout(check, 2500);

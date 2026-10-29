@@ -35,10 +35,8 @@ export const KID_STYLES = ['Confort', 'Classique', 'Coloré', 'Sport', 'Chic', '
 export const MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
 const MONTHS_LONG = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 
-export const DEMO_KIDS: Kid[] = [
-  { id: 'k1', name: 'Léa', emoji: '🦊', color: colors.accent300, birthYear: 2023, birthMonth: 11, birthDay: 14, gender: 'Fille', size: '2-4 ans', heightCm: 94, shoeSize: 25, favColors: ['Rose', 'Jaune'], styles: ['Coloré', 'Confort'], notes: 'Adore les robes qui tournent. Pas de laine qui gratte !', showNextSize: false },
-  { id: 'k2', name: 'Tom', emoji: '🐻', color: colors.accent2_300, birthYear: 2026, birthMonth: 1, birthDay: 8, gender: 'Garçon', size: '6-12 mois', heightCm: 72, favColors: ['Bleu', 'Vert'], styles: ['Confort'], notes: 'Préfère les bodies à pressions devant.', showNextSize: false },
-];
+/** The example passports (Léa, Tom) the first versions came with: removed from phones that still have them, never sent to the server. */
+export const DEMO_KID_IDS = ['k1', 'k2'];
 
 export function ageInMonths(k: Pick<Kid, 'birthYear' | 'birthMonth' | 'birthDay'>, now = new Date()) {
   const months = (now.getFullYear() - k.birthYear) * 12 + (now.getMonth() + 1 - k.birthMonth);

@@ -13,7 +13,7 @@ type MsgRow = { id: number; conversation_id: string; sender_id: string; kind: 't
 const cidOf = (convId: string) => `r-${convId}`;
 const LISTING_OFFSET = 100000;
 
-/** Real listing from another parent: talk through the server. Demo listings keep their simulated chat. */
+/** Another parent's listing (one's own can't be bought or discussed from the buyer side). */
 export const isRemoteListing = (p: Product) => p.remoteId != null && p.sid !== 'me';
 
 /** "14:05" today, "hier", "lun.", or "12/09". */
@@ -47,7 +47,6 @@ function publish() {
   const me = currentUser()?.id;
   if (!me) return;
   useStore.setState((s) => {
-    const demo = Object.fromEntries(Object.entries(s.chats).filter(([, c]) => !c.remote));
     const chats: Record<string, Chat> = {};
     const offers = { ...s.offers };
     const sorted = Object.values(convs).sort((a, b) => b.last_message_at.localeCompare(a.last_message_at));
@@ -65,7 +64,7 @@ function publish() {
         msgs,
         remote: { convId: c.id, role },
       };
-      // The buyer's side of the negotiation drives the price in the cart, like the demo offers.
+      // The buyer's side of the negotiation drives the price in the cart.
       if (role === 'buyer') {
         const n = negotiation(msgs);
         if (!n || n.kind === 'decline') delete offers[pid];
@@ -74,8 +73,8 @@ function publish() {
         else offers[pid] = { amount: n.amount, status: 'accepted', cid };
       }
     }
-    // Real conversations first (latest on top), then the demo ones.
-    return { chats: { ...chats, ...demo }, offers };
+    // Latest on top.
+    return { chats, offers };
   });
 }
 
@@ -249,7 +248,7 @@ async function post(cid: string, kind: MsgRow['kind'], body: string, amount?: nu
 
 /** Conversation with the seller of this listing (created on the first message). Returns the chat id. */
 export async function chatFor(p: Product): Promise<string | null> {
-  if (!isRemoteListing(p)) return useStore.getState().openChatFor(p.sid, p.id);
+  if (!isRemoteListing(p)) return null;
   const me = currentUser()?.id;
   if (!me) { useStore.getState().showToast('Connecte-toi pour écrire au vendeur'); return null; }
   const existing = Object.values(convs).find((c) => c.listing_id === p.remoteId && c.buyer_id === me);

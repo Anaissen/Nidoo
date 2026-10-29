@@ -6,8 +6,9 @@ import { Category, DeliveryId, Product, Seller, sizeLabel } from '../data/catalo
 import { useStore } from '../store/useStore';
 import { currentUser, supabase } from './backend';
 
-/** Server listings get app ids above the demo and local ones (1-999, 1000+). */
+/** Server listings get app ids well above the local ones (1-999, 1000+). */
 const REMOTE_ID_OFFSET = 100000;
+export const appIdOf = (remoteId: number) => REMOTE_ID_OFFSET + remoteId;
 export const MAX_PHOTOS = 6;
 const PHOTO_WIDTH = 1280;
 
@@ -23,7 +24,7 @@ export type SellerRow = {
 };
 
 export const toProduct = (r: ListingRow, mine: boolean): Product => ({
-  id: REMOTE_ID_OFFSET + r.id, remoteId: r.id, type: r.type, title: r.title, description: r.description, brand: r.brand || 'Sans marque', age: r.age,
+  id: appIdOf(r.id), remoteId: r.id, type: r.type, title: r.title, description: r.description, brand: r.brand || 'Sans marque', age: r.age,
   category: r.category ?? 'vetement', shoeSize: r.shoe_size ?? undefined, sockSize: r.sock_size ?? undefined,
   size: sizeLabel({ category: r.category ?? 'vetement', shoeSize: r.shoe_size ?? undefined, sockSize: r.sock_size ?? undefined, age: r.age }),
   gender: r.gender, season: r.season, condition: r.condition, price: Number(r.price), color: r.color,

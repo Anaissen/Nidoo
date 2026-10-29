@@ -12,10 +12,9 @@ import { colors, ICON_STROKE } from '../theme/tokens';
 
 /** Compteur d'impact: pieces given a second life, with rough CO₂ / water equivalents. */
 export default function Impact() {
-  const purchases = useStore((s) => s.purchases);
-  const sales = useStore((s) => s.sales);
+  const realOrders = useStore((s) => s.realOrders);
   const mine = useStore((s) => s.mine);
-  const { pieces, co2Kg, waterL } = impactStats({ purchases, sales, mine });
+  const { pieces, co2Kg, waterL } = impactStats({ realOrders, mine });
   const stage = treeStage(pieces);
   const next = nextTree(pieces);
 

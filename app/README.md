@@ -42,13 +42,13 @@ src/app/          routes Expo Router (tabs : home, search, messages, profile ; +
 src/components/   UI partagée (ui.tsx, products.tsx, Screen, FilterSheet, OfferSheet, Logo, KidAvatar, home/Home1c)
 src/store/        état Zustand (passeports, panier, offres, favoris, filtres, annonces, conversations, commandes)
 src/lib/kids.ts   âge, taille et anniversaire à partir du passeport
-src/data/         catalogue de démo (repris du prototype)
+src/data/         tailles, couleurs, états, livraisons (les annonces sont sur Supabase)
 src/theme/        tokens Organic (couleurs, polices, ombres)
 ```
 
 ## À brancher ensuite
 
-- **Photos** : les annonces publiées ont de vraies photos (galerie ou appareil photo, redimensionnées puis envoyées dans le stockage Supabase). Le catalogue de démo garde ses rayures.
-- **Back-end** : comptes, profils et passeports sont sur Supabase (`src/lib/backend.ts`). Les annonces publiées et les fiches vendeurs aussi (`src/lib/listings.ts`, `supabase/schema-2-annonces.sql`). La messagerie et les offres entre vrais parents aussi, en direct (`src/lib/messaging.ts`, `supabase/schema-3-messages.sql`). Paiement réel en **mode test Stripe** pour les vraies annonces (`supabase/functions/payments`, `supabase/schema-4-paiements.sql`, `src/lib/payments.ts`) : Stripe Connect, argent bloqué jusqu'à la réception puis versé au vendeur moins la commission. Le catalogue de démo garde son paiement simulé.
+- **Photos** : les annonces ont de vraies photos (galerie ou appareil photo, redimensionnées puis envoyées dans le stockage Supabase).
+- **Back-end** : comptes, profils et passeports sont sur Supabase (`src/lib/backend.ts`). Les annonces publiées et les fiches vendeurs aussi (`src/lib/listings.ts`, `supabase/schema-2-annonces.sql`). La messagerie et les offres entre vrais parents aussi, en direct (`src/lib/messaging.ts`, `supabase/schema-3-messages.sql`). Paiement réel en **mode test Stripe** pour les vraies annonces (`supabase/functions/payments`, `supabase/schema-4-paiements.sql`, `src/lib/payments.ts`) : Stripe Connect, argent bloqué jusqu'à la réception puis versé au vendeur moins la commission. Plus d'annonces, de vendeurs ni de conversations d'exemple : tout ce qu'on voit vient du serveur.
 - **Feuille de route** : 1. ~~messagerie et offres~~ ✓ · 2. paiement réel (Stripe Connect, ✓ en mode test, à passer en réel avec la structure juridique) · 3. **vrais bordereaux d'envoi** (API transporteur ou agrégateur type Boxtal / Sendcloud : étiquette PDF, n° de suivi réel, point relais) · 4. publication App Store / Google Play.
 - **E-mails** : brancher un SMTP (ex. Resend) dans Supabase avant l'ouverture au public ; l'envoi intégré ne sert qu'aux membres du projet.

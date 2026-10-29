@@ -56,10 +56,7 @@ export default function ProductScreen() {
     ...sizeSpecs, ['Pour', p.gender], ['Marque', p.brand],
     ['Saison', p.season], ['Couleur', p.color], ['État', p.condition],
   ];
-  // Real listings show what the seller wrote; the demo catalogue keeps a sample text.
-  const desc = p.remoteId != null ? p.description ?? '' : isLot
-    ? `Lot complet en ${p.size}, lavé et plié. Non fumeur, sans animaux. Vendu en une fois uniquement.`
-    : `Portée quelques fois, sans tache ni accroc. Taille ${p.size}, coupe normale.`;
+  const desc = p.description ?? '';
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => setPhoto(Math.round(e.nativeEvent.contentOffset.x / photoW));
 

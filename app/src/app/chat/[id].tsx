@@ -17,7 +17,6 @@ const QUICK = ['Est-ce toujours disponible ?', 'Remise en main propre possible ?
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const chat = useStore((s) => s.chats[id]);
-  const typing = useStore((s) => s.typingCid === id);
   const mine = useStore((s) => s.mine);
   const send = useStore((s) => s.send);
   const addToCart = useStore((s) => s.addToCart);
@@ -30,7 +29,7 @@ export default function ChatScreen() {
   const scroll = useRef<ScrollView>(null);
 
   const count = chat?.msgs.length ?? 0;
-  useEffect(() => { scroll.current?.scrollToEnd({ animated: true }); }, [count, typing]);
+  useEffect(() => { scroll.current?.scrollToEnd({ animated: true }); }, [count]);
   // While this conversation is on screen, incoming messages are read straight away.
   useEffect(() => {
     useStore.setState({ viewingCid: id });
@@ -131,11 +130,6 @@ export default function ChatScreen() {
             <Txt color={m.me ? colors.bg : colors.text}>{m.t}</Txt>
           </View>
         ))}
-        {typing && (
-          <View style={{ alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 22, backgroundColor: colors.surface }}>
-            <Txt size={13} color={colors.neutral700}>{person.name} écrit…</Txt>
-          </View>
-        )}
 
         {toAnswer && (
           <View style={{ padding: 14, gap: 10, borderRadius: 22, backgroundColor: colors.accent100 }}>

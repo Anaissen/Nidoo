@@ -4,7 +4,7 @@ import { View } from 'react-native';
 
 import { VerifiedBadge } from '../components/Badges';
 import { BackHeader, Screen } from '../components/Screen';
-import { H, OutlineButton, PrimaryButton, Segmented, Txt } from '../components/ui';
+import { H, OutlineButton, Segmented, Txt } from '../components/ui';
 import { ThemeMode, useStore } from '../store/useStore';
 import { colors, ICON_STROKE } from '../theme/tokens';
 
@@ -16,7 +16,6 @@ export default function Settings() {
   const textScale = useStore((s) => s.textScale);
   const meVerified = useStore((s) => s.meVerified);
   const set = useStore((s) => s.set);
-  const showToast = useStore((s) => s.showToast);
 
   // The whole app re-renders with the new look; `returnTo` brings us back here.
   const setLook = (patch: { theme?: ThemeMode; textScale?: number }) => set({ ...patch, returnTo: '/settings' });
@@ -54,8 +53,7 @@ export default function Settings() {
                 <BadgeCheck size={28} strokeWidth={ICON_STROKE} color={colors.accent2_700} />
                 <Txt size={14} color={colors.neutral800} style={{ flex: 1 }}>Vérifie ton identité et ton numéro de téléphone : les parents achètent plus volontiers à un parent vérifié.</Txt>
               </View>
-              {/* Demo: a real flow would hand over to an identity-verification provider. */}
-              <PrimaryButton label="Vérifier mon compte" height={46} size={16} onPress={() => { set({ meVerified: true }); showToast('Compte vérifié ✓'); }} />
+              <Txt size={13} weight="semi" color={colors.accent2_800}>Bientôt disponible.</Txt>
             </View>
           )}
         </View>

@@ -1,4 +1,4 @@
-// Demo catalogue, copied from the Claude Design prototype (Nidoo.dc.html).
+// Sizes, colours, conditions and delivery options. The listings themselves live on the server (src/lib/listings.ts).
 
 export const AGES = ['0-6 mois', '6-12 mois', '1-2 ans', '2-4 ans', '4-6 ans', '6-8 ans', '8-10 ans'] as const;
 export const GENDERS = ['Fille', 'Garçon', 'Mixte'] as const;
@@ -74,19 +74,14 @@ export type Seller = {
   sales: number; init: string; since: string; ship: string;
   /** "Parent vérifié": ID + phone checked. */
   verified: boolean;
-  /** Distance from the user (demo: the user lives in Paris 11e). */
+  /** Rough distance from the user, guessed from the postcodes. */
   distanceKm: number;
   /** Buyers who confirmed the "lavé et plié" promise on reception. */
   washedConfirms: number;
 };
 
-export const SELLERS: Record<string, Seller> = {
-  s1: { id: 's1', name: 'Camille R.', city: 'Paris 11e', rating: '4,9', reviews: 86, sales: 128, init: 'C', since: '2024', ship: '24 h', verified: true, distanceKm: 1.2, washedConfirms: 64 },
-  s2: { id: 's2', name: 'Julie M.', city: 'Paris 12e', rating: '4,8', reviews: 41, sales: 64, init: 'J', since: '2025', ship: '48 h', verified: true, distanceKm: 3.4, washedConfirms: 27 },
-  s3: { id: 's3', name: 'Sophie & Marc', city: 'Montreuil', rating: '5,0', reviews: 19, sales: 22, init: 'S', since: '2025', ship: '24 h', verified: false, distanceKm: 6.8, washedConfirms: 15 },
-  s4: { id: 's4', name: 'Inès B.', city: 'Lyon 6e', rating: '4,7', reviews: 33, sales: 41, init: 'I', since: '2023', ship: '72 h', verified: true, distanceKm: 465, washedConfirms: 22 },
-  me: { id: 'me', name: 'Élodie', city: 'Paris 11e', rating: '4,9', reviews: 12, sales: 18, init: 'É', since: '2025', ship: '24 h', verified: false, distanceKm: 0, washedConfirms: 9 },
-};
+/** The person's own seller card, before their real figures arrive from the server. */
+export const ME_SELLER: Seller = { id: 'me', name: '', city: '', rating: '–', reviews: 0, sales: 0, init: '?', since: String(new Date().getFullYear()), ship: '48 h', verified: false, distanceKm: 0, washedConfirms: 0 };
 
 export type ListingType = 'lot' | 'unique';
 export type LotLine = { n: string; q: number };
@@ -101,7 +96,7 @@ export type Product = {
   washed?: boolean;
   /** Written by the seller (real listings). */
   description?: string;
-  /** Real photos (public URLs, or local files while publishing). Demo listings use striped placeholders. */
+  /** Real photos (public URLs, or local files while publishing). Without any, a striped placeholder. */
   photos?: string[];
   /** Row id in the Supabase `listings` table, for listings that live on the server. */
   remoteId?: number;
@@ -115,48 +110,6 @@ export type Product = {
   sockSize?: string;
 };
 
-const P = (
-  id: number, type: ListingType, title: string, brand: string, age: string, gender: string,
-  season: string, condition: string, price: number, color: string, sid: string,
-  extra: Partial<Product> = {},
-): Product => ({ id, type, title, brand, age, size: age, gender, season, condition, price, color, sid, ...extra });
-
-export const PRODUCTS: Product[] = [
-  P(1, 'lot', 'Lot naissance 10 bodies & pyjamas', 'Petit Bateau', '0-6 mois', 'Mixte', 'Toutes saisons', 'Très bon état', 28, 'Blanc', 's1', { washed: true, count: 10, contents: [{ n: 'Bodies manches longues', q: 5 }, { n: 'Pyjamas velours', q: 3 }, { n: 'Bonnets', q: 2 }], ph: 'photo · lot plié à plat' }),
-  P(2, 'unique', 'Robe en lin smockée', 'Jacadi', '2-4 ans', 'Fille', 'Été', 'Neuf avec étiquette', 18, 'Rose', 's2', { washed: true, ph: 'photo · robe de face' }),
-  P(3, 'lot', 'Lot rentrée garçon 7 pièces', 'Okaïdi', '4-6 ans', 'Garçon', 'Automne', 'Bon état', 32, 'Marine', 's3', { washed: true, count: 7, contents: [{ n: 'Pantalons', q: 2 }, { n: 'Sweats', q: 2 }, { n: 'T-shirts manches longues', q: 3 }], ph: 'photo · lot rentrée' }),
-  P(4, 'unique', 'Doudoune légère sans manches', 'Cyrillus', '4-6 ans', 'Mixte', 'Hiver', 'Très bon état', 22, 'Bleu', 's1', { washed: true, ph: 'photo · doudoune' }),
-  P(5, 'lot', "Lot 4 pyjamas d'hiver", 'Petit Bateau', '1-2 ans', 'Mixte', 'Hiver', 'Bon état', 16, 'Beige', 's4', { washed: true, count: 4, contents: [{ n: 'Pyjamas une pièce', q: 4 }], ph: 'photo · pyjamas' }),
-  P(6, 'unique', 'Salopette en velours côtelé', 'Bonton', '1-2 ans', 'Fille', 'Automne', 'Très bon état', 14, 'Vert', 's2', { ph: 'photo · salopette' }),
-  P(7, 'lot', 'Lot été fille 9 pièces', "Tape à l'œil", '8-10 ans', 'Fille', 'Été', 'Bon état', 25, 'Multicolore', 's4', { washed: true, count: 9, contents: [{ n: 'Shorts', q: 3 }, { n: 'T-shirts', q: 4 }, { n: 'Robes', q: 2 }], ph: 'photo · lot été' }),
-  P(8, 'unique', 'Gigoteuse 6-18 mois', 'Jacadi', '6-12 mois', 'Mixte', 'Hiver', 'Très bon état', 15, 'Beige', 's3', { ph: 'photo · gigoteuse' }),
-  P(9, 'unique', 'Ciré jaune doublé', 'Petit Bateau', '6-8 ans', 'Mixte', 'Printemps', 'Très bon état', 20, 'Jaune', 's1', { washed: true, ph: 'photo · ciré' }),
-  P(10, 'lot', 'Lot hiver 12 pièces', 'Kiabi', '6-12 mois', 'Mixte', 'Hiver', 'Bon état', 30, 'Bleu', 's2', { washed: true, count: 12, contents: [{ n: 'Bodies', q: 4 }, { n: 'Pantalons', q: 3 }, { n: 'Pulls', q: 3 }, { n: 'Combinaisons', q: 2 }], ph: 'photo · lot hiver' }),
-  P(11, 'unique', 'Chemise à carreaux', 'Cyrillus', '6-8 ans', 'Garçon', 'Printemps', 'Neuf avec étiquette', 12, 'Bleu', 's3', { ph: 'photo · chemise' }),
-  P(12, 'unique', 'Gilet en maille écru', 'Bonton', '2-4 ans', 'Mixte', 'Automne', 'Très bon état', 16, 'Blanc', 's4', { washed: true, ph: 'photo · gilet' }),
-  P(13, 'lot', 'Lot fille 6 pièces mi-saison', 'Jacadi', '2-4 ans', 'Fille', 'Printemps', 'Très bon état', 26, 'Rose', 's1', { washed: true, count: 6, contents: [{ n: 'Robes', q: 2 }, { n: 'Leggings', q: 2 }, { n: 'Gilets', q: 2 }], ph: 'photo · lot mi-saison' }),
-  P(14, 'unique', 'Combinaison pilote', 'Petit Bateau', '6-12 mois', 'Garçon', 'Hiver', 'Bon état', 19, 'Marine', 's4', { ph: 'photo · combinaison' }),
-  P(15, 'unique', 'Baskets à scratch', 'Geox', '2-4 ans', 'Mixte', 'Toutes saisons', 'Très bon état', 14, 'Bleu', 's1', { category: 'chaussures', shoeSize: 25, size: 'Pointure 25', washed: true, ph: 'photo · baskets' }),
-  P(16, 'unique', 'Bottes de pluie', 'Aigle', '4-6 ans', 'Mixte', 'Automne', 'Bon état', 9, 'Jaune', 's3', { category: 'chaussures', shoeSize: 28, size: 'Pointure 28', ph: 'photo · bottes' }),
-  P(17, 'unique', 'Chaussons en cuir souple', 'Robeez', '6-12 mois', 'Mixte', 'Toutes saisons', 'Très bon état', 8, 'Beige', 's2', { category: 'chaussures', shoeSize: 19, size: 'Pointure 19', ph: 'photo · chaussons' }),
-  P(18, 'lot', 'Lot 6 paires de chaussettes', 'Petit Bateau', '2-4 ans', 'Mixte', 'Toutes saisons', 'Très bon état', 6, 'Multicolore', 's4', { category: 'chaussettes', sockSize: '23-26', size: 'T. 23-26', count: 6, contents: [{ n: 'Paires de chaussettes', q: 6 }], washed: true, ph: 'photo · chaussettes' }),
-  P(19, 'lot', 'Lot 3 collants fille', 'DPAM', '4-6 ans', 'Fille', 'Hiver', 'Bon état', 7, 'Rose', 's2', { category: 'chaussettes', sockSize: '27-30', size: 'T. 27-30', count: 3, contents: [{ n: 'Collants', q: 3 }], ph: 'photo · collants' }),
-  P(15, 'unique', 'Pantalon en velours', 'Cyrillus', '2-4 ans', 'Garçon', 'Automne', 'Bon état', 9, 'Beige', 's2', { ph: 'photo · pantalon' }),
-  P(16, 'lot', 'Lot sport garçon 5 pièces', 'Kiabi', '8-10 ans', 'Garçon', 'Toutes saisons', 'Satisfaisant', 12, 'Marine', 's3', { washed: true, count: 5, contents: [{ n: 'Joggings', q: 2 }, { n: 'T-shirts techniques', q: 3 }], ph: 'photo · lot sport' }),
-];
-
-// Listings already in Élodie's own dressing (sold, so not in the public feed).
-export const MY_PAST_LISTINGS: Product[] = [
-  { id: 101, type: 'unique', title: 'Gilet en maille rose', brand: 'Bonton', age: '2-4 ans', size: '2-4 ans', gender: 'Fille', season: 'Automne', condition: 'Très bon état', price: 14, color: 'Rose', sid: 'me', ph: 'photo · gilet' },
-  { id: 102, type: 'lot', title: 'Lot 5 bodies 3 mois', brand: 'Petit Bateau', age: '0-6 mois', size: '0-6 mois', gender: 'Mixte', season: 'Toutes saisons', condition: 'Bon état', price: 12, color: 'Blanc', sid: 'me', count: 5, contents: [{ n: 'Bodies', q: 5 }], ph: 'photo · bodies' },
-];
-
-export const REVIEWS = [
-  { who: 'Marion L.', stars: '★★★★★', text: 'Lot conforme, tout était plié et lavé. Envoi rapide.', when: 'il y a 3 jours' },
-  { who: 'Thomas D.', stars: '★★★★★', text: 'Vendeuse très arrangeante pour la remise en main propre.', when: 'il y a 2 semaines' },
-  { who: 'Aïcha K.', stars: '★★★★☆', text: 'Bon état comme décrit, un petit bouton à recoudre.', when: 'le mois dernier' },
-];
-
 export type DeliveryId = 'relais' | 'domicile' | 'main';
 
 export const DELIVERY: { id: DeliveryId; title: string; sub: string; price: number; name: string }[] = [
@@ -165,12 +118,6 @@ export const DELIVERY: { id: DeliveryId; title: string; sub: string; price: numb
   { id: 'main', title: 'Main propre', sub: 'Rendez-vous avec le vendeur', price: 0, name: 'Main propre' },
 ];
 
-export const DELIVERY_DETAIL: Record<DeliveryId, string> = {
-  relais: 'Relais Tabac du Parc, 12 rue Oberkampf, Paris 11e · Modifier',
-  domicile: 'Élodie Martin, 34 avenue Parmentier, 75011 Paris',
-  main: "Tu fixeras le lieu et l'heure avec le vendeur dans la messagerie.",
-};
-
 export const SELL_DELIVERY: { id: DeliveryId; title: string; sub: string }[] = [
   { id: 'relais', title: 'Point relais', sub: "Tu déposes le colis, l'étiquette est générée" },
   { id: 'domicile', title: 'Domicile', sub: "Livré chez l'acheteur" },
@@ -178,13 +125,6 @@ export const SELL_DELIVERY: { id: DeliveryId; title: string; sub: string }[] = [
 ];
 
 export const DEFAULT_COMMISSION = 8;
-
-/** Remise en main propre: busy, public places suggested near the user. */
-export const SAFE_SPOTS = [
-  { id: 'boulangerie', name: 'Boulangerie Le Pain d\'Antan', addr: '28 rue Oberkampf', dist: '350 m' },
-  { id: 'mairie', name: 'Parvis de la mairie du 11e', addr: 'Place Léon-Blum', dist: '900 m' },
-  { id: 'relais', name: 'Relais Tabac du Parc', addr: '12 rue Oberkampf', dist: '400 m' },
-];
 
 export const DISTANCES = [
   { l: 'Moins de 2 km', km: 2 },
