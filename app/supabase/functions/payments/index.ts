@@ -108,17 +108,35 @@ export type Boxtal = {
   get: (path: string, query?: Record<string, string>) => Promise<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   post: (path: string, body: unknown) => Promise<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 };
-/** Boxtal's API v3, with the application's keys (basic auth). Null until the keys are in the secrets. */
+/** Boxtal's temporary token, kept between calls while it's valid (an instance of the function serves many calls). */
+let boxtalToken: { value: string; until: number; keys: string } | null = null;
+
+/**
+ * Boxtal's API v3. Each call carries a temporary token ("Bearer"); the application's keys only get that token,
+ * from /iam/account-app/token (basic auth: accessKey:secretKey). Null until the keys are in the secrets.
+ */
 export function boxtalClient(): Boxtal | null {
-  const key = Deno.env.get('BOXTAL_ACCESS_KEY'), secret = Deno.env.get('BOXTAL_SECRET_KEY');
+  const key = Deno.env.get('BOXTAL_ACCESS_KEY')?.trim(), secret = Deno.env.get('BOXTAL_SECRET_KEY')?.trim();
   if (!key || !secret) return null;
-  const base = (Deno.env.get('BOXTAL_API_URL') ?? 'https://api.boxtal.build').replace(/\/$/, '');
-  const call = async (method: string, path: string, query?: Record<string, string>, body?: unknown) => {
+  const base = (Deno.env.get('BOXTAL_API_URL')?.trim() || 'https://api.boxtal.build').replace(/\/$/, '');
+  const keys = `${base} ${key}`;
+  const token = async (fresh: boolean) => {
+    if (!fresh && boxtalToken?.keys === keys && boxtalToken.until > Date.now()) return boxtalToken.value;
+    const res = await fetch(`${base}/iam/account-app/token`, { method: 'POST', headers: { Authorization: `Basic ${btoa(`${key}:${secret}`)}`, Accept: 'application/json' } });
+    const json = await res.json().catch(() => null);
+    if (!res.ok || typeof json?.accessToken !== 'string') throw new BoxtalError(res.status, { step: 'token', answer: json });
+    // A little before it expires, to be safe.
+    boxtalToken = { value: json.accessToken, until: Date.now() + Math.max(60, (Number(json.expiresIn) || 3600) - 120) * 1000, keys };
+    return boxtalToken.value;
+  };
+  const call = async (method: string, path: string, query?: Record<string, string>, body?: unknown, again = false): Promise<unknown> => {
     const res = await fetch(`${base}${path}${query ? `?${new URLSearchParams(query)}` : ''}`, {
       method,
-      headers: { Authorization: `Basic ${btoa(`${key}:${secret}`)}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: { Authorization: `Bearer ${await token(again)}`, 'Content-Type': 'application/json', Accept: 'application/json' },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
+    // The token was refused (expired early, keys changed): a new one, once. Nothing was done with the refused call.
+    if (res.status === 401 && !again) return call(method, path, query, body, true);
     const json = await res.json().catch(() => null);
     if (!res.ok) throw new BoxtalError(res.status, json);
     return json;
@@ -711,7 +729,12 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
       const stripeMessage = (e as { type?: string; message?: string })?.type?.startsWith('Stripe') ? (e as Error).message : null;
       if (testMode && stripeMessage) return reply({ error: `Stripe (test) : ${stripeMessage}` }, 500);
       // Same for Boxtal while on its test server.
-      if (e instanceof BoxtalError && boxtal?.test) return reply({ error: `Boxtal (test) : erreur ${e.status} ${JSON.stringify(e.body ?? '').slice(0, 300)}` }, 500);
+      if (e instanceof BoxtalError && boxtal?.test) {
+        const keysRefused = (e.body as { step?: string } | null)?.step === 'token';
+        return reply({ error: keysRefused
+          ? `Boxtal (test) : clés refusées (erreur ${e.status}). Vérifie BOXTAL_ACCESS_KEY et BOXTAL_SECRET_KEY : ce doivent être celles de l'espace de test de Boxtal.`
+          : `Boxtal (test) : erreur ${e.status} ${JSON.stringify(e.body ?? '').slice(0, 300)}` }, 500);
+      }
       const what = action === 'parcel-points' ? 'La recherche de points relais' : action === 'label' || action === 'tracking' ? 'La demande au transporteur' : 'Le paiement';
       return reply({ error: `${what} n'a pas pu aboutir, réessaie dans un instant.` }, 500);
     }
