@@ -2,30 +2,27 @@
 import { fmt, fmtInt } from '../lib/format';
 import { DEFAULT_COMMISSION, DELIVERY } from './catalog';
 
-/**
- * Who publishes Pimou. To fill in once the business exists (entreprise individuelle or société):
- * an empty value shows "[à compléter]" on the pages.
- */
+/** Who publishes Pimou. An empty value shows "[à compléter]" on the pages. */
 export const LEGAL = {
   /** Shown on the pages. Change it with TERMS_VERSION when the texts change in a way that matters. */
   updated: '29 octobre 2026',
-  /** e.g. "Anaïs Martin EI" or "Pimou SAS". */
-  name: '',
-  /** e.g. "Entreprise individuelle" or "SAS au capital de 1 000 €". */
-  form: '',
-  address: '',
-  /** SIREN, or RCS number for a société. */
-  siren: '',
-  /** "Non applicable (TVA non applicable, article 293 B du CGI)" under the VAT threshold. */
+  /** Date of the last change to the mentions légales alone (publisher, hosts…). */
+  noticeUpdated: '14 novembre 2026',
+  /** An entreprise individuelle shows "EI" next to the name (required since May 2022). */
+  name: 'Anaïs Sennia EI',
+  form: 'Entreprise individuelle',
+  address: '178 rue des Mourgues, 30920 Codognan',
+  siret: '898 459 276 00025',
+  /** "TVA non applicable, article 293 B du CGI" under the VAT threshold (franchise en base), or the VAT number. */
   vat: '',
   phone: '',
-  director: '',
+  director: 'Anaïs Sennia',
   /** Where parents write when something goes wrong (a Zimbra mailbox at OVH). */
   email: 'reclamation@pimou.fr',
   /** Médiateur de la consommation Pimou signs up with (mandatory for a business serving consumers). */
   mediator: { name: '', address: '', url: '' },
   /** Where the Supabase project lives (Project Settings → General → Region), e.g. "en Irlande (Union européenne)". */
-  dataRegion: '',
+  dataRegion: 'en Irlande (Union européenne)',
 };
 
 /**
@@ -47,7 +44,7 @@ export type LegalId = 'cgu' | 'confidentialite' | 'mentions';
 export type LegalDoc = { title: string; short: string; intro: string; sections: LegalSection[] };
 
 const price = (id: string) => fmt(DELIVERY.find((d) => d.id === id)!.price);
-const publisher = () => `${v(LEGAL.name)}, ${v(LEGAL.form)}, ${v(LEGAL.address)}`;
+const publisher = () => `${v(LEGAL.name)}, ${v(LEGAL.form.toLowerCase())}, ${v(LEGAL.address)}`;
 
 const cgu = (): LegalDoc => ({
   title: "Conditions générales d'utilisation",
@@ -220,20 +217,20 @@ const confidentialite = (): LegalDoc => ({
 const mentions = (): LegalDoc => ({
   title: 'Mentions légales',
   short: 'Mentions légales',
-  intro: `Les informations sur l'éditeur et les hébergeurs de Pimou. Mises à jour le ${LEGAL.updated}.`,
+  intro: `Les informations sur l'éditeur et les hébergeurs de Pimou. Mises à jour le ${LEGAL.noticeUpdated}.`,
   sections: [
     { title: 'Éditeur', body: [
       [
         `Nom : ${v(LEGAL.name)}`,
         `Statut : ${v(LEGAL.form)}`,
         `Adresse : ${v(LEGAL.address)}`,
-        `SIREN : ${v(LEGAL.siren)}`,
+        `SIRET : ${v(LEGAL.siret)}`,
         `TVA : ${v(LEGAL.vat)}`,
         `Téléphone : ${v(LEGAL.phone)}`,
         `E-mail : ${LEGAL.email}`,
       ],
     ] },
-    { title: 'Directeur ou directrice de la publication', body: [v(LEGAL.director)] },
+    { title: 'Directrice de la publication', body: [v(LEGAL.director)] },
     { title: 'Hébergement', body: [
       [
         'Site web : GitHub, Inc. (GitHub Pages), 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, États-Unis, github.com.',
