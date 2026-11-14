@@ -11,6 +11,11 @@
 // RESEND_API_KEY (the Resend key) sends e-mails on each sale, shipment and payout.
 //
 // It also closes accounts ("delete-account"), which needs the server's rights (supabase/schema-9-suppression-compte.sql).
+//
+// Shipping labels (supabase/schema-10-bordereaux.sql) come from Boxtal: Mondial Relay to a point relais, Colissimo to
+// the door. Secrets BOXTAL_ACCESS_KEY and BOXTAL_SECRET_KEY (an "API v3" application on Boxtal's developer site);
+// BOXTAL_API_URL is the test server until set to https://api.boxtal.com. Optional: BOXTAL_RELAY_OFFER and
+// BOXTAL_HOME_OFFER (offer codes), BOXTAL_CONTENT_ID (content category). Without the keys, no label is made.
 
 import Stripe from 'npm:stripe@23.0.0';
 import { createClient, type SupabaseClient, type User } from 'npm:@supabase/supabase-js@2';
@@ -18,18 +23,112 @@ import { createClient, type SupabaseClient, type User } from 'npm:@supabase/supa
 const APP_URL = 'https://anaissen.github.io/Nidoo/';
 /** Pimou's commission on the price of each article, paid by the seller. */
 const COMMISSION = 0.08;
-const SHIPPING: Record<Delivery, number> = { relais: 3.9, domicile: 5.9, main: 0 };
+const DELIVERIES = ['relais', 'domicile', 'main'] as const;
 const DELIVERY_LABEL: Record<Delivery, string> = { relais: 'Livraison en point relais', domicile: 'Livraison à domicile', main: 'Remise en main propre' };
 const MAX_ITEMS = 20;
 
-type Delivery = 'relais' | 'domicile' | 'main';
-type Listing = { id: number; seller_id: string; title: string; price: number | string; photos: string[] | null; status: string };
+/** The seller picks petit, moyen or grand when publishing; several articles in one parcel can make it "très grand". */
+const SIZES = ['petit', 'moyen', 'grand', 'tres-grand'] as const;
+type ParcelSize = (typeof SIZES)[number];
+/** Declared to the carrier: weight in kg, sides in cm. */
+const PARCELS: Record<ParcelSize, { weight: number; length: number; width: number; height: number }> = {
+  petit: { weight: 0.5, length: 30, width: 20, height: 5 },
+  moyen: { weight: 1, length: 35, width: 25, height: 10 },
+  grand: { weight: 2, length: 40, width: 30, height: 15 },
+  'tres-grand': { weight: 5, length: 50, width: 40, height: 20 },
+};
+/** What the buyer pays for one parcel; it pays for the label. Same figures as SHIPPING_PRICES in the app (src/data/catalog.ts). */
+const SHIPPING: Record<Exclude<Delivery, 'main'>, Record<ParcelSize, number>> = {
+  relais: { petit: 3.9, moyen: 4.9, grand: 6.9, 'tres-grand': 9.9 },
+  domicile: { petit: 6.9, moyen: 7.9, grand: 9.9, 'tres-grand': 13.9 },
+};
+const shippingPrice = (d: Delivery, size: ParcelSize) => (d === 'main' ? 0 : SHIPPING[d][size]);
+
+type Delivery = (typeof DELIVERIES)[number];
+type Listing = {
+  id: number; seller_id: string; title: string; price: number | string; photos: string[] | null; status: string;
+  type?: string; count?: number | null; category?: string | null; parcel_size?: ParcelSize | null;
+};
+/** The Mondial Relay point the buyer picked, and a home address for Colissimo. */
+type Relay = { code: string; name: string; street: string; zip: string; city: string };
+type ShipAddress = { name: string; street: string; zip: string; city: string };
 type Order = {
   id: string; group_id: string; listing_id: number | null; buyer_id: string; seller_id: string; title: string; photo: string | null;
   price: number | string; shipping: number | string; commission: number | string; delivery: Delivery; address: string;
   status: 'pending' | 'paid' | 'shipped' | 'received' | 'cancelled'; stripe_session_id: string | null;
   payment_intent: string | null; charge_id: string | null; transfer_id: string | null;
+  parcel_size?: ParcelSize | null; relay?: Relay | null; ship_address?: ShipAddress | null;
+  shipping_order_id?: string | null; tracking_number?: string | null; tracking_url?: string | null; tracking_status?: string | null; label_error?: string | null;
 };
+type Profile = { first_name?: string; last_name?: string; phone?: string; street?: string; zip?: string; city?: string };
+
+/** Size of one listing's parcel, guessed when the seller didn't say (listings from before). */
+function listingSize(l: Listing): ParcelSize {
+  if (l.parcel_size && SIZES.includes(l.parcel_size)) return l.parcel_size;
+  if (l.category === 'chaussures') return 'moyen';
+  if (l.type === 'lot') return (l.count ?? 0) >= 6 ? 'grand' : 'moyen';
+  return 'petit';
+}
+/** One parcel for all of a seller's articles: the smallest size their weights fit in. */
+function parcelFor(listings: Listing[]): ParcelSize {
+  const weight = listings.reduce((n, l) => n + PARCELS[listingSize(l)].weight, 0);
+  return SIZES.find((s) => PARCELS[s].weight >= weight) ?? 'tres-grand';
+}
+/** A French mobile number as carriers want it ("+33612345678"), or null: they text the buyer when the parcel arrives. */
+export function mobile(phone: string | null | undefined) {
+  const m = /^(?:\+33|0033|0)([67]\d{8})$/.exec((phone ?? '').replace(/[\s.()-]/g, ''));
+  return m ? `+33${m[1]}` : null;
+}
+const text = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+function cleanRelay(v: unknown): Relay | null {
+  const r = (v ?? {}) as Record<string, unknown>;
+  const relay = { code: text(r.code, 40), name: text(r.name, 120), street: text(r.street, 160), zip: text(r.zip, 10), city: text(r.city, 80) };
+  return relay.code && relay.name && /^\d{5}$/.test(relay.zip) && relay.city ? relay : null;
+}
+function cleanAddress(v: unknown): ShipAddress | null {
+  const a = (v ?? {}) as Record<string, unknown>;
+  const ship = { name: text(a.name, 80), street: text(a.street, 160), zip: text(a.zip, 10), city: text(a.city, 80) };
+  return ship.name && ship.street.length >= 3 && /^\d{5}$/.test(ship.zip) && ship.city ? ship : null;
+}
+/** "Marie Dupont" → first and last name, as carriers print them. */
+function splitName(full: string) {
+  const [first, ...rest] = full.trim().split(/\s+/);
+  return rest.length ? { firstName: first, lastName: rest.join(' ') } : { firstName: '-', lastName: first || '-' };
+}
+
+// ── Boxtal ────────────────────────────────────────────────────────────────────────────────
+
+export class BoxtalError extends Error {
+  constructor(readonly status: number, readonly body: unknown) {
+    super(`Boxtal ${status}: ${JSON.stringify(body).slice(0, 300)}`);
+  }
+}
+export type Boxtal = {
+  test: boolean;
+  get: (path: string, query?: Record<string, string>) => Promise<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  post: (path: string, body: unknown) => Promise<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+};
+/** Boxtal's API v3, with the application's keys (basic auth). Null until the keys are in the secrets. */
+export function boxtalClient(): Boxtal | null {
+  const key = Deno.env.get('BOXTAL_ACCESS_KEY'), secret = Deno.env.get('BOXTAL_SECRET_KEY');
+  if (!key || !secret) return null;
+  const base = (Deno.env.get('BOXTAL_API_URL') ?? 'https://api.boxtal.build').replace(/\/$/, '');
+  const call = async (method: string, path: string, query?: Record<string, string>, body?: unknown) => {
+    const res = await fetch(`${base}${path}${query ? `?${new URLSearchParams(query)}` : ''}`, {
+      method,
+      headers: { Authorization: `Basic ${btoa(`${key}:${secret}`)}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new BoxtalError(res.status, json);
+    return json;
+  };
+  return { test: !base.includes('api.boxtal.com'), get: (p, q) => call('GET', p, q), post: (p, b) => call('POST', p, undefined, b) };
+}
+const RELAY_OFFER = () => Deno.env.get('BOXTAL_RELAY_OFFER') ?? 'MONR-CpourToi';
+const HOME_OFFER = () => Deno.env.get('BOXTAL_HOME_OFFER') ?? 'POFR-ColissimoAccess';
+/** Tracking statuses once the seller has dropped the parcel. */
+const ON_ITS_WAY = ['SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'FAILED_ATTEMPT', 'REACHED_DELIVERY_PICKUP_POINT', 'DELIVERED'];
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -81,7 +180,7 @@ function mailHtml(title: string, paragraphs: string[], cta: { label: string; url
 </table></td></tr></table></body></html>`;
 }
 
-export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: SendMail = resendMail) {
+export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: SendMail = resendMail, boxtal: Boxtal | null = boxtalClient()) {
   /** E-mail a parent about one of their orders. Never blocks or breaks the payment itself. */
   async function mailTo(userId: string, subject: string, paragraphs: string[], cta: { label: string; url: string }, note?: string) {
     try {
@@ -144,15 +243,22 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
     return last?.kind === 'accept' && amount > 0 && amount <= listed ? amount : listed;
   }
 
-  async function checkout(user: User, body: { listingIds?: unknown; delivery?: unknown; address?: unknown; fromApp?: unknown }) {
+  async function checkout(user: User, body: { listingIds?: unknown; delivery?: unknown; address?: unknown; relay?: unknown; shipAddress?: unknown; fromApp?: unknown }) {
     const delivery = body.delivery as Delivery;
-    if (!(delivery in SHIPPING)) throw new Refusal('Choisis un mode de livraison');
+    if (!DELIVERIES.includes(delivery)) throw new Refusal('Choisis un mode de livraison');
     const ids = [...new Set(Array.isArray(body.listingIds) ? body.listingIds.map(Number).filter((n) => Number.isInteger(n) && n > 0) : [])].slice(0, MAX_ITEMS);
     if (!ids.length) throw new Refusal('Ton panier est vide');
-    const address = typeof body.address === 'string' ? body.address.slice(0, 300) : '';
-    if (delivery === 'domicile' && address.trim().length < 8) throw new Refusal('Indique ton adresse de livraison');
+    const ship = delivery === 'domicile' ? cleanAddress(body.shipAddress) : null;
+    // (Older app versions send the address as one line.)
+    const address = ship ? `${ship.name}, ${ship.street}, ${ship.zip} ${ship.city}` : text(body.address, 300);
+    if (delivery === 'domicile' && address.length < 8) throw new Refusal('Indique ton adresse de livraison');
+    const relay = delivery === 'relais' ? cleanRelay(body.relay) : null;
+    if (delivery === 'relais' && boxtal && !relay) throw new Refusal('Choisis ton point relais');
+    if (delivery !== 'main' && boxtal && !mobile((await contactOf(user.id)).phone)) {
+      throw new Refusal("Ajoute ton numéro de portable : le transporteur t'envoie un SMS quand ton colis arrive.");
+    }
 
-    const { data, error } = await admin.from('listings').select('id, seller_id, title, price, photos, status').in('id', ids);
+    const { data, error } = await admin.from('listings').select('*').in('id', ids);
     if (error) throw error;
     const listings = (data ?? []) as Listing[];
     for (const id of ids) {
@@ -171,16 +277,19 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
     }
 
     const group = crypto.randomUUID();
+    // One parcel per seller, sized for all of their articles; its shipping is counted on their first article.
+    const parcelSize = new Map(sellerIds.map((id) => [id, parcelFor(listings.filter((l) => l.seller_id === id))]));
     const charged = new Set<string>();
     const rows: Omit<Order, 'id' | 'status' | 'stripe_session_id' | 'payment_intent' | 'charge_id' | 'transfer_id'>[] = [];
     for (const l of listings) {
       const price = await agreedPrice(l, user.id);
-      // One parcel per seller: shipping is counted on their first article.
-      const shipping = charged.has(l.seller_id) ? 0 : SHIPPING[delivery];
+      const size = parcelSize.get(l.seller_id)!;
+      const shipping = charged.has(l.seller_id) ? 0 : shippingPrice(delivery, size);
       charged.add(l.seller_id);
       rows.push({
         group_id: group, listing_id: l.id, buyer_id: user.id, seller_id: l.seller_id, title: l.title, photo: l.photos?.[0] ?? null,
         price, shipping, commission: round2(price * COMMISSION), delivery, address: delivery === 'domicile' ? address : '',
+        ...(delivery === 'main' ? {} : { parcel_size: size, relay, ship_address: ship }),
       });
     }
 
@@ -188,11 +297,10 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
       quantity: 1,
       price_data: { currency: 'eur', unit_amount: cents(Number(r.price)), product_data: { name: r.title, ...(r.photo ? { images: [r.photo] } : {}) } },
     }));
-    const parcels = rows.filter((r) => Number(r.shipping) > 0);
-    if (parcels.length) {
+    for (const r of rows.filter((x) => Number(x.shipping) > 0)) {
       lineItems.push({
-        quantity: parcels.length,
-        price_data: { currency: 'eur', unit_amount: cents(SHIPPING[delivery]), product_data: { name: DELIVERY_LABEL[delivery] } },
+        quantity: 1,
+        price_data: { currency: 'eur', unit_amount: cents(Number(r.shipping)), product_data: { name: `${DELIVERY_LABEL[delivery]} · colis ${r.parcel_size === 'tres-grand' ? 'très grand' : r.parcel_size}` } },
       });
     }
 
@@ -247,7 +355,9 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
           `Bonne nouvelle : ${buyer} vient d'acheter <strong>« ${escapeHtml(o.title)} »</strong>. Tu recevras ${euros(Number(o.price) - Number(o.commission))} dès que l'acheteur aura confirmé la réception.`,
           o.delivery === 'main'
             ? 'Fixez ensemble le lieu et l\'heure de la remise en main propre dans la messagerie de Pimou.'
-            : 'Prépare le colis et expédie-le sous 3 jours, puis indique-le dans l\'appli.',
+            : boxtal
+              ? `Ton bordereau prépayé t'attend dans l'appli : imprime-le, colle-le sur le colis et dépose-le sous 3 jours ${o.delivery === 'relais' ? 'dans un point Mondial Relay' : 'dans un bureau de poste'}.`
+              : 'Prépare le colis et expédie-le sous 3 jours, puis indique-le dans l\'appli.',
         ], { label: 'Voir ma vente', url: `${APP_URL}commande/${o.id}` }, TAX_NOTE);
       } else {
         await stripe.refunds.create({ payment_intent: pi.id, amount: cents(Number(o.price) + Number(o.shipping)), metadata: { pimou_order: o.id } }, { idempotencyKey: `refund-${o.id}` });
@@ -255,6 +365,11 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
         await admin.from('orders').update({ status: 'cancelled', payment_intent: pi.id }).eq('id', o.id);
         out.push({ ...o, status: 'cancelled', payment_intent: pi.id });
       }
+    }
+    // Paid parcels get their label (Pimou pays it with the shipping fee).
+    for (const sellerId of new Set(out.filter((o) => o.status === 'paid' && o.delivery !== 'main').map((o) => o.seller_id))) {
+      const labelled = await createLabel(out.filter((o) => o.seller_id === sellerId && o.status === 'paid'));
+      for (const l of labelled) out[out.findIndex((o) => o.id === l.id)] = l;
     }
     return { status: 'paid', orders: out };
   }
@@ -269,24 +384,180 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
     return o;
   }
 
-  async function orderFor(user: User, orderId: unknown, role: 'buyer' | 'seller') {
+  async function orderFor(user: User, orderId: unknown, role: 'buyer' | 'seller' | 'either') {
     const { data } = await admin.from('orders').select('*').eq('id', String(orderId)).maybeSingle();
     const o = data as Order | null;
-    if (!o || (role === 'buyer' ? o.buyer_id : o.seller_id) !== user.id) throw new Refusal('Commande introuvable');
+    const mine = o && (role === 'buyer' ? o.buyer_id === user.id : role === 'seller' ? o.seller_id === user.id : [o.buyer_id, o.seller_id].includes(user.id));
+    if (!o || !mine) throw new Refusal('Commande introuvable');
     return o;
+  }
+
+  /** The articles of one seller in one payment: they travel in the same parcel, with one label. */
+  async function parcelOf(o: Order) {
+    const { data } = await admin.from('orders').select('*').eq('group_id', o.group_id).eq('seller_id', o.seller_id).in('status', ['paid', 'shipped', 'received']);
+    return (data ?? []) as Order[];
+  }
+
+  /** The parcel left: the buyer is told once. */
+  async function shipped(parcel: Order[]) {
+    const ids = parcel.filter((o) => o.status === 'paid').map((o) => o.id);
+    if (!ids.length) return parcel;
+    const patch = { status: 'shipped' as const, shipped_at: new Date().toISOString() };
+    const { data: moved } = await admin.from('orders').update(patch).in('id', ids).eq('status', 'paid').select('id');
+    if (moved?.length) {
+      const o = parcel[0], titles = parcel.map((x) => `« ${escapeHtml(x.title)} »`).join(', ');
+      await mailTo(o.buyer_id, parcel.length > 1 ? 'Ton colis est en route 📦' : `« ${o.title} » est en route 📦`, [
+        `${escapeHtml(await displayName(o.seller_id))} a expédié <strong>${titles}</strong>.`,
+        ...(o.tracking_url ? [`Suis ton colis ici : <a href="${escapeHtml(o.tracking_url)}" style="color:#b2622d;">suivi ${o.delivery === 'relais' ? 'Mondial Relay' : 'Colissimo'}</a>.`] : []),
+        'Dès que tu l\'as entre les mains, confirme la réception dans Pimou : c\'est ce qui déclenche le paiement du vendeur.',
+        `Un problème à la réception (colis abîmé, article différent de l'annonce) ? Ne confirme pas et écris à ${claimLink} avec des photos.`,
+      ], { label: 'Voir ma commande', url: `${APP_URL}commande/${o.id}` });
+    }
+    return parcel.map((o) => (ids.includes(o.id) ? { ...o, ...patch } : o));
   }
 
   async function markShipped(user: User, orderId: unknown) {
     const o = await orderFor(user, orderId, 'seller');
     if (o.status !== 'paid') throw new Refusal(o.status === 'shipped' ? 'Déjà indiqué comme expédié' : "Cette commande n'est pas à expédier");
-    const patch = { status: 'shipped' as const, shipped_at: new Date().toISOString() };
-    await admin.from('orders').update(patch).eq('id', o.id);
-    await mailTo(o.buyer_id, `« ${o.title} » est en route 📦`, [
-      `${escapeHtml(await displayName(o.seller_id))} a expédié <strong>« ${escapeHtml(o.title)} »</strong>.`,
-      'Dès que tu l\'as entre les mains, confirme la réception dans Pimou : c\'est ce qui déclenche le paiement du vendeur.',
-      `Un problème à la réception (colis abîmé, article différent de l'annonce) ? Ne confirme pas et écris à ${claimLink} avec des photos.`,
-    ], { label: 'Voir ma commande', url: `${APP_URL}commande/${o.id}` });
-    return { order: { ...o, ...patch } };
+    const parcel = await shipped(await parcelOf(o));
+    return { order: parcel.find((x) => x.id === o.id) ?? o };
+  }
+
+  // ── Labels and tracking (Boxtal) ──────────────────────────────────────────────────────
+
+  async function contactOf(userId: string) {
+    const { data: p } = await admin.from('profiles').select('first_name, last_name, phone, street, zip, city').eq('id', userId).maybeSingle();
+    const { data: u } = await admin.auth.admin.getUserById(userId);
+    return { ...((p ?? {}) as Profile), email: u?.user?.email ?? '' };
+  }
+
+  let contentCache: string | null = null;
+  /** Boxtal's content category for children's clothes. */
+  async function contentId() {
+    if (contentCache) return contentCache;
+    const fixed = Deno.env.get('BOXTAL_CONTENT_ID');
+    if (fixed) return (contentCache = fixed);
+    const res = await boxtal!.get('/shipping/v3.1/content-category', { language: 'fr' });
+    const list = (res?.content ?? []) as { id: string; label: string }[];
+    const hit = list.find((c) => /v[êe]tement|habill|textile/i.test(c.label ?? ''));
+    if (!hit) throw new Error(`no clothing content category among ${list.map((c) => c.label).join(', ')}`);
+    return (contentCache = hit.id);
+  }
+
+  /** Order the parcel's label. A failure is written on the orders, for the seller to fix and retry; the sale itself stands. */
+  async function createLabel(parcel: Order[]): Promise<Order[]> {
+    const lead = parcel[0];
+    if (!boxtal || !lead || lead.delivery === 'main' || parcel.some((o) => o.shipping_order_id)) return parcel;
+    let patch: Partial<Order>;
+    try {
+      const [from, to] = await Promise.all([contactOf(lead.seller_id), contactOf(lead.buyer_id)]);
+      const fromPhone = mobile(from.phone), toPhone = mobile(to.phone);
+      if (!fromPhone || !from.street?.trim() || !/^\d{5}$/.test(from.zip ?? '') || !from.city?.trim()) {
+        throw new Refusal('Ajoute ton adresse complète et ton numéro de portable dans « Mes informations », puis touche « Créer mon bordereau ».');
+      }
+      if (!toPhone) throw new Refusal("Le numéro de portable de l'acheteur manque : écris-lui pour qu'il l'ajoute dans « Mes informations ».");
+      const contact = (c: Profile & { email: string }, phone: string) => ({ firstName: c.first_name || '-', lastName: c.last_name || '-', email: c.email, phone });
+      const where = (street: string, zip: string, city: string) => ({ street, postalCode: zip, city, countryIsoCode: 'FR' });
+      const relay = lead.relay, home = lead.ship_address;
+      if (lead.delivery === 'relais' && !relay) throw new Refusal("Le point relais de l'acheteur manque : écris à reclamation@pimou.fr.");
+      if (lead.delivery === 'domicile' && !home) throw new Refusal("L'adresse de l'acheteur manque : écris à reclamation@pimou.fr.");
+      const toLocation = lead.delivery === 'domicile' ? where(home!.street, home!.zip, home!.city)
+        : to.street && to.zip && to.city ? where(to.street, to.zip, to.city) : where(relay!.street, relay!.zip, relay!.city);
+      const p = PARCELS[lead.parcel_size ?? 'moyen'] ?? PARCELS.moyen;
+      const res = await boxtal.post('/shipping/v3.1/shipping-order', {
+        shippingOfferCode: lead.delivery === 'relais' ? RELAY_OFFER() : HOME_OFFER(),
+        labelType: 'PDF_A4',
+        shipment: {
+          externalId: lead.id,
+          packages: [{
+            type: 'PARCEL', weight: p.weight, length: p.length, width: p.width, height: p.height,
+            value: { value: round2(parcel.reduce((n, o) => n + Number(o.price), 0)), currency: 'EUR' },
+            content: { id: await contentId(), description: "Vêtements d'enfants d'occasion" },
+          }],
+          fromAddress: { type: 'RESIDENTIAL', contact: contact(from, fromPhone), location: where(from.street!.trim(), from.zip!, from.city!.trim()) },
+          toAddress: { type: 'RESIDENTIAL', contact: home ? { ...contact(to, toPhone), ...splitName(home.name) } : contact(to, toPhone), location: toLocation },
+          ...(relay ? { pickupPointCode: relay.code } : {}),
+        },
+      });
+      const id = res?.content?.id as string | undefined;
+      if (!id) throw new Error(`no shipping order id: ${JSON.stringify(res).slice(0, 300)}`);
+      patch = { shipping_order_id: id, label_error: null };
+    } catch (e) {
+      console.error('label', e);
+      // In test mode, Boxtal's own words help setting things up.
+      const detail = boxtal.test && e instanceof BoxtalError ? ` (Boxtal test : ${JSON.stringify(e.body).slice(0, 200)})` : '';
+      patch = { label_error: e instanceof Refusal ? e.message : `Le bordereau n'a pas pu être créé. Réessaie dans un moment ou écris à reclamation@pimou.fr.${detail}` };
+    }
+    await admin.from('orders').update(patch).in('id', parcel.map((o) => o.id));
+    return parcel.map((o) => ({ ...o, ...patch }));
+  }
+
+  /** The seller retries after fixing what was missing (phone, address…). */
+  async function retryLabel(user: User, orderId: unknown) {
+    const o = await orderFor(user, orderId, 'seller');
+    const parcel = (await parcelOf(o)).filter((x) => x.status === 'paid');
+    if (!parcel.length) throw new Refusal("Cette commande n'est pas à expédier");
+    const done = await createLabel(parcel);
+    const mine = done.find((x) => x.id === o.id) ?? done[0];
+    if (mine.label_error) throw new Refusal(mine.label_error);
+    return { order: mine };
+  }
+
+  /** A fresh link to the label PDF (Boxtal's links expire after 7 days). */
+  async function labelLink(user: User, orderId: unknown) {
+    const o = await orderFor(user, orderId, 'seller');
+    if (!boxtal || !o.shipping_order_id) throw new Refusal("Ce bordereau n'existe pas encore.");
+    try {
+      const res = await boxtal.get(`/shipping/v3.1/shipping-order/${encodeURIComponent(o.shipping_order_id)}/shipping-document`);
+      const doc = ((res?.content ?? []) as { type: string; url: string }[]).find((d) => d.type === 'LABEL');
+      if (doc?.url) return { url: doc.url };
+    } catch (e) {
+      if (!(e instanceof BoxtalError && e.status === 422)) throw e;
+    }
+    throw new Refusal('Ton bordereau est en cours de création : réessaie dans une minute.');
+  }
+
+  /** Where the parcel is. Once dropped off, the order counts as shipped (and the buyer is told). */
+  async function refreshTracking(parcel: Order[]): Promise<Order[]> {
+    const lead = parcel.find((o) => o.shipping_order_id);
+    if (!boxtal || !lead) return parcel;
+    let t: { status?: string; trackingNumber?: string; packageTrackingUrl?: string } | undefined;
+    try {
+      t = (await boxtal.get(`/shipping/v3.1/shipping-order/${encodeURIComponent(lead.shipping_order_id!)}/tracking`))?.content?.[0];
+    } catch (e) {
+      // 422: no tracking yet.
+      if (!(e instanceof BoxtalError && e.status === 422)) console.error('tracking', e);
+      return parcel;
+    }
+    if (!t?.status) return parcel;
+    const patch = { tracking_status: t.status, tracking_number: t.trackingNumber ?? null, tracking_url: t.packageTrackingUrl ?? null };
+    if (parcel.some((o) => o.tracking_status !== patch.tracking_status || o.tracking_url !== patch.tracking_url)) {
+      await admin.from('orders').update(patch).in('id', parcel.map((o) => o.id));
+    }
+    const out = parcel.map((o) => ({ ...o, ...patch }));
+    return ON_ITS_WAY.includes(t.status) ? await shipped(out) : out;
+  }
+
+  async function tracking(user: User, orderId: unknown) {
+    const o = await orderFor(user, orderId, 'either');
+    const parcel = await refreshTracking(await parcelOf(o));
+    return { order: parcel.find((x) => x.id === o.id) ?? o };
+  }
+
+  /** Relay points near the buyer where Mondial Relay can deliver. */
+  async function parcelPoints(body: { postalCode?: unknown; city?: unknown }) {
+    if (!boxtal) throw new Refusal("Le choix du point relais n'est pas encore disponible.");
+    const postalCode = text(body.postalCode, 5), city = text(body.city, 80);
+    if (!/^\d{5}$/.test(postalCode)) throw new Refusal('Indique un code postal à 5 chiffres');
+    const res = await boxtal.get('/shipping/v3.2/parcel-point-by-shipping-offer', {
+      shippingOfferCode: RELAY_OFFER(), operationType: 'ARRIVAL', postalCode, ...(city ? { city } : {}), countryIsoCode: 'FR',
+    });
+    type Found = { parcelPoint?: { code?: string; name?: string; location?: { number?: string; street?: string; postalCode?: string; city?: string } }; distanceFromSearchLocation?: number };
+    const points = ((res?.content ?? []) as Found[]).flatMap(({ parcelPoint: p, distanceFromSearchLocation: d }) => {
+      if (!p?.code || !p.name || !p.location?.postalCode || !p.location.city) return [];
+      return [{ code: String(p.code), name: p.name, street: [p.location.number, p.location.street].filter(Boolean).join(' '), zip: String(p.location.postalCode), city: p.location.city, distance: d ?? null }];
+    });
+    return { points: points.slice(0, 15) };
   }
 
   /** The buyer has the clothes: pay the seller. */
@@ -390,8 +661,31 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
           // Payments left half-way (app closed on the Stripe page): settle them now.
           const { data } = await admin.from('orders').select('stripe_session_id').eq('buyer_id', user.id).eq('status', 'pending');
           for (const id of new Set((data ?? []).map((r) => r.stripe_session_id).filter(Boolean))) await settle(id as string, user.id);
+          // Parcels on their way: where are they? And labels that failed for want of a phone or an address: try again.
+          const open: Order[] = [];
+          for (const side of ['buyer_id', 'seller_id']) {
+            const { data: rows } = await admin.from('orders').select('*').eq(side, user.id).in('status', ['paid', 'shipped']).neq('delivery', 'main').limit(20);
+            open.push(...((rows ?? []) as Order[]));
+          }
+          const seen = new Set<string>();
+          for (const o of open) {
+            const key = `${o.group_id}/${o.seller_id}`;
+            if (seen.has(key) || seen.size >= 10) continue;
+            seen.add(key);
+            const parcel = await parcelOf(o);
+            if (!o.shipping_order_id && o.label_error && o.seller_id === user.id) await createLabel(parcel.filter((x) => x.status === 'paid'));
+            else await refreshTracking(parcel);
+          }
           return reply({ ok: true });
         }
+        case 'parcel-points':
+          return reply(await parcelPoints(body));
+        case 'label':
+          return reply(await labelLink(user, body.orderId));
+        case 'create-label':
+          return reply(await retryLabel(user, body.orderId));
+        case 'tracking':
+          return reply(await tracking(user, body.orderId));
         case 'mark-shipped':
           return reply(await markShipped(user, body.orderId));
         case 'confirm-reception':

@@ -4,15 +4,19 @@ import { useRef, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { ColorDot } from '../components/FilterSheet';
+import { MobileField } from '../components/MobileField';
 import { OptionCard } from '../components/OptionCard';
 import { BottomBar, Screen } from '../components/Screen';
 import { Chip, CircleButton, H, LinkButton, OutlineButton, PrimaryButton, Tag, Txt } from '../components/ui';
 import {
-  ageForShoe, ageForSock, AGES, CATEGORIES, Category, COLORS, CONDS, DeliveryId, GENDERS, ListingType, SEASONS, SELL_DELIVERY, SHOE_SIZES, sizeLabel, SOCK_SIZES,
+  ageForShoe, ageForSock, AGES, CATEGORIES, Category, COLORS, CONDS, DeliveryId, GENDERS, ListingType, PARCEL_SIZES, ParcelSize, parcelSizeOf,
+  SEASONS, SELL_DELIVERY, SHOE_SIZES, shippingPrice, sizeLabel, SOCK_SIZES,
 } from '../data/catalog';
+import { isMobile } from '../lib/account';
+import { saveAccount } from '../lib/backend';
 import { fmt } from '../lib/format';
 import { MAX_PHOTOS, pickPhotos, publishListing } from '../lib/listings';
-import { commissionRate, useStore } from '../store/useStore';
+import { accountOf, commissionRate, useStore } from '../store/useStore';
 import { colors, fonts, ICON_STROKE } from '../theme/tokens';
 
 const TITLE_HINTS: Record<Category, [string, string]> = {
@@ -26,11 +30,13 @@ type Draft = {
   category: Category; shoeSize: number | null; sockSize: string | null;
   season: string | null; brand: string; description: string; cond: string | null; count: number; contents: string; price: string; negotiable: boolean; washed: boolean;
   d: Record<DeliveryId, boolean>;
+  /** Null until the seller picks: guessed from the article. */
+  parcel: ParcelSize | null;
 };
 
 const blank = (type: ListingType | null): Draft => ({
   step: type ? 1 : 0, type, photos: [], color: null, category: 'vetement', shoeSize: null, sockSize: null, title: '', description: '', age: null, gender: 'Mixte', season: null, brand: '', cond: null,
-  count: 5, contents: '', price: '', negotiable: true, washed: true, d: { relais: true, domicile: false, main: true },
+  count: 5, contents: '', price: '', negotiable: true, washed: true, d: { relais: true, domicile: false, main: true }, parcel: null,
 });
 
 const ERRORS = ["Choisis un type d'annonce", 'Ajoute au moins une photo', "Ajoute un titre, la taille et l'état", 'Indique un prix et un mode de livraison'];
@@ -45,6 +51,7 @@ export default function Sell() {
   }));
   const commission = useStore((s) => s.commission);
   const showToast = useStore((s) => s.showToast);
+  const account = useStore(accountOf);
   const scroll = useRef<ScrollView>(null);
 
   const patch = (p: Partial<Draft>) => setD((x) => ({ ...x, ...p }));
@@ -55,7 +62,12 @@ export default function Sell() {
   // Clothes are sized by age, shoes by EU size, socks and tights by size range.
   const sized = d.category === 'chaussures' ? !!d.shoeSize : d.category === 'chaussettes' ? !!d.sockSize : !!d.age;
   const unit = d.category === 'vetement' ? 'pièce' : 'paire';
-  const canNext = [!!d.type, d.photos.length > 0, !!d.title.trim() && sized && !!d.cond, price > 0 && Object.values(d.d).some(Boolean)][d.step];
+  // Shipped parcels get a prepaid label, which needs the seller's mobile number.
+  const ships = d.d.relais || d.d.domicile;
+  const parcel = d.parcel ?? parcelSizeOf({ category: d.category, type: d.type ?? 'unique', count: d.count });
+  const [phone, setPhone] = useState('');
+  const needsMobile = ships && !isMobile(account.phone);
+  const canNext = [!!d.type, d.photos.length > 0, !!d.title.trim() && sized && !!d.cond, price > 0 && Object.values(d.d).some(Boolean) && (!needsMobile || isMobile(phone))][d.step];
 
   const goStep = (step: number) => { patch({ step }); scroll.current?.scrollTo({ y: 0, animated: false }); };
 
@@ -69,7 +81,7 @@ export default function Sell() {
 
   const next = async () => {
     if (busy) return;
-    if (!canNext) { showToast(ERRORS[d.step]); return; }
+    if (!canNext) { showToast(d.step === 3 && needsMobile && price > 0 ? 'Ajoute ton numéro de portable pour le bordereau' : ERRORS[d.step]); return; }
     if (d.step < 3) { goStep(d.step + 1); return; }
     const age = d.category === 'chaussures' ? ageForShoe(d.shoeSize!) : d.category === 'chaussettes' ? ageForSock(d.sockSize!) : d.age!;
     const sizes = { category: d.category, shoeSize: d.category === 'chaussures' ? d.shoeSize! : undefined, sockSize: d.category === 'chaussettes' ? d.sockSize! : undefined };
@@ -79,7 +91,11 @@ export default function Sell() {
       negotiable: d.negotiable, washed: d.washed, count: isLot ? d.count : undefined, contents: isLot ? [{ n: d.contents.trim() || (d.category === 'vetement' ? 'Pièces assorties' : d.category === 'chaussures' ? 'Paires de chaussures' : 'Paires de chaussettes'), q: d.count }] : undefined,
     };
     setBusy(true);
-    const res = await publishListing({ ...listing, photos: d.photos, delivery: d.d });
+    if (needsMobile) {
+      const saved = await saveAccount({ ...account, phone: phone.trim() });
+      if (saved.error) { setBusy(false); showToast(saved.error); return; }
+    }
+    const res = await publishListing({ ...listing, photos: d.photos, delivery: d.d, parcelSize: ships ? parcel : undefined });
     setBusy(false);
     if (res.error || res.id == null) { showToast(res.error ?? "L'annonce n'a pas pu être publiée, réessaie."); return; }
     router.replace(`/sell-done?id=${res.id}`);
@@ -279,6 +295,19 @@ export default function Sell() {
                 ))}
               </View>
             </Field>
+            {ships && (
+              <Field label="Taille du colis">
+                <View style={{ gap: 8 }}>
+                  {PARCEL_SIZES.map((o) => (
+                    <OptionCard key={o.id} control="radio" on={parcel === o.id} title={o.label} sub={o.sub} onPress={() => patch({ parcel: o.id })} />
+                  ))}
+                </View>
+                <Txt size={13} color={colors.neutral700}>
+                  L'acheteur paie la livraison : {[d.d.relais && `${fmt(shippingPrice('relais', parcel))} en point relais`, d.d.domicile && `${fmt(shippingPrice('domicile', parcel))} à domicile`].filter(Boolean).join(', ')}. Pimou t'envoie le bordereau prépayé : tu n'avances rien.
+                </Txt>
+              </Field>
+            )}
+            {needsMobile && <MobileField value={phone} onChange={setPhone} error={phone.length > 0 && !isMobile(phone)} why="Le bordereau d'envoi en a besoin." />}
           </>
         )}
       </View>

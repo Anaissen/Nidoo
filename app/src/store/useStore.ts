@@ -26,7 +26,11 @@ export type RealOrder = {
   id: string; groupId: string; listingId: number | null; buyerId: string; sellerId: string; title: string; photo: string | null;
   price: number; shipping: number; commission: number; delivery: DeliveryId; address: string;
   status: 'pending' | 'paid' | 'shipped' | 'received' | 'cancelled'; refunded: boolean; createdAt: string;
+  /** The Boxtal label and where the parcel is (src/lib/payments.ts). */
+  relay: Relay | null; shippingOrderId: string | null; trackingStatus: string | null; trackingUrl: string | null; labelError: string | null;
 };
+/** The Mondial Relay point a buyer picked. */
+export type Relay = { code: string; name: string; street: string; zip: string; city: string; distance?: number | null };
 
 /** A conversation on the server (src/lib/messaging.ts), as shown in the app. */
 export type Chat = { sid: string; pid: number; when: string; unread: boolean; msgs: Msg[]; remote: { convId: string; role: 'buyer' | 'seller' } };

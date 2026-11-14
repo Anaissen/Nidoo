@@ -2,7 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { Platform } from 'react-native';
 
-import { Category, DeliveryId, Product, Seller, sizeLabel } from '../data/catalog';
+import { Category, DeliveryId, ParcelSize, Product, Seller, sizeLabel } from '../data/catalog';
 import { useStore } from '../store/useStore';
 import { currentUser, supabase } from './backend';
 
@@ -16,7 +16,7 @@ export type ListingRow = {
   id: number; seller_id: string; type: 'unique' | 'lot'; title: string; description: string; brand: string; age: string; gender: string; season: string;
   condition: string; price: number | string; color: string; count: number | null; contents: Product['contents'] | null;
   negotiable: boolean; washed: boolean; photos: string[]; created_at: string; status?: string;
-  category?: Category | null; shoe_size?: number | null; sock_size?: string | null;
+  category?: Category | null; shoe_size?: number | null; sock_size?: string | null; parcel_size?: ParcelSize | null;
 };
 export type SellerRow = {
   id: string; display_name: string; city: string; zip: string; verified: boolean; created_at: string;
@@ -31,7 +31,7 @@ export const toProduct = (r: ListingRow, mine: boolean): Product => ({
   // The person's own listings use the 'me' seller, like everywhere else in the app.
   sid: mine ? 'me' : r.seller_id,
   count: r.count ?? undefined, contents: r.contents ?? undefined, negotiable: r.negotiable, washed: r.washed, photos: r.photos,
-  sold: r.status === 'sold',
+  sold: r.status === 'sold', parcelSize: r.parcel_size ?? undefined,
 });
 
 /** Rough distance from the zip codes until addresses are geocoded: same zip, same département, or further. */
@@ -149,7 +149,9 @@ export async function publishListing(l: NewListing): Promise<{ id?: number; erro
       negotiable: l.negotiable ?? true, washed: !!l.washed, delivery: l.delivery, photos,
     };
     const sizes = { category: l.category ?? 'vetement', shoe_size: l.shoeSize ?? null, sock_size: l.sockSize ?? null };
-    let { data, error } = await supabase.from('listings').insert({ ...row, ...sizes }).select('*').single();
+    let { data, error } = await supabase.from('listings').insert({ ...row, ...sizes, parcel_size: l.parcelSize ?? null }).select('*').single();
+    // Database not yet updated for parcel sizes (supabase/schema-10): the size is guessed instead.
+    if (error && /parcel_size/.test(error.message ?? '')) ({ data, error } = await supabase.from('listings').insert({ ...row, ...sizes }).select('*').single());
     // Database not yet updated for shoes and socks (supabase/schema-7): clothes can still be listed.
     if (error && /category|shoe_size|sock_size/.test(error.message ?? '')) {
       if (sizes.category !== 'vetement') return { error: "La vente de chaussures et chaussettes n'est pas encore activée sur le serveur." };

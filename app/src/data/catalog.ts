@@ -108,21 +108,54 @@ export type Product = {
   shoeSize?: number;
   /** Socks and tights: size range, e.g. "23-26". */
   sockSize?: string;
+  /** Picked by the seller; guessed from the article otherwise (parcelSizeOf). */
+  parcelSize?: ParcelSize;
 };
 
 export type DeliveryId = 'relais' | 'domicile' | 'main';
 
-export const DELIVERY: { id: DeliveryId; title: string; sub: string; price: number; name: string }[] = [
-  { id: 'relais', title: 'Point relais', sub: '2 à 4 jours', price: 3.9, name: 'Point relais' },
-  { id: 'domicile', title: 'À domicile', sub: '2 à 3 jours', price: 5.9, name: 'Domicile' },
-  { id: 'main', title: 'Main propre', sub: 'Rendez-vous avec le vendeur', price: 0, name: 'Main propre' },
+export const DELIVERY: { id: DeliveryId; title: string; sub: string; name: string }[] = [
+  { id: 'relais', title: 'Point relais', sub: 'Mondial Relay · 3 à 5 jours', name: 'Point relais' },
+  { id: 'domicile', title: 'À domicile', sub: 'Colissimo · 2 à 3 jours', name: 'Domicile' },
+  { id: 'main', title: 'Main propre', sub: 'Rendez-vous avec le vendeur', name: 'Main propre' },
 ];
 
 export const SELL_DELIVERY: { id: DeliveryId; title: string; sub: string }[] = [
-  { id: 'relais', title: 'Point relais', sub: "Tu déposes le colis, l'étiquette est générée" },
-  { id: 'domicile', title: 'Domicile', sub: "Livré chez l'acheteur" },
+  { id: 'relais', title: 'Point relais', sub: 'Bordereau Mondial Relay fourni : tu déposes le colis dans un point relais' },
+  { id: 'domicile', title: 'Domicile', sub: "Bordereau Colissimo fourni : tu déposes le colis à La Poste" },
   { id: 'main', title: 'Remise en main propre', sub: 'Rendez-vous fixé par message' },
 ];
+
+/**
+ * Parcel sizes: the seller picks one when publishing, which sets the shipping price, like on Vinted.
+ * "Très grand" only happens when several articles of one seller share a parcel.
+ */
+export type ParcelSize = 'petit' | 'moyen' | 'grand' | 'tres-grand';
+export const PARCEL_SIZES: { id: Exclude<ParcelSize, 'tres-grand'>; label: string; sub: string }[] = [
+  { id: 'petit', label: 'Petit colis', sub: "Moins de 500 g : un vêtement, des chaussons, un lot de chaussettes" },
+  { id: 'moyen', label: 'Moyen colis', sub: 'Moins de 1 kg : une paire de chaussures, un petit lot' },
+  { id: 'grand', label: 'Grand colis', sub: 'Moins de 2 kg : un gros lot, un manteau épais' },
+];
+const PARCEL_KG: Record<ParcelSize, number> = { petit: 0.5, moyen: 1, grand: 2, 'tres-grand': 5 };
+/** What the buyer pays per parcel; it pays for the label. Same figures as SHIPPING in the payments function. */
+export const SHIPPING_PRICES: Record<Exclude<DeliveryId, 'main'>, Record<ParcelSize, number>> = {
+  relais: { petit: 3.9, moyen: 4.9, grand: 6.9, 'tres-grand': 9.9 },
+  domicile: { petit: 6.9, moyen: 7.9, grand: 9.9, 'tres-grand': 13.9 },
+};
+export const shippingPrice = (d: DeliveryId, size: ParcelSize) => (d === 'main' ? 0 : SHIPPING_PRICES[d][size]);
+export const parcelLabel = (size: ParcelSize) => (size === 'tres-grand' ? 'très grand' : size);
+/** The listing's parcel, guessed when the seller didn't say (same rule as the payments function). */
+export function parcelSizeOf(p: Pick<Product, 'parcelSize' | 'category' | 'type' | 'count'>): ParcelSize {
+  if (p.parcelSize) return p.parcelSize;
+  if (p.category === 'chaussures') return 'moyen';
+  if (p.type === 'lot') return (p.count ?? 0) >= 6 ? 'grand' : 'moyen';
+  return 'petit';
+}
+/** One parcel for all of a seller's articles: the smallest size their weights fit in. */
+export function parcelFor(items: Pick<Product, 'parcelSize' | 'category' | 'type' | 'count'>[]): ParcelSize {
+  const kg = items.reduce((n, p) => n + PARCEL_KG[parcelSizeOf(p)], 0);
+  return (['petit', 'moyen', 'grand', 'tres-grand'] as const).find((s) => PARCEL_KG[s] >= kg) ?? 'tres-grand';
+}
 
 export const DEFAULT_COMMISSION = 8;
 

@@ -4,15 +4,18 @@ import { useEffect, useState } from 'react';
 import { TextInput, View } from 'react-native';
 
 import { formatKm } from '../components/Badges';
+import { MobileField } from '../components/MobileField';
 import { OptionCard } from '../components/OptionCard';
+import { RelayPicker } from '../components/RelayPicker';
 import { BackHeader, BottomBar, Screen } from '../components/Screen';
 import { H, LinkButton, PrimaryButton, Txt } from '../components/ui';
-import { DELIVERY, HANDOVER_MAX_KM } from '../data/catalog';
+import { DELIVERY, DeliveryId, HANDOVER_MAX_KM, parcelFor, shippingPrice } from '../data/catalog';
 import { useCartGroups } from '../lib/cart';
 import { fmt } from '../lib/format';
-import { addressLine, fullName, hasAddress } from '../lib/account';
+import { addressLine, fullName, hasAddress, isMobile } from '../lib/account';
+import { saveAccount } from '../lib/backend';
 import { payCart } from '../lib/payments';
-import { accountOf, useStore } from '../store/useStore';
+import { accountOf, Relay, useStore } from '../store/useStore';
 import { colors, fonts, ICON_STROKE } from '../theme/tokens';
 
 
@@ -34,24 +37,43 @@ export default function Checkout() {
   const options = far.length ? DELIVERY.filter((d) => d.id !== 'main') : DELIVERY;
   useEffect(() => { if (far.length && del === 'main') set({ del: 'relais' }); }, [far.length, del, set]);
 
-  const ship = DELIVERY.find((d) => d.id === del)!.price * groups.length;
+  // One parcel per seller, priced by its size (it pays for the prepaid label).
+  const shipFor = (d: DeliveryId) => groups.reduce((n, g) => n + shippingPrice(d, parcelFor(g.items)), 0);
+  const ship = shipFor(del);
   const total = subtotal + ship;
+
+  // Point relais: the buyer picks the Mondial Relay point (unless labels aren't set up on the server yet).
+  const [relay, setRelay] = useState<Relay | null>(null);
+  const [relayPicking, setRelayPicking] = useState(true);
+  const relayMissing = del === 'relais' && relayPicking && !relay;
+  // The carrier texts the buyer: a mobile number is needed once.
+  const needsMobile = del !== 'main' && !isMobile(account.phone);
+  const [phone, setPhone] = useState('');
+  const mobileMissing = needsMobile && !isMobile(phone);
 
   const [busy, setBusy] = useState(false);
 
   // Paid through Stripe's page; the money stays with Pimou until the buyer confirms reception.
   const onPay = async () => {
     if (addressMissing) { showToast('Complète ton adresse de livraison'); return; }
-    const address = del !== 'domicile' ? '' : addrMode === 'saved' ? addressLine(account) : `${addr.name.trim()}, ${addr.street.trim()}, ${addr.zip.trim()} ${addr.city.trim()}`;
+    if (relayMissing) { showToast('Choisis ton point relais'); return; }
+    if (mobileMissing) { showToast('Ajoute ton numéro de portable'); return; }
+    const shipAddress = del !== 'domicile' ? null : addrMode === 'saved'
+      ? { name: fullName(account), street: account.street, zip: account.zip, city: account.city }
+      : { name: addr.name.trim(), street: addr.street.trim(), zip: addr.zip.trim(), city: addr.city.trim() };
     setBusy(true);
-    const err = await payCart(items.map((p) => p.remoteId!), del, address);
+    if (needsMobile) {
+      const saved = await saveAccount({ ...account, phone: phone.trim() });
+      if (saved.error) { setBusy(false); showToast(saved.error); return; }
+    }
+    const err = await payCart(items.map((p) => p.remoteId!), del, { relay: del === 'relais' ? relay : null, shipAddress });
     setBusy(false);
     if (err) showToast(err);
   };
 
   return (
     <Screen
-      bottom={<BottomBar><PrimaryButton label={busy ? 'Ouverture du paiement…' : `Payer ${fmt(total)}`} onPress={onPay} disabledLook={!items.length || addressMissing || busy} disabled={!items.length} style={{ flex: 1 }} /></BottomBar>}
+      bottom={<BottomBar><PrimaryButton label={busy ? 'Ouverture du paiement…' : `Payer ${fmt(total)}`} onPress={onPay} disabledLook={!items.length || addressMissing || relayMissing || mobileMissing || busy} disabled={!items.length} style={{ flex: 1 }} /></BottomBar>}
       contentStyle={{ paddingHorizontal: 20 }}
     >
       <View style={{ gap: 18, paddingTop: 4 }}>
@@ -61,7 +83,7 @@ export default function Checkout() {
           <H size={18}>Livraison</H>
           {options.map((d) => (
             <OptionCard key={d.id} control="radio" on={del === d.id} title={d.title} sub={d.sub} onPress={() => set({ del: d.id })}
-              right={<Txt weight="bold">{d.price ? fmt(d.price) : 'Gratuit'}</Txt>} />
+              right={<Txt weight="bold">{shipFor(d.id) ? fmt(shipFor(d.id)) : 'Gratuit'}</Txt>} />
           ))}
           {far.length > 0 && (
             <Txt size={13} color={colors.neutral700}>Main propre indisponible : {far.map((sl) => `${sl.name} (${formatKm(sl.distanceKm)})`).join(', ')} est trop loin.</Txt>
@@ -88,12 +110,15 @@ export default function Checkout() {
               <Txt size={13} weight="semi" color={colors.accent2_800}>Retrouvez-vous dans un lieu public et fréquenté : un commerce, le parvis d'une mairie, une gare…</Txt>
               <Txt size={12} color={colors.accent2_800}>Tu fixeras le lieu et l'heure avec le vendeur dans la messagerie. Ne paie jamais en liquide : le paiement reste protégé par Pimou.</Txt>
             </View>
+          ) : relayPicking ? (
+            <RelayPicker zip={account.zip} city={account.city} value={relay} onChange={setRelay} onUnavailable={() => setRelayPicking(false)} />
           ) : (
             <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 24, backgroundColor: colors.accent2_100 }}>
               <MapPin size={20} strokeWidth={ICON_STROKE} color={colors.accent2_800} />
               <Txt size={13} color={colors.accent2_800} style={{ flex: 1 }}>Le vendeur dépose ton colis en point relais. Indique-lui dans la messagerie celui qui t'arrange.</Txt>
             </View>
           )}
+          {needsMobile && <MobileField value={phone} onChange={setPhone} error={phone.length > 0 && !isMobile(phone)} why="Le transporteur t'envoie un SMS quand ton colis arrive." />}
         </View>
 
         <View style={{ gap: 8 }}>

@@ -1,11 +1,11 @@
 // Conditions d'utilisation, confidentialité et mentions légales, shown in src/app/legal.
 import { fmt, fmtInt } from '../lib/format';
-import { DEFAULT_COMMISSION, DELIVERY } from './catalog';
+import { DEFAULT_COMMISSION, SHIPPING_PRICES } from './catalog';
 
 /** Who publishes Pimou. An empty value shows "[à compléter]" on the pages. */
 export const LEGAL = {
   /** Shown on the pages. Change it with TERMS_VERSION when the texts change in a way that matters. */
-  updated: '29 octobre 2026',
+  updated: '14 novembre 2026',
   /** Date of the last change to the mentions légales alone (publisher, hosts…). */
   noticeUpdated: '14 novembre 2026',
   /** An entreprise individuelle shows "EI" next to the name (required since May 2022). */
@@ -30,7 +30,7 @@ export const LEGAL = {
  * Version recorded each time a parent accepts the CGU and the privacy policy (supabase/schema-8-cgu.sql).
  * A new value asks every parent to accept again at their next visit.
  */
-export const TERMS_VERSION = '2026-10-29';
+export const TERMS_VERSION = '2026-11-14';
 
 /** Above this, in a calendar year, the platform reports the seller's sales to the tax office (DAC7). */
 export const TAX_REPORT = { sales: 30, amount: 2000 };
@@ -44,7 +44,7 @@ export type LegalSection = { title: string; body: LegalBlock[] };
 export type LegalId = 'cgu' | 'confidentialite' | 'mentions';
 export type LegalDoc = { title: string; short: string; intro: string; sections: LegalSection[] };
 
-const price = (id: string) => fmt(DELIVERY.find((d) => d.id === id)!.price);
+const prices = (d: keyof typeof SHIPPING_PRICES) => `de ${fmt(SHIPPING_PRICES[d].petit)} à ${fmt(SHIPPING_PRICES[d].grand)}`;
 const publisher = () => `${v(LEGAL.name)}, ${v(LEGAL.form.toLowerCase())}, ${v(LEGAL.address)}`;
 
 const cgu = (): LegalDoc => ({
@@ -85,10 +85,12 @@ const cgu = (): LegalDoc => ({
       "Une offre acceptée n'oblige personne tant que le paiement n'est pas fait : la vente est conclue au moment où le paiement est validé.",
     ] },
     { title: '7. Paiement et livraison', body: [
-      `L'acheteur paie le prix de l'article et les frais de livraison : ${price('relais')} en point relais, ${price('domicile')} à domicile, gratuit en remise en main propre. La protection acheteur est offerte.`,
+      `L'acheteur paie le prix de l'article et la livraison, selon la taille du colis indiquée par le vendeur (petit, moyen ou grand) : ${prices('relais')} en point relais Mondial Relay, ${prices('domicile')} à domicile avec Colissimo, et jusqu'à ${fmt(SHIPPING_PRICES.relais['tres-grand'])} et ${fmt(SHIPPING_PRICES.domicile['tres-grand'])} quand plusieurs articles du même vendeur partent dans un seul colis. La remise en main propre est gratuite. La protection acheteur est offerte. Le prix exact s'affiche avant de payer.`,
       "Le paiement se fait uniquement sur Pimou, par carte bancaire, Apple Pay ou Google Pay, sur la page sécurisée de Stripe, notre prestataire de paiement agréé. Pimou ne voit jamais ton numéro de carte. Un paiement fait en dehors de Pimou (virement, espèces…) n'est pas protégé : ne l'accepte pas et ne le propose pas.",
       "Si l'article a été acheté par quelqu'un d'autre juste avant toi, la vente est annulée et tu es remboursé·e automatiquement et en totalité.",
-      "Le vendeur expédie l'article dans les 3 jours qui suivent le paiement, puis l'indique dans l'appli. Pour une remise en main propre, les deux parents fixent le rendez-vous dans la messagerie, dans un lieu public.",
+      "Pour un envoi, Pimou fournit au vendeur un bordereau prépayé, payé avec les frais de livraison de l'acheteur. Le vendeur l'imprime, emballe soigneusement l'article et dépose le colis dans les 3 jours qui suivent le paiement, dans un point Mondial Relay ou un bureau de poste selon le mode choisi. Le suivi du colis se met à jour tout seul. Le vendeur indique une taille de colis honnête : si le transporteur facture un poids plus élevé, la différence peut lui être demandée.",
+      "Un numéro de portable est demandé à l'acheteur et au vendeur pour les envois : il figure sur le bordereau, et le transporteur l'utilise pour prévenir de l'arrivée du colis.",
+      "Pour une remise en main propre, les deux parents fixent le rendez-vous dans la messagerie, dans un lieu public.",
     ] },
     { title: '8. Réception et protection acheteur', body: [
       "L'argent reste bloqué chez Stripe jusqu'à ce que l'acheteur confirme dans l'appli avoir bien reçu l'article. Il est alors versé au vendeur. L'acheteur ne confirme que lorsqu'il a vérifié l'article : une fois la réception confirmée, la vente est définitive.",
@@ -96,7 +98,7 @@ const cgu = (): LegalDoc => ({
       "Si le vendeur n'a pas expédié l'article 7 jours après le paiement, l'acheteur peut demander l'annulation et le remboursement. Si l'acheteur ne confirme pas la réception et ne signale aucun problème 14 jours après l'expédition, Pimou peut confirmer la réception à sa place et payer le vendeur.",
     ] },
     { title: '9. Commission et versements au vendeur', body: [
-      `Publier une annonce est gratuit. Quand un article est vendu, Pimou prend une commission de ${DEFAULT_COMMISSION} % du prix de vente (frais de livraison non compris). Elle est retenue sur la somme versée au vendeur. Le montant que tu recevras est affiché avant que tu publies ton annonce.`,
+      `Publier une annonce est gratuit. Quand un article est vendu, Pimou prend une commission de ${DEFAULT_COMMISSION} % du prix de vente (frais de livraison non compris). Elle est retenue sur la somme versée au vendeur. Le montant que tu recevras est affiché avant que tu publies ton annonce. Les frais de livraison payés par l'acheteur servent à payer le bordereau : ils ne sont pas versés au vendeur.`,
       "Pour recevoir son argent, le vendeur active ses paiements : Stripe lui demande son identité et son IBAN, comme la loi l'impose. L'argent arrive sur son compte bancaire en quelques jours ouvrés après la confirmation de réception.",
       "La commission correspond à un service entièrement fourni au moment de la vente : tu acceptes qu'il soit exécuté tout de suite, et tu ne peux donc plus te rétracter sur cette commission une fois la vente faite (article L221-28 du Code de la consommation).",
     ] },
@@ -150,7 +152,7 @@ const confidentialite = (): LegalDoc => ({
     ] },
     { title: '2. Les données que Pimou utilise', body: [
       [
-        'Ton compte : prénom, nom, e-mail, téléphone si tu le donnes, adresse postale, et ton mot de passe (enregistré chiffré : personne chez Pimou ne peut le lire).',
+        "Ton compte : prénom, nom, e-mail, adresse postale, numéro de portable (demandé pour envoyer ou recevoir un colis), et ton mot de passe (enregistré chiffré : personne chez Pimou ne peut le lire).",
         "Les passeports de tes enfants, si tu en crées : prénom ou surnom, date de naissance, fille ou garçon, taille, pointure, couleurs et styles préférés, notes. Tu choisis ce que tu y mets : un surnom suffit.",
         'Tes annonces : photos, descriptions, prix, et tes favoris.',
         'Tes messages et tes offres avec les autres parents.',
@@ -162,7 +164,7 @@ const confidentialite = (): LegalDoc => ({
     ] },
     { title: '3. Ce que les autres parents voient', body: [
       "Ton prénom et l'initiale de ton nom, ta ville et ton code postal (pour estimer la distance pour une remise en main propre), ton année d'inscription, tes annonces, tes avis et ton nombre de ventes.",
-      "Ton adresse de livraison n'est communiquée qu'au vendeur de ta commande, pour un envoi à domicile. Ton e-mail, ton téléphone et les passeports de tes enfants ne sont jamais montrés aux autres.",
+      "Pour un envoi, le vendeur de ta commande voit le point relais ou l'adresse de livraison que tu as choisis, et ton nom figure sur le bordereau. Ton e-mail, ton téléphone et les passeports de tes enfants ne sont jamais montrés aux autres parents.",
     ] },
     { title: '4. Pourquoi Pimou les utilise', body: [
       [
@@ -180,6 +182,7 @@ const confidentialite = (): LegalDoc => ({
         `Supabase (comptes, base de données et photos), avec des serveurs situés ${v(LEGAL.dataRegion)} ;`,
         "Stripe (paiements et vérification d'identité des vendeurs), Stripe Payments Europe en Irlande ;",
         'Resend (envoi des e-mails), avec des serveurs d\'envoi en Irlande ;',
+        "Boxtal (création des bordereaux d'envoi), en France, et les transporteurs Mondial Relay et Colissimo (La Poste) : ils reçoivent le nom, l'adresse, l'e-mail et le numéro de portable de l'expéditeur et du destinataire, pour livrer le colis et prévenir de son arrivée ;",
         'GitHub (hébergement du site web).',
       ],
       "Certains de ces prestataires sont des sociétés américaines. Quand des données quittent l'Union européenne, ce transfert est encadré par les garanties prévues par le RGPD (décision d'adéquation de la Commission européenne ou clauses contractuelles types).",

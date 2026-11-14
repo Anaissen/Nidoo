@@ -12,6 +12,8 @@ export type Account = {
 export const EMPTY_ACCOUNT: Account = { firstName: '', lastName: '', email: '', phone: '', street: '', zip: '', city: '' };
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+/** A French mobile number (06, 07): carriers need one to text when a parcel arrives. */
+export const isMobile = (phone: string) => /^(?:\+33|0033|0)[67]\d{8}$/.test(phone.replace(/[\s.()-]/g, ''));
 export const MIN_PASSWORD = 8;
 
 export const fullName = (a: Account) => `${a.firstName} ${a.lastName}`.trim();

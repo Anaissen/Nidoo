@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { Platform } from 'react-native';
 
 import { DeliveryId, Seller } from '../data/catalog';
-import { RealOrder, useStore } from '../store/useStore';
+import { RealOrder, Relay, useStore } from '../store/useStore';
 import { currentUser, signOut, supabase } from './backend';
 import { loadMarket, sellerFromRow, SellerRow } from './listings';
 import { loadOrderReviews } from './reviews';
@@ -17,12 +17,14 @@ type OrderRow = {
   id: string; group_id: string; listing_id: number | null; buyer_id: string; seller_id: string; title: string; photo: string | null;
   price: number | string; shipping: number | string; commission: number | string; delivery: DeliveryId; address: string;
   status: RealOrder['status']; payment_intent: string | null; created_at: string;
+  relay?: Relay | null; shipping_order_id?: string | null; tracking_status?: string | null; tracking_url?: string | null; label_error?: string | null;
 };
 
 const toOrder = (r: OrderRow): RealOrder => ({
   id: r.id, groupId: r.group_id, listingId: r.listing_id, buyerId: r.buyer_id, sellerId: r.seller_id, title: r.title, photo: r.photo,
   price: Number(r.price), shipping: Number(r.shipping), commission: Number(r.commission), delivery: r.delivery, address: r.address,
   status: r.status, refunded: r.status === 'cancelled' && !!r.payment_intent, createdAt: r.created_at,
+  relay: r.relay ?? null, shippingOrderId: r.shipping_order_id ?? null, trackingStatus: r.tracking_status ?? null, trackingUrl: r.tracking_url ?? null, labelError: r.label_error ?? null,
 });
 
 /** Call the Edge Function. Returns its answer, or { error } with a message to show. */
@@ -165,9 +167,17 @@ export async function openPayoutDashboard() {
 
 // ── Buyers ──────────────────────────────────────────────────────────────────────────────
 
+export type ShipAddress = { name: string; street: string; zip: string; city: string };
+
 /** Pay for these real listings on Stripe's page. Returns an error message, or null once the page is open. */
-export async function payCart(listingIds: number[], delivery: DeliveryId, address: string) {
-  const r = await call<{ url: string; sessionId: string }>('checkout', { listingIds, delivery, address, fromApp: Platform.OS !== 'web' });
+export async function payCart(listingIds: number[], delivery: DeliveryId, dest: { relay?: Relay | null; shipAddress?: ShipAddress | null }) {
+  const a = dest.shipAddress;
+  const r = await call<{ url: string; sessionId: string }>('checkout', {
+    listingIds, delivery, relay: dest.relay ?? null, shipAddress: a ?? null,
+    // The address on one line too, for a payments function from before labels.
+    address: a ? `${a.name}, ${a.street}, ${a.zip} ${a.city}` : '',
+    fromApp: Platform.OS !== 'web',
+  });
   if (r.error) return r.error;
   await open(r.url);
   // Web: the page has left for Stripe. Phone: the browser is closed, see how the payment went.
@@ -179,12 +189,46 @@ export const checkoutStatus = (sessionId: string) =>
   call<{ status: 'pending' | 'paid' | 'cancelled'; orders: OrderRow[] }>('checkout-status', { sessionId })
     .then((r) => ({ ...r, orders: (r.orders ?? []).map(toOrder) }));
 
-async function act(action: 'mark-shipped' | 'confirm-reception', orderId: string) {
+async function act(action: 'mark-shipped' | 'confirm-reception' | 'create-label' | 'tracking', orderId: string) {
   const r = await call<{ order: OrderRow }>(action, { orderId });
   if (!r.error) await loadOrders();
   return r.error ?? null;
 }
 export const markShipped = (orderId: string) => act('mark-shipped', orderId);
+export const retryLabel = (orderId: string) => act('create-label', orderId);
+/** Where the parcel is (the order updates itself once it's dropped off). */
+export const refreshTracking = (orderId: string) => act('tracking', orderId);
+
+/** Where the parcel is, in the carrier's tracking (Boxtal statuses). */
+export const TRACKING_LABEL: Record<string, string> = {
+  ANNOUNCED: 'Bordereau prêt, colis pas encore déposé',
+  SHIPPED: 'Colis déposé par le vendeur',
+  IN_TRANSIT: 'Colis en route',
+  OUT_FOR_DELIVERY: 'En cours de livraison',
+  FAILED_ATTEMPT: 'Livraison manquée',
+  REACHED_DELIVERY_PICKUP_POINT: 'Arrivé au point relais',
+  DELIVERED: 'Livré',
+  RETURNED: "Renvoyé à l'expéditeur",
+  EXCEPTION: 'Problème de livraison',
+};
+
+/** Mondial Relay points near a postcode. `unavailable`: labels aren't set up yet on the server. */
+export async function findRelays(postalCode: string, city = '') {
+  const r = await call<{ points: Relay[] }>('parcel-points', { postalCode, city });
+  if (!r.error) return { points: r.points ?? [], error: null, unavailable: false };
+  return { points: [], error: r.error, unavailable: !/code postal/i.test(r.error) };
+}
+
+/** A fresh link to the label PDF; opens it. Returns an error message, or null. */
+export async function openLabel(orderId: string) {
+  // Web: the new tab must open right on the tap, or the browser blocks it; it gets its address once known.
+  const tab = Platform.OS === 'web' ? window.open('', '_blank') : null;
+  const r = await call<{ url: string }>('label', { orderId });
+  if (r.error) { tab?.close(); return r.error; }
+  if (tab) tab.location.href = r.url;
+  else await open(r.url);
+  return null;
+}
 
 /** Close the account for good (the server keeps only what the law requires), then log out. Returns an error message, or null. */
 export async function deleteAccount() {

@@ -1,18 +1,18 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Check, MessageCircle, Star } from 'lucide-react-native';
-import { useState } from 'react';
-import { Image, Pressable, TextInput, View } from 'react-native';
+import { Check, MessageCircle, Printer, Star } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
+import { Image, Linking, Pressable, TextInput, View } from 'react-native';
 
 import { LegalText } from '../../components/LegalText';
 import { Reclamation } from '../../components/Reclamation';
 import { BackHeader, Screen } from '../../components/Screen';
-import { ellipsis, H, OutlineButton, PrimaryButton, Txt } from '../../components/ui';
+import { ellipsis, H, LinkButton, OutlineButton, PrimaryButton, Txt } from '../../components/ui';
 import { DELIVERY } from '../../data/catalog';
 import { TAX_REPORT } from '../../data/legal';
 import { currentUser } from '../../lib/backend';
 import { fmt, fmtInt, plural } from '../../lib/format';
 import { chatForOrder } from '../../lib/messaging';
-import { confirmReception, markShipped, salesThisYear } from '../../lib/payments';
+import { confirmReception, markShipped, openLabel, refreshTracking, retryLabel, salesThisYear, TRACKING_LABEL } from '../../lib/payments';
 import { stars, submitReview } from '../../lib/reviews';
 import { RealOrder, useStore } from '../../store/useStore';
 import { colors, fonts, ICON_STROKE } from '../../theme/tokens';
@@ -41,6 +41,9 @@ export default function RealOrderScreen() {
   const [busy, setBusy] = useState(false);
   const review = useStore((s) => (id ? s.orderReviews[id] : undefined));
   const realOrders = useStore((s) => s.realOrders);
+  // Where is the parcel? (Once dropped off, the order moves to "expédiée" by itself.)
+  const tracked = !!o?.shippingOrderId && (o.status === 'paid' || o.status === 'shipped');
+  useEffect(() => { if (tracked && id) void refreshTracking(id); }, [tracked, id]);
 
   if (!o) return <Screen><BackHeader title="Commande" style={{ margin: 20 }} /><Txt style={{ padding: 20 }}>Commande introuvable.</Txt></Screen>;
   const isSale = o.sellerId === currentUser()?.id;
@@ -111,21 +114,50 @@ export default function RealOrderScreen() {
         )}
 
         {canShip && (
-          <View style={{ padding: 16, borderRadius: 24, backgroundColor: colors.surface, gap: 8 }}>
+          <View style={{ padding: 16, borderRadius: 24, backgroundColor: colors.surface, gap: 10 }}>
             <H size={18}>À expédier</H>
-            {o.delivery === 'domicile' ? (
+            {o.shippingOrderId ? (
+              <>
+                <Txt size={14}>
+                  Ton bordereau prépayé est prêt. Imprime-le, colle-le sur le colis et dépose-le sous 3 jours {o.delivery === 'relais' ? 'dans n\'importe quel point Mondial Relay' : 'dans un bureau de poste'}.
+                </Txt>
+                <PrimaryButton label={busy ? '…' : 'Télécharger mon bordereau'} height={50} size={16} onPress={async () => { setBusy(true); const err = await openLabel(o.id); setBusy(false); if (err) showToast(err); }} disabledLook={busy} />
+                <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                  <Printer size={14} strokeWidth={ICON_STROKE} color={colors.neutral700} />
+                  <Txt size={12} color={colors.neutral700} style={{ flex: 1 }}>Pas d'imprimante ? Envoie le PDF à une proche, ou fais-le imprimer dans une papeterie. Le suivi se met à jour tout seul une fois le colis déposé.</Txt>
+                </View>
+              </>
+            ) : o.labelError ? (
+              <>
+                <Txt size={14} color={colors.accent800}>{o.labelError}</Txt>
+                <PrimaryButton label={busy ? '…' : 'Créer mon bordereau'} height={50} size={16} onPress={() => run(() => retryLabel(o.id), 'Ton bordereau est prêt ✓')} disabledLook={busy} />
+                <LinkButton label="Mes informations →" size={13} onPress={() => router.push('/account')} />
+              </>
+            ) : o.delivery === 'domicile' ? (
               <Txt size={14}>Envoie le colis à : <Txt weight="semi">{other?.name ?? "l'acheteur"}, {o.address}</Txt></Txt>
             ) : (
               <Txt size={14}>Dépose le colis dans un point relais. Destinataire : <Txt weight="semi">{other?.name ?? "l'acheteur"}</Txt></Txt>
             )}
-            <Txt size={12} color={colors.neutral700}>Bientôt, ton bordereau d'envoi sera créé automatiquement ici.</Txt>
+          </View>
+        )}
+        {o.relay && o.status !== 'cancelled' && (
+          <Txt size={13} color={colors.neutral800}>
+            Point relais : <Txt size={13} weight="semi">{o.relay.name}</Txt>, {o.relay.street}, {o.relay.zip} {o.relay.city}
+          </Txt>
+        )}
+        {(o.trackingStatus || o.trackingUrl) && o.status !== 'received' && o.status !== 'cancelled' && (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+            {o.trackingStatus && <Txt size={13} weight="semi" color={colors.accent2_700}>📦 {TRACKING_LABEL[o.trackingStatus] ?? o.trackingStatus}</Txt>}
+            {o.trackingUrl && <LinkButton label="Suivre le colis →" size={13} onPress={() => Linking.openURL(o.trackingUrl!)} />}
           </View>
         )}
         {isSale && o.status === 'paid' && o.delivery === 'main' && (
           <Txt size={14} color={colors.neutral800}>Fixe le rendez-vous avec {other?.name ?? "l'acheteur"} dans la messagerie. Il ou elle confirmera la remise dans l'appli, et tu seras payé·e.</Txt>
         )}
 
-        {canShip && <PrimaryButton label={busy ? '…' : "J'ai expédié le colis"} onPress={() => run(() => markShipped(o.id), "C'est noté, l'acheteur est prévenu")} disabledLook={busy} />}
+        {canShip && (o.shippingOrderId
+          ? <OutlineButton label="J'ai déposé le colis" height={46} size={15} onPress={() => run(() => markShipped(o.id), "C'est noté, l'acheteur est prévenu")} />
+          : <PrimaryButton label={busy ? '…' : "J'ai expédié le colis"} onPress={() => run(() => markShipped(o.id), "C'est noté, l'acheteur est prévenu")} disabledLook={busy} />)}
         {canConfirm && (
           <PrimaryButton
             label={busy ? '…' : o.delivery === 'main' ? "J'ai bien reçu l'article" : "J'ai bien reçu le colis"}

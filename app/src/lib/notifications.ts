@@ -19,7 +19,13 @@ export function useNotifications(): Notice[] {
   const orderItems = realOrders.flatMap((o): Notice[] => {
     const open = () => router.push(`/commande/${o.id}`);
     const when = new Date(o.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-    if (o.sellerId === me && o.status === 'paid') return [{ init: '€', bg: colors.accent2_300, text: o.delivery === 'main' ? `Vendu ! ${who(o.buyerId)} a acheté « ${o.title} ». Fixez le rendez-vous dans la messagerie.` : `Vendu ! ${who(o.buyerId)} a acheté « ${o.title} ». Expédie-le sous 3 jours.`, when, unread: true, open }];
+    if (o.sellerId === me && o.status === 'paid') {
+      const next = o.delivery === 'main' ? 'Fixez le rendez-vous dans la messagerie.'
+        : o.shippingOrderId ? 'Ton bordereau est prêt : imprime-le et dépose le colis sous 3 jours.'
+        : o.labelError ? "Ton bordereau n'a pas pu être créé : ouvre la vente pour voir pourquoi."
+        : 'Expédie-le sous 3 jours.';
+      return [{ init: '€', bg: colors.accent2_300, text: `Vendu ! ${who(o.buyerId)} a acheté « ${o.title} ». ${next}`, when, unread: true, open }];
+    }
     if (o.sellerId === me && o.status === 'received') {
       const r = reviews[o.id];
       return [
