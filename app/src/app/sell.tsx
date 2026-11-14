@@ -9,7 +9,7 @@ import { OptionCard } from '../components/OptionCard';
 import { BottomBar, Screen } from '../components/Screen';
 import { Chip, CircleButton, H, LinkButton, OutlineButton, PrimaryButton, Tag, Txt } from '../components/ui';
 import {
-  ageForShoe, ageForSock, AGES, CATEGORIES, Category, COLORS, CONDS, DeliveryId, GENDERS, ListingType, PARCEL_SIZES, ParcelSize, parcelSizeOf,
+  ageForShoe, ageForSock, AGES, CATEGORIES, Category, COLORS, CONDS, DeliveryId, GENDERS, ListingType, PARCEL_KG, PARCEL_SIZES, ParcelSize, parcelSizeOf,
   SEASONS, SELL_DELIVERY, SHOE_SIZES, shippingPrice, sizeLabel, SOCK_SIZES,
 } from '../data/catalog';
 import { isMobile } from '../lib/account';
@@ -303,7 +303,7 @@ export default function Sell() {
                   ))}
                 </View>
                 <Txt size={13} color={colors.neutral700}>
-                  L'acheteur paie la livraison : {[d.d.relais && `${fmt(shippingPrice('relais', parcel))} en point relais`, d.d.domicile && `${fmt(shippingPrice('domicile', parcel))} à domicile`].filter(Boolean).join(', ')}. Pimou t'envoie le bordereau prépayé : tu n'avances rien.
+                  L'acheteur paie la livraison : {[d.d.relais && `${fmt(shippingPrice('relais', PARCEL_KG[parcel]))} en point relais`, d.d.domicile && `${fmt(shippingPrice('domicile', PARCEL_KG[parcel]))} à domicile`].filter(Boolean).join(', ')}. Pimou t'envoie le bordereau prépayé : tu n'avances rien.
                 </Txt>
               </Field>
             )}

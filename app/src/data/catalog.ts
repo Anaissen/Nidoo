@@ -126,24 +126,30 @@ export const SELL_DELIVERY: { id: DeliveryId; title: string; sub: string }[] = [
   { id: 'main', title: 'Remise en main propre', sub: 'Rendez-vous fixé par message' },
 ];
 
-/**
- * Parcel sizes: the seller picks one when publishing, which sets the shipping price, like on Vinted.
- * "Très grand" only happens when several articles of one seller share a parcel.
- */
-export type ParcelSize = 'petit' | 'moyen' | 'grand' | 'tres-grand';
-export const PARCEL_SIZES: { id: Exclude<ParcelSize, 'tres-grand'>; label: string; sub: string }[] = [
+/** Parcel sizes: the seller picks one when publishing, which sets the shipping price, like on Vinted. */
+export type ParcelSize = 'petit' | 'moyen' | 'grand';
+export const PARCEL_SIZES: { id: ParcelSize; label: string; sub: string }[] = [
   { id: 'petit', label: 'Petit colis', sub: "Moins de 500 g : un vêtement, des chaussons, un lot de chaussettes" },
   { id: 'moyen', label: 'Moyen colis', sub: 'Moins de 1 kg : une paire de chaussures, un petit lot' },
   { id: 'grand', label: 'Grand colis', sub: 'Moins de 2 kg : un gros lot, un manteau épais' },
 ];
-const PARCEL_KG: Record<ParcelSize, number> = { petit: 0.5, moyen: 1, grand: 2, 'tres-grand': 5 };
-/** What the buyer pays per parcel; it pays for the label. Same figures as SHIPPING in the payments function. */
-export const SHIPPING_PRICES: Record<Exclude<DeliveryId, 'main'>, Record<ParcelSize, number>> = {
-  relais: { petit: 3.9, moyen: 4.9, grand: 6.9, 'tres-grand': 9.9 },
-  domicile: { petit: 6.9, moyen: 7.9, grand: 9.9, 'tres-grand': 13.9 },
+export const PARCEL_KG: Record<ParcelSize, number> = { petit: 0.5, moyen: 1, grand: 2 };
+/**
+ * The carriers' weight brackets (kg), and what the buyer pays for a parcel in each; it pays for the label.
+ * Several articles of one seller share a parcel: the smallest bracket their weights fit in (10 kg at most).
+ * Same figures as SHIPPING in the payments function.
+ */
+const BRACKETS_KG = [0.5, 1, 2, 3, 5, 7, 10];
+export const SHIPPING_PRICES: Record<Exclude<DeliveryId, 'main'>, number[]> = {
+  relais: [3.99, 4.49, 6.29, 6.59, 11.9, 13.49, 13.49],
+  domicile: [9.49, 11.49, 12.9, 14.49, 16.99, 18.99, 22.49],
 };
-export const shippingPrice = (d: DeliveryId, size: ParcelSize) => (d === 'main' ? 0 : SHIPPING_PRICES[d][size]);
-export const parcelLabel = (size: ParcelSize) => (size === 'tres-grand' ? 'très grand' : size);
+/** Shipping for one parcel of `kg` (a size's weight, or a seller's articles together). */
+export function shippingPrice(d: DeliveryId, kg: number) {
+  if (d === 'main') return 0;
+  const i = BRACKETS_KG.findIndex((b) => b >= kg);
+  return SHIPPING_PRICES[d][i < 0 ? BRACKETS_KG.length - 1 : i];
+}
 /** The listing's parcel, guessed when the seller didn't say (same rule as the payments function). */
 export function parcelSizeOf(p: Pick<Product, 'parcelSize' | 'category' | 'type' | 'count'>): ParcelSize {
   if (p.parcelSize) return p.parcelSize;
@@ -151,11 +157,9 @@ export function parcelSizeOf(p: Pick<Product, 'parcelSize' | 'category' | 'type'
   if (p.type === 'lot') return (p.count ?? 0) >= 6 ? 'grand' : 'moyen';
   return 'petit';
 }
-/** One parcel for all of a seller's articles: the smallest size their weights fit in. */
-export function parcelFor(items: Pick<Product, 'parcelSize' | 'category' | 'type' | 'count'>[]): ParcelSize {
-  const kg = items.reduce((n, p) => n + PARCEL_KG[parcelSizeOf(p)], 0);
-  return (['petit', 'moyen', 'grand', 'tres-grand'] as const).find((s) => PARCEL_KG[s] >= kg) ?? 'tres-grand';
-}
+/** One parcel for all of a seller's articles: its weight, the sum of their sizes'. */
+export const parcelKg = (items: Pick<Product, 'parcelSize' | 'category' | 'type' | 'count'>[]) =>
+  items.reduce((n, p) => n + PARCEL_KG[parcelSizeOf(p)], 0);
 
 export const DEFAULT_COMMISSION = 8;
 

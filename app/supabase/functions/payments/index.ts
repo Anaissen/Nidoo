@@ -16,6 +16,7 @@
 // the door. Secrets BOXTAL_ACCESS_KEY and BOXTAL_SECRET_KEY (an "API v3" application on Boxtal's developer site);
 // BOXTAL_API_URL is the test server until set to https://api.boxtal.com. Optional: BOXTAL_RELAY_OFFER and
 // BOXTAL_HOME_OFFER (offer codes), BOXTAL_CONTENT_ID (content category). Without the keys, no label is made.
+// Each label's real cost goes to the label_costs table (supabase/schema-11-couts-bordereaux.sql), if it's there.
 
 import Stripe from 'npm:stripe@23.0.0';
 import { createClient, type SupabaseClient, type User } from 'npm:@supabase/supabase-js@2';
@@ -27,22 +28,35 @@ const DELIVERIES = ['relais', 'domicile', 'main'] as const;
 const DELIVERY_LABEL: Record<Delivery, string> = { relais: 'Livraison en point relais', domicile: 'Livraison à domicile', main: 'Remise en main propre' };
 const MAX_ITEMS = 20;
 
-/** The seller picks petit, moyen or grand when publishing; several articles in one parcel can make it "très grand". */
-const SIZES = ['petit', 'moyen', 'grand', 'tres-grand'] as const;
+/** The seller picks petit, moyen or grand when publishing: up to 0,5, 1 or 2 kg. */
+const SIZES = ['petit', 'moyen', 'grand'] as const;
 type ParcelSize = (typeof SIZES)[number];
-/** Declared to the carrier: weight in kg, sides in cm. */
-const PARCELS: Record<ParcelSize, { weight: number; length: number; width: number; height: number }> = {
-  petit: { weight: 0.5, length: 30, width: 20, height: 5 },
-  moyen: { weight: 1, length: 35, width: 25, height: 10 },
-  grand: { weight: 2, length: 40, width: 30, height: 15 },
-  'tres-grand': { weight: 5, length: 50, width: 40, height: 20 },
+const SIZE_KG: Record<ParcelSize, number> = { petit: 0.5, moyen: 1, grand: 2 };
+/**
+ * The carriers' weight brackets. One parcel per seller, declared at the smallest bracket its articles fit in
+ * (a "grand" and a "petit": 2,5 kg, so the 3 kg one). Sides in cm, within Mondial Relay's and Colissimo's limits.
+ */
+const PARCELS = [
+  { name: 'petit', weight: 0.5, length: 30, width: 20, height: 5 },
+  { name: 'moyen', weight: 1, length: 35, width: 25, height: 10 },
+  { name: 'grand', weight: 2, length: 40, width: 30, height: 15 },
+  { name: '3 kg', weight: 3, length: 45, width: 35, height: 20 },
+  { name: '5 kg', weight: 5, length: 50, width: 40, height: 20 },
+  { name: '7 kg', weight: 7, length: 55, width: 40, height: 30 },
+  { name: '10 kg', weight: 10, length: 60, width: 40, height: 30 },
+] as const;
+type Parcel = (typeof PARCELS)[number];
+/**
+ * What the buyer pays for one parcel, bracket by bracket (same order as PARCELS); it pays for the label: Boxtal's price
+ * (grid of March 2024) + 20 % VAT, which Pimou can't get back, + a few cents. Same figures as SHIPPING_PRICES in the app.
+ */
+const SHIPPING: Record<Exclude<Delivery, 'main'>, number[]> = {
+  relais: [3.99, 4.49, 6.29, 6.59, 11.9, 13.49, 13.49],
+  domicile: [9.49, 11.49, 12.9, 14.49, 16.99, 18.99, 22.49],
 };
-/** What the buyer pays for one parcel; it pays for the label. Same figures as SHIPPING_PRICES in the app (src/data/catalog.ts). */
-const SHIPPING: Record<Exclude<Delivery, 'main'>, Record<ParcelSize, number>> = {
-  relais: { petit: 3.9, moyen: 4.9, grand: 6.9, 'tres-grand': 9.9 },
-  domicile: { petit: 6.9, moyen: 7.9, grand: 9.9, 'tres-grand': 13.9 },
-};
-const shippingPrice = (d: Delivery, size: ParcelSize) => (d === 'main' ? 0 : SHIPPING[d][size]);
+const shippingPrice = (d: Delivery, parcel: Parcel) => (d === 'main' ? 0 : SHIPPING[d][PARCELS.indexOf(parcel)]);
+/** A parcel saved on an order ("tres-grand" was the 5 kg one before the brackets). */
+const parcelNamed = (name?: string | null) => PARCELS.find((p) => p.name === name) ?? (name === 'tres-grand' ? PARCELS[4] : PARCELS[1]);
 
 type Delivery = (typeof DELIVERIES)[number];
 type Listing = {
@@ -57,7 +71,7 @@ type Order = {
   price: number | string; shipping: number | string; commission: number | string; delivery: Delivery; address: string;
   status: 'pending' | 'paid' | 'shipped' | 'received' | 'cancelled'; stripe_session_id: string | null;
   payment_intent: string | null; charge_id: string | null; transfer_id: string | null;
-  parcel_size?: ParcelSize | null; relay?: Relay | null; ship_address?: ShipAddress | null;
+  parcel_size?: string | null; relay?: Relay | null; ship_address?: ShipAddress | null;
   shipping_order_id?: string | null; tracking_number?: string | null; tracking_url?: string | null; tracking_status?: string | null; label_error?: string | null;
 };
 type Profile = { first_name?: string; last_name?: string; phone?: string; street?: string; zip?: string; city?: string };
@@ -69,10 +83,10 @@ function listingSize(l: Listing): ParcelSize {
   if (l.type === 'lot') return (l.count ?? 0) >= 6 ? 'grand' : 'moyen';
   return 'petit';
 }
-/** One parcel for all of a seller's articles: the smallest size their weights fit in. */
-function parcelFor(listings: Listing[]): ParcelSize {
-  const weight = listings.reduce((n, l) => n + PARCELS[listingSize(l)].weight, 0);
-  return SIZES.find((s) => PARCELS[s].weight >= weight) ?? 'tres-grand';
+/** One parcel for all of a seller's articles: the smallest bracket their weights fit in, null over 10 kg. */
+function parcelFor(listings: Listing[]): Parcel | null {
+  const weight = listings.reduce((n, l) => n + SIZE_KG[listingSize(l)], 0);
+  return PARCELS.find((p) => p.weight >= weight) ?? null;
 }
 /** A French mobile number as carriers want it ("+33612345678"), or null: they text the buyer when the parcel arrives. */
 export function mobile(phone: string | null | undefined) {
@@ -296,18 +310,21 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
 
     const group = crypto.randomUUID();
     // One parcel per seller, sized for all of their articles; its shipping is counted on their first article.
-    const parcelSize = new Map(sellerIds.map((id) => [id, parcelFor(listings.filter((l) => l.seller_id === id))]));
+    const parcelOf = new Map(sellerIds.map((id) => [id, parcelFor(listings.filter((l) => l.seller_id === id))]));
+    if (delivery !== 'main' && [...parcelOf.values()].some((p) => !p)) {
+      throw new Refusal("Trop d'articles du même vendeur pour un seul colis (plus de 10 kg) : partage ta commande en deux.");
+    }
     const charged = new Set<string>();
     const rows: Omit<Order, 'id' | 'status' | 'stripe_session_id' | 'payment_intent' | 'charge_id' | 'transfer_id'>[] = [];
     for (const l of listings) {
       const price = await agreedPrice(l, user.id);
-      const size = parcelSize.get(l.seller_id)!;
-      const shipping = charged.has(l.seller_id) ? 0 : shippingPrice(delivery, size);
+      const parcel = parcelOf.get(l.seller_id) ?? PARCELS[0];
+      const shipping = charged.has(l.seller_id) ? 0 : shippingPrice(delivery, parcel);
       charged.add(l.seller_id);
       rows.push({
         group_id: group, listing_id: l.id, buyer_id: user.id, seller_id: l.seller_id, title: l.title, photo: l.photos?.[0] ?? null,
         price, shipping, commission: round2(price * COMMISSION), delivery, address: delivery === 'domicile' ? address : '',
-        ...(delivery === 'main' ? {} : { parcel_size: size, relay, ship_address: ship }),
+        ...(delivery === 'main' ? {} : { parcel_size: parcel.name, relay, ship_address: ship }),
       });
     }
 
@@ -318,7 +335,7 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
     for (const r of rows.filter((x) => Number(x.shipping) > 0)) {
       lineItems.push({
         quantity: 1,
-        price_data: { currency: 'eur', unit_amount: cents(Number(r.shipping)), product_data: { name: `${DELIVERY_LABEL[delivery]} · colis ${r.parcel_size === 'tres-grand' ? 'très grand' : r.parcel_size}` } },
+        price_data: { currency: 'eur', unit_amount: cents(Number(r.shipping)), product_data: { name: `${DELIVERY_LABEL[delivery]} · colis ${r.parcel_size}` } },
       });
     }
 
@@ -462,6 +479,24 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
     return (contentCache = hit.id);
   }
 
+  /**
+   * What the label really costs (Boxtal's price before VAT) next to what the buyer paid for the parcel, for Pimou to
+   * check its shipping prices (supabase/schema-11-couts-bordereaux.sql). Never in the way of the label itself.
+   */
+  async function saveLabelCost(parcel: Order[], shippingOrderId: string, costHt: unknown) {
+    const lead = parcel[0];
+    const cost = Number(costHt);
+    try {
+      const { error } = await admin.from('label_costs').insert({
+        shipping_order_id: shippingOrderId, group_id: lead.group_id, delivery: lead.delivery, parcel_size: lead.parcel_size ?? null,
+        paid_by_buyer: round2(parcel.reduce((n, o) => n + Number(o.shipping), 0)), boxtal_ht: costHt == null || !Number.isFinite(cost) ? null : cost,
+      });
+      if (error) console.error('label cost', error.message);
+    } catch (e) {
+      console.error('label cost', e);
+    }
+  }
+
   /** Order the parcel's label. A failure is written on the orders, for the seller to fix and retry; the sale itself stands. */
   async function createLabel(parcel: Order[]): Promise<Order[]> {
     const lead = parcel[0];
@@ -481,7 +516,7 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
       if (lead.delivery === 'domicile' && !home) throw new Refusal("L'adresse de l'acheteur manque : écris à reclamation@pimou.fr.");
       const toLocation = lead.delivery === 'domicile' ? where(home!.street, home!.zip, home!.city)
         : to.street && to.zip && to.city ? where(to.street, to.zip, to.city) : where(relay!.street, relay!.zip, relay!.city);
-      const p = PARCELS[lead.parcel_size ?? 'moyen'] ?? PARCELS.moyen;
+      const p = parcelNamed(lead.parcel_size);
       const res = await boxtal.post('/shipping/v3.1/shipping-order', {
         shippingOfferCode: lead.delivery === 'relais' ? RELAY_OFFER() : HOME_OFFER(),
         labelType: 'PDF_A4',
@@ -500,6 +535,7 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
       const id = res?.content?.id as string | undefined;
       if (!id) throw new Error(`no shipping order id: ${JSON.stringify(res).slice(0, 300)}`);
       patch = { shipping_order_id: id, label_error: null };
+      await saveLabelCost(parcel, id, res?.content?.deliveryPriceExclTax?.value);
     } catch (e) {
       console.error('label', e);
       // In test mode, Boxtal's own words help setting things up.

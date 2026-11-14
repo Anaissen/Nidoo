@@ -1,6 +1,6 @@
 // Conditions d'utilisation, confidentialité et mentions légales, shown in src/app/legal.
-import { fmt, fmtInt } from '../lib/format';
-import { DEFAULT_COMMISSION, SHIPPING_PRICES } from './catalog';
+import { fmtInt } from '../lib/format';
+import { DEFAULT_COMMISSION } from './catalog';
 
 /** Who publishes Pimou. An empty value shows "[à compléter]" on the pages. */
 export const LEGAL = {
@@ -30,7 +30,7 @@ export const LEGAL = {
  * Version recorded each time a parent accepts the CGU and the privacy policy (supabase/schema-8-cgu.sql).
  * A new value asks every parent to accept again at their next visit.
  */
-export const TERMS_VERSION = '2026-11-14';
+export const TERMS_VERSION = '2026-11-14.2';
 
 /** Above this, in a calendar year, the platform reports the seller's sales to the tax office (DAC7). */
 export const TAX_REPORT = { sales: 30, amount: 2000 };
@@ -44,7 +44,6 @@ export type LegalSection = { title: string; body: LegalBlock[] };
 export type LegalId = 'cgu' | 'confidentialite' | 'mentions';
 export type LegalDoc = { title: string; short: string; intro: string; sections: LegalSection[] };
 
-const prices = (d: keyof typeof SHIPPING_PRICES) => `de ${fmt(SHIPPING_PRICES[d].petit)} à ${fmt(SHIPPING_PRICES[d].grand)}`;
 const publisher = () => `${v(LEGAL.name)}, ${v(LEGAL.form.toLowerCase())}, ${v(LEGAL.address)}`;
 
 const cgu = (): LegalDoc => ({
@@ -85,7 +84,7 @@ const cgu = (): LegalDoc => ({
       "Une offre acceptée n'oblige personne tant que le paiement n'est pas fait : la vente est conclue au moment où le paiement est validé.",
     ] },
     { title: '7. Paiement et livraison', body: [
-      `L'acheteur paie le prix de l'article et la livraison, selon la taille du colis indiquée par le vendeur (petit, moyen ou grand) : ${prices('relais')} en point relais Mondial Relay, ${prices('domicile')} à domicile avec Colissimo, et jusqu'à ${fmt(SHIPPING_PRICES.relais['tres-grand'])} et ${fmt(SHIPPING_PRICES.domicile['tres-grand'])} quand plusieurs articles du même vendeur partent dans un seul colis. La remise en main propre est gratuite. La protection acheteur est offerte. Le prix exact s'affiche avant de payer.`,
+      "L'acheteur paie le prix de l'article et la livraison. Le prix de la livraison dépend du mode choisi (point relais Mondial Relay ou domicile avec Colissimo) et du poids du colis : la taille indiquée par le vendeur (petit, moyen ou grand), ou le poids de tous les articles quand plusieurs articles du même vendeur partent ensemble dans un seul colis, jusqu'à 10 kg. Il s'affiche sur chaque annonce et avant de payer. La remise en main propre est gratuite. La protection acheteur est offerte.",
       "Le paiement se fait uniquement sur Pimou, par carte bancaire, Apple Pay ou Google Pay, sur la page sécurisée de Stripe, notre prestataire de paiement agréé. Pimou ne voit jamais ton numéro de carte. Un paiement fait en dehors de Pimou (virement, espèces…) n'est pas protégé : ne l'accepte pas et ne le propose pas.",
       "Si l'article a été acheté par quelqu'un d'autre juste avant toi, la vente est annulée et tu es remboursé·e automatiquement et en totalité.",
       "Pour un envoi, Pimou fournit au vendeur un bordereau prépayé, payé avec les frais de livraison de l'acheteur. Le vendeur l'imprime, emballe soigneusement l'article et dépose le colis dans les 3 jours qui suivent le paiement, dans un point Mondial Relay ou un bureau de poste selon le mode choisi. Le suivi du colis se met à jour tout seul. Le vendeur indique une taille de colis honnête : si le transporteur facture un poids plus élevé, la différence peut lui être demandée.",

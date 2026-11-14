@@ -9,7 +9,7 @@ import { mailtoReclamation } from '../../components/Reclamation';
 import { HeartButton, openProduct, perPiece, ProductPhoto } from '../../components/products';
 import { BackButton, BottomBar, Screen } from '../../components/Screen';
 import { Avatar, ellipsis, H, LinkButton, OutlineButton, PrimaryButton, Tag, Txt } from '../../components/ui';
-import { categoryOf, HANDOVER_MAX_KM, parcelLabel, parcelSizeOf, shippingPrice, unitOf } from '../../data/catalog';
+import { categoryOf, HANDOVER_MAX_KM, PARCEL_KG, parcelSizeOf, shippingPrice, unitOf } from '../../data/catalog';
 import { fmt } from '../../lib/format';
 import { requireAccount } from '../../lib/auth';
 import { removeListing } from '../../lib/listings';
@@ -234,7 +234,7 @@ export default function ProductScreen() {
           </View>
           <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
             <Truck size={20} strokeWidth={ICON_STROKE} color={colors.accent2_700} />
-            <Txt size={14} style={{ flex: 1 }}>Colis {parcelLabel(parcelSizeOf(p))} : point relais {fmt(shippingPrice('relais', parcelSizeOf(p)))} · domicile {fmt(shippingPrice('domicile', parcelSizeOf(p)))}{nearby ? ' · main propre' : ''}</Txt>
+            <Txt size={14} style={{ flex: 1 }}>Colis {parcelSizeOf(p)} : point relais {fmt(shippingPrice('relais', PARCEL_KG[parcelSizeOf(p)]))} · domicile {fmt(shippingPrice('domicile', PARCEL_KG[parcelSizeOf(p)]))}{nearby ? ' · main propre' : ''}</Txt>
           </View>
           {!isMine && (
             <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>

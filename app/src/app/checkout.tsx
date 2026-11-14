@@ -9,7 +9,7 @@ import { OptionCard } from '../components/OptionCard';
 import { RelayPicker } from '../components/RelayPicker';
 import { BackHeader, BottomBar, Screen } from '../components/Screen';
 import { H, LinkButton, PrimaryButton, Txt } from '../components/ui';
-import { DELIVERY, DeliveryId, HANDOVER_MAX_KM, parcelFor, shippingPrice } from '../data/catalog';
+import { DELIVERY, DeliveryId, HANDOVER_MAX_KM, parcelKg, shippingPrice } from '../data/catalog';
 import { useCartGroups } from '../lib/cart';
 import { fmt } from '../lib/format';
 import { addressLine, fullName, hasAddress, isMobile } from '../lib/account';
@@ -37,8 +37,8 @@ export default function Checkout() {
   const options = far.length ? DELIVERY.filter((d) => d.id !== 'main') : DELIVERY;
   useEffect(() => { if (far.length && del === 'main') set({ del: 'relais' }); }, [far.length, del, set]);
 
-  // One parcel per seller, priced by its size (it pays for the prepaid label).
-  const shipFor = (d: DeliveryId) => groups.reduce((n, g) => n + shippingPrice(d, parcelFor(g.items)), 0);
+  // One parcel per seller, priced by its weight (it pays for the prepaid label).
+  const shipFor = (d: DeliveryId) => groups.reduce((n, g) => n + shippingPrice(d, parcelKg(g.items)), 0);
   const ship = shipFor(del);
   const total = subtotal + ship;
 
