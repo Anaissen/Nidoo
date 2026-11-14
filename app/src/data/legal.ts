@@ -14,12 +14,13 @@ export const LEGAL = {
   address: '178 rue des Mourgues, 30920 Codognan',
   siret: '898 459 276 00025',
   /** "TVA non applicable, article 293 B du CGI" under the VAT threshold (franchise en base), or the VAT number. */
-  vat: '',
+  vat: 'non applicable',
+  /** Required in the mentions légales (LCEN) before the public launch: a professional number to come. Hidden while empty. */
   phone: '',
   director: 'Anaïs Sennia',
   /** Where parents write when something goes wrong (a Zimbra mailbox at OVH). */
   email: 'reclamation@pimou.fr',
-  /** Médiateur de la consommation Pimou signs up with (mandatory for a business serving consumers). */
+  /** Médiateur de la consommation (Code de la consommation, L612-1): required before charging real customers. The CGU paragraph is hidden while empty. */
   mediator: { name: '', address: '', url: '' },
   /** Where the Supabase project lives (Project Settings → General → Region), e.g. "en Irlande (Union européenne)". */
   dataRegion: 'en Irlande (Union européenne)',
@@ -112,7 +113,7 @@ const cgu = (): LegalDoc => ({
     ] },
     { title: '13. Signaler un contenu', body: [
       `Une annonce, un message ou un avis te semble illégal ou contraire à ces conditions ? Signale-le avec le bouton « Signaler cette annonce » ou en écrivant à ${LEGAL.email}. Indique où se trouve le contenu, ce qui pose problème, et ton nom et ton e-mail.`,
-      "Pimou traite chaque signalement rapidement et te répond. Si un contenu est retiré ou un compte suspendu, la personne concernée en est informée avec les raisons de la décision et peut la contester en nous répondant, puis auprès du médiateur ou d'un tribunal.",
+      `Pimou traite chaque signalement rapidement et te répond. Si un contenu est retiré ou un compte suspendu, la personne concernée en est informée avec les raisons de la décision et peut la contester en nous répondant, puis ${LEGAL.mediator.name ? "auprès du médiateur ou d'un tribunal" : "devant un tribunal si besoin"}.`,
     ] },
     { title: '14. Suspension et fermeture du compte', body: [
       "Tu peux supprimer ton compte à tout moment, depuis Profil → Mes informations → Supprimer mon compte. Une commande en cours doit d'abord être terminée. Ce qui est gardé après la suppression est expliqué dans la politique de confidentialité.",
@@ -133,7 +134,7 @@ const cgu = (): LegalDoc => ({
     ] },
     { title: '19. Litiges et médiation', body: [
       `Ces conditions sont soumises au droit français. En cas de souci avec Pimou, écris-nous d'abord à ${LEGAL.email} : on cherchera une solution ensemble.`,
-      `Si tu n'es pas satisfait·e de notre réponse, tu peux saisir gratuitement le médiateur de la consommation de Pimou : ${v(LEGAL.mediator.name)}, ${v(LEGAL.mediator.address)}, ${v(LEGAL.mediator.url)}.`,
+      ...(LEGAL.mediator.name ? [`Si tu n'es pas satisfait·e de notre réponse, tu peux saisir gratuitement le médiateur de la consommation de Pimou : ${LEGAL.mediator.name}, ${v(LEGAL.mediator.address)}, ${v(LEGAL.mediator.url)}.`] : []),
       "Un désaccord entre deux parents se règle d'abord entre eux, avec l'aide de Pimou si besoin, puis devant le tribunal compétent.",
     ] },
   ],
@@ -226,7 +227,7 @@ const mentions = (): LegalDoc => ({
         `Adresse : ${v(LEGAL.address)}`,
         `SIRET : ${v(LEGAL.siret)}`,
         `TVA : ${v(LEGAL.vat)}`,
-        `Téléphone : ${v(LEGAL.phone)}`,
+        ...(LEGAL.phone ? [`Téléphone : ${LEGAL.phone}`] : []),
         `E-mail : ${LEGAL.email}`,
       ],
     ] },
