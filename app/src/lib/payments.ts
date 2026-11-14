@@ -216,7 +216,9 @@ export const TRACKING_LABEL: Record<string, string> = {
 export async function findRelays(postalCode: string, city = '') {
   const r = await call<{ points: Relay[] }>('parcel-points', { postalCode, city });
   if (!r.error) return { points: r.points ?? [], error: null, unavailable: false };
-  return { points: [], error: r.error, unavailable: !/code postal/i.test(r.error) };
+  // No Boxtal keys yet, or a payments function from before labels: the seller picks the relay as before.
+  // Anything else is shown, so a real problem doesn't hide behind the old way.
+  return { points: [], error: r.error, unavailable: /pas encore disponible|action inconnue/i.test(r.error) };
 }
 
 /** A fresh link to the label PDF; opens it. Returns an error message, or null. */

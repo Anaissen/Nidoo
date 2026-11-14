@@ -631,11 +631,13 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
 
   return async (req: Request) => {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+    let action = '';
     try {
       const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
       const { data: { user } } = await admin.auth.getUser(token);
       if (!user) return reply({ error: 'Connecte-toi pour continuer' }, 401);
       const body = await req.json().catch(() => ({}));
+      action = String(body.action ?? '');
 
       switch (body.action) {
         case 'seller-onboarding': {
@@ -708,7 +710,10 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
       const testMode = (Deno.env.get('STRIPE_SECRET_KEY') ?? '').startsWith('sk_test_');
       const stripeMessage = (e as { type?: string; message?: string })?.type?.startsWith('Stripe') ? (e as Error).message : null;
       if (testMode && stripeMessage) return reply({ error: `Stripe (test) : ${stripeMessage}` }, 500);
-      return reply({ error: "Le paiement n'a pas pu aboutir, réessaie dans un instant." }, 500);
+      // Same for Boxtal while on its test server.
+      if (e instanceof BoxtalError && boxtal?.test) return reply({ error: `Boxtal (test) : erreur ${e.status} ${JSON.stringify(e.body ?? '').slice(0, 300)}` }, 500);
+      const what = action === 'parcel-points' ? 'La recherche de points relais' : action === 'label' || action === 'tracking' ? 'La demande au transporteur' : 'Le paiement';
+      return reply({ error: `${what} n'a pas pu aboutir, réessaie dans un instant.` }, 500);
     }
   };
 }
