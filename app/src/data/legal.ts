@@ -14,14 +14,14 @@ export const LEGAL = {
   address: '178 rue des Mourgues, 30920 Codognan',
   siret: '898 459 276 00025',
   /** "TVA non applicable, article 293 B du CGI" under the VAT threshold (franchise en base), or the VAT number. */
-  vat: 'non applicable',
-  /** Required in the mentions légales (LCEN) before the public launch: a professional number to come. Hidden while empty. */
-  phone: '',
+  vat: 'non applicable, article 293 B du CGI',
+  /** Digits only. Shown in the mentions légales behind a "clique ici" (not in plain sight); hidden while empty. */
+  phone: '0783413675',
   director: 'Anaïs Sennia',
   /** Where parents write when something goes wrong (a Zimbra mailbox at OVH). */
   email: 'reclamation@pimou.fr',
   /** Médiateur de la consommation (Code de la consommation, L612-1): required before charging real customers. The CGU paragraph is hidden while empty. */
-  mediator: { name: '', address: '', url: '' },
+  mediator: { name: 'AME CONSO', address: '197 boulevard Saint-Germain, 75007 Paris', url: 'www.mediationconso-ame.com' },
   /** Where the Supabase project lives (Project Settings → General → Region), e.g. "en Irlande (Union européenne)". */
   dataRegion: 'en Irlande (Union européenne)',
 };
@@ -134,7 +134,7 @@ const cgu = (): LegalDoc => ({
     ] },
     { title: '19. Litiges et médiation', body: [
       `Ces conditions sont soumises au droit français. En cas de souci avec Pimou, écris-nous d'abord à ${LEGAL.email} : on cherchera une solution ensemble.`,
-      ...(LEGAL.mediator.name ? [`Si tu n'es pas satisfait·e de notre réponse, tu peux saisir gratuitement le médiateur de la consommation de Pimou : ${LEGAL.mediator.name}, ${v(LEGAL.mediator.address)}, ${v(LEGAL.mediator.url)}.`] : []),
+      ...(LEGAL.mediator.name ? [`Si tu n'es pas satisfait·e de notre réponse, tu peux saisir gratuitement le médiateur de la consommation de Pimou, ${LEGAL.mediator.name} : en ligne sur ${v(LEGAL.mediator.url)}, ou par courrier adressé à ${LEGAL.mediator.name}, ${v(LEGAL.mediator.address)}.`] : []),
       "Un désaccord entre deux parents se règle d'abord entre eux, avec l'aide de Pimou si besoin, puis devant le tribunal compétent.",
     ] },
   ],
@@ -227,7 +227,7 @@ const mentions = (): LegalDoc => ({
         `Adresse : ${v(LEGAL.address)}`,
         `SIRET : ${v(LEGAL.siret)}`,
         `TVA : ${v(LEGAL.vat)}`,
-        ...(LEGAL.phone ? [`Téléphone : ${LEGAL.phone}`] : []),
+        ...(LEGAL.phone ? [`Téléphone : [[tel:${LEGAL.phone}]]`] : []),
         `E-mail : ${LEGAL.email}`,
       ],
     ] },
@@ -249,6 +249,9 @@ const mentions = (): LegalDoc => ({
       "L'application, elle, n'utilise pas d'intelligence artificielle avec toi : il n'y a pas de robot de discussion (les messages viennent toujours de vrais parents), et Pimou ne s'en sert ni pour classer les annonces, ni pour prendre des décisions te concernant, ni pour analyser tes données.",
       "Si Pimou ajoute un jour une fonction qui utilise l'intelligence artificielle (par exemple une aide pour rédiger une annonce), ce sera indiqué clairement là où elle est utilisée, comme le prévoit le règlement européen sur l'intelligence artificielle.",
     ] },
+    ...(LEGAL.mediator.name ? [{ title: 'Médiation de la consommation', body: [
+      `En cas de litige avec Pimou, après nous avoir écrit, tu peux saisir gratuitement ${LEGAL.mediator.name} : en ligne sur ${LEGAL.mediator.url}, ou par courrier adressé à ${LEGAL.mediator.name}, ${LEGAL.mediator.address}.`,
+    ] }] : []),
     { title: 'Contact et signalement', body: [
       `Pour toute question ou pour signaler un contenu : ${LEGAL.email}.`,
     ] },
