@@ -121,6 +121,7 @@ export type Boxtal = {
   test: boolean;
   get: (path: string, query?: Record<string, string>) => Promise<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   post: (path: string, body: unknown) => Promise<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  del?: (path: string) => Promise<unknown>;
 };
 /** Boxtal's temporary token, kept between calls while it's valid (an instance of the function serves many calls). */
 let boxtalToken: { value: string; until: number; keys: string } | null = null;
@@ -155,10 +156,12 @@ export function boxtalClient(): Boxtal | null {
     if (!res.ok) throw new BoxtalError(res.status, json);
     return json;
   };
-  return { test: !base.includes('api.boxtal.com'), get: (p, q) => call('GET', p, q), post: (p, b) => call('POST', p, undefined, b) };
+  return { test: !base.includes('api.boxtal.com'), get: (p, q) => call('GET', p, q), post: (p, b) => call('POST', p, undefined, b), del: (p) => call('DELETE', p) };
 }
 const RELAY_OFFER = () => Deno.env.get('BOXTAL_RELAY_OFFER') ?? 'MONR-CpourToi';
 const HOME_OFFER = () => Deno.env.get('BOXTAL_HOME_OFFER') ?? 'POFR-ColissimoAccess';
+/** How long a call that started ordering a label keeps the parcel to itself (see claimParcel). */
+const LABEL_CLAIM_MS = 2 * 60_000;
 /** Tracking statuses once the seller has dropped the parcel. */
 const ON_ITS_WAY = ['SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'FAILED_ATTEMPT', 'REACHED_DELIVERY_PICKUP_POINT', 'DELIVERED'];
 
@@ -497,10 +500,42 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
     }
   }
 
+  /**
+   * After a payment the app can ask several times at once (payment page, background check…), and Boxtal bills every
+   * label it makes. So a call first claims the parcel, by stamping its first order (supabase/schema-12-un-seul-bordereau.sql):
+   * only the call that stamps it orders the label. A claim left by a call that stopped half-way expires after 2 minutes.
+   * Returns the parcel as it is now in the database, and whether this call has it.
+   */
+  async function claimParcel(parcel: Order[]) {
+    const lead = parcel[0];
+    const { data: rows } = await admin.from('orders').select('*').eq('group_id', lead.group_id).eq('seller_id', lead.seller_id).order('id', { ascending: true });
+    const all = (rows ?? []) as Order[];
+    const first = all[0]?.id ?? lead.id;
+    const now = Date.now();
+    const { data: stamped, error } = await admin.from('orders').update({ label_claimed_at: new Date(now).toISOString() })
+      .eq('id', first).is('shipping_order_id', null)
+      .or(`label_claimed_at.is.null,label_claimed_at.lt."${new Date(now - LABEL_CLAIM_MS).toISOString()}"`)
+      .select('id');
+    if (error) throw new Error(`label claim (has supabase/schema-12-un-seul-bordereau.sql been run?): ${error.message}`);
+    return { mine: !!stamped?.length, first, now: parcel.map((o) => all.find((r) => r.id === o.id) ?? o) };
+  }
+
   /** Order the parcel's label. A failure is written on the orders, for the seller to fix and retry; the sale itself stands. */
   async function createLabel(parcel: Order[]): Promise<Order[]> {
     const lead = parcel[0];
     if (!boxtal || !lead || lead.delivery === 'main' || parcel.some((o) => o.shipping_order_id)) return parcel;
+    let claim: Awaited<ReturnType<typeof claimParcel>>;
+    try {
+      claim = await claimParcel(parcel);
+    } catch (e) {
+      // Without the claim, no label rather than maybe two.
+      console.error(e);
+      const patch = { label_error: `Le bordereau n'a pas pu être créé. Réessaie dans un moment ou écris à reclamation@pimou.fr.${boxtal.test ? ' (Boxtal test : lance le script SQL n°12 dans Supabase)' : ''}` };
+      await admin.from('orders').update(patch).in('id', parcel.map((o) => o.id));
+      return parcel.map((o) => ({ ...o, ...patch }));
+    }
+    // Another call is ordering it, or already has.
+    if (!claim.mine || claim.now.some((o) => o.shipping_order_id)) return claim.now;
     let patch: Partial<Order>;
     try {
       const [from, to] = await Promise.all([contactOf(lead.seller_id), contactOf(lead.buyer_id)]);
@@ -541,6 +576,8 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
       // In test mode, Boxtal's own words help setting things up.
       const detail = boxtal.test && e instanceof BoxtalError ? ` (Boxtal test : ${JSON.stringify(e.body).slice(0, 200)})` : '';
       patch = { label_error: e instanceof Refusal ? e.message : `Le bordereau n'a pas pu être créé. Réessaie dans un moment ou écris à reclamation@pimou.fr.${detail}` };
+      // No label: the next try (the seller's button, the background check) can claim the parcel right away.
+      await admin.from('orders').update({ label_claimed_at: null }).eq('id', claim.first);
     }
     await admin.from('orders').update(patch).in('id', parcel.map((o) => o.id));
     return parcel.map((o) => ({ ...o, ...patch }));
@@ -612,6 +649,58 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
       return [{ code: String(p.code), name: p.name, street: [p.location.number, p.location.street].filter(Boolean).join(' '), zip: String(p.location.postalCode), city: p.location.city, distance: d ?? null }];
     });
     return { points: points.slice(0, 15) };
+  }
+
+  /**
+   * Boxtal's real price for each parcel bracket, with Mondial Relay and Colissimo, next to what Pimou charges
+   * (the page /verifier-tarifs). Test server only: each label is ordered (free there) then cancelled; for real, every
+   * label ordered would be paid.
+   */
+  async function priceCheck(user: User) {
+    if (!boxtal) throw new Refusal('Les bordereaux ne sont pas encore activés : il manque les clés Boxtal.');
+    if (!boxtal.test) throw new Refusal('Seulement en mode test : en réel, chaque bordereau commandé serait payé.');
+    const me = await contactOf(user.id);
+    const phone = mobile(me.phone);
+    if (!phone || !me.street?.trim() || !/^\d{5}$/.test(me.zip ?? '') || !me.city?.trim()) {
+      throw new Refusal('Ajoute ton adresse complète et ton numéro de portable dans « Mes informations », puis réessaie.');
+    }
+    const { points } = await parcelPoints({ postalCode: me.zip, city: me.city });
+    if (!points.length) throw new Refusal('Aucun point relais trouvé près de ton adresse.');
+    const contact = { firstName: me.first_name || '-', lastName: me.last_name || '-', email: me.email, phone };
+    const location = { street: me.street.trim(), postalCode: me.zip, city: me.city.trim(), countryIsoCode: 'FR' };
+    const content = { id: await contentId(), description: "Vêtements d'enfants d'occasion" };
+    const one = async (delivery: 'relais' | 'domicile', p: Parcel, i: number) => {
+      const row = { delivery, parcel: p.name, kg: p.weight, price: SHIPPING[delivery][i] };
+      try {
+        const res = await boxtal!.post('/shipping/v3.1/shipping-order', {
+          shippingOfferCode: delivery === 'relais' ? RELAY_OFFER() : HOME_OFFER(),
+          labelType: 'PDF_A4',
+          shipment: {
+            externalId: `verif-tarif-${delivery}-${p.weight}kg`,
+            packages: [{ type: 'PARCEL', weight: p.weight, length: p.length, width: p.width, height: p.height, value: { value: 10, currency: 'EUR' }, content }],
+            fromAddress: { type: 'RESIDENTIAL', contact, location },
+            toAddress: { type: 'RESIDENTIAL', contact, location },
+            ...(delivery === 'relais' ? { pickupPointCode: points[0].code } : {}),
+          },
+        });
+        const id = res?.content?.id as string | undefined;
+        if (id) await boxtal!.del?.(`/shipping/v3.1/shipping-order/${encodeURIComponent(id)}`).catch((e) => console.error('price-check cancel', id, e));
+        const ht = Number(res?.content?.deliveryPriceExclTax?.value);
+        if (res?.content?.deliveryPriceExclTax?.value == null || !Number.isFinite(ht)) return { ...row, error: "Boxtal n'a pas donné de prix" };
+        const ttc = round2(ht * 1.2);
+        return { ...row, boxtalHt: ht, boxtalTtc: ttc, margin: round2(row.price - ttc) };
+      } catch (e) {
+        console.error('price-check', delivery, p.name, e);
+        return { ...row, error: e instanceof BoxtalError ? `Boxtal : erreur ${e.status} ${JSON.stringify(e.body ?? '').slice(0, 160)}` : 'Erreur' };
+      }
+    };
+    // Mondial Relay and Colissimo side by side, bracket after bracket.
+    const [relais, domicile] = await Promise.all((['relais', 'domicile'] as const).map(async (d) => {
+      const rows = [];
+      for (const [i, p] of PARCELS.entries()) rows.push(await one(d, p, i));
+      return rows;
+    }));
+    return { rows: [...relais, ...domicile] };
   }
 
   /** The buyer has the clothes: pay the seller. */
@@ -736,6 +825,8 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
         }
         case 'parcel-points':
           return reply(await parcelPoints(body));
+        case 'price-check':
+          return reply(await priceCheck(user));
         case 'label':
           return reply(await labelLink(user, body.orderId));
         case 'create-label':
@@ -771,7 +862,8 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
           ? `Boxtal (test) : clés refusées (erreur ${e.status}). Vérifie BOXTAL_ACCESS_KEY et BOXTAL_SECRET_KEY : ce doivent être celles de l'espace de test de Boxtal.`
           : `Boxtal (test) : erreur ${e.status} ${JSON.stringify(e.body ?? '').slice(0, 300)}` }, 500);
       }
-      const what = action === 'parcel-points' ? 'La recherche de points relais' : action === 'label' || action === 'tracking' ? 'La demande au transporteur' : 'Le paiement';
+      const what = action === 'parcel-points' ? 'La recherche de points relais' : action === 'label' || action === 'tracking' ? 'La demande au transporteur'
+        : action === 'price-check' ? 'La vérification des prix' : 'Le paiement';
       return reply({ error: `${what} n'a pas pu aboutir, réessaie dans un instant.` }, 500);
     }
   };

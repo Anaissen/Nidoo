@@ -240,3 +240,11 @@ export async function deleteAccount() {
   return null;
 }
 export const confirmReception = (orderId: string) => act('confirm-reception', orderId);
+
+/** One line of the price check: what Boxtal charges for a parcel bracket, and what Pimou makes on it. */
+export type PriceRow = {
+  delivery: 'relais' | 'domicile'; parcel: string; kg: number; price: number;
+  boxtalHt?: number; boxtalTtc?: number; margin?: number; error?: string;
+};
+/** Boxtal's real prices for every bracket (test server only, see the page /verifier-tarifs). */
+export const checkPrices = () => call<{ rows: PriceRow[] }>('price-check');
