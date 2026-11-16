@@ -10,7 +10,8 @@
 //
 // Setup (Supabase dashboard): Edge Functions → Deploy a new function → name "payments", paste this
 // file, turn OFF "Verify JWT" (the function checks the user itself), and add the secret
-// STRIPE_SECRET_KEY (sk_test_… in test mode) under Edge Functions → Secrets. Optional: the secret
+// STRIPE_SECRET_KEY (sk_test_… in test mode, sk_live_… for real payments: see "Passage en mode réel" in the
+// README) under Edge Functions → Secrets. Optional: the secret
 // RESEND_API_KEY (the Resend key) sends e-mails on each sale, shipment and payout.
 //
 // It also closes accounts ("delete-account"), which needs the server's rights (supabase/schema-9-suppression-compte.sql).
@@ -1016,7 +1017,8 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
             if (!o.shipping_order_id && o.label_error && o.seller_id === user.id) await createLabel(parcel.filter((x) => x.status === 'paid'));
             else await refreshTracking(parcel);
           }
-          return reply({ ok: true });
+          // The app shows its "mode test" hints (test cards…) only while Stripe runs with a test key.
+          return reply({ ok: true, test: !/^(sk|rk)_live_/.test(Deno.env.get('STRIPE_SECRET_KEY') ?? '') });
         }
         case 'wallet':
           return reply(await walletInfo(user));

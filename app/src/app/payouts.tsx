@@ -21,6 +21,7 @@ export default function Payouts() {
   const { done } = useLocalSearchParams<{ done?: string }>();
   const payout = useStore((s) => s.payout);
   const wallet = useStore((s) => s.wallet);
+  const paymentsTest = useStore((s) => s.paymentsTest);
   const showToast = useStore((s) => s.showToast);
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -104,9 +105,11 @@ export default function Payouts() {
         </View>
         {ready && <LinkButton label="Voir mon compte Stripe →" size={14} onPress={() => void go(openPayoutDashboard)} style={{ alignSelf: 'flex-start' }} />}
         <Reclamation subject="Réclamation · porte-monnaie" before="Un souci avec ton porte-monnaie ? Écris à " />
-        <Txt size={12} color={colors.neutral600}>
-          🧪 Mode test : aucun vrai argent ne circule. Dans le formulaire Stripe, utilise les données de test proposées (par exemple le code 000 000 pour le téléphone). Pour qu'une vente test arrive tout de suite dans le porte-monnaie, l'acheteur paie avec la carte 4000 0000 0000 0077.
-        </Txt>
+        {paymentsTest && (
+          <Txt size={12} color={colors.neutral600}>
+            🧪 Mode test : aucun vrai argent ne circule. Dans le formulaire Stripe, utilise les données de test proposées (par exemple le code 000 000 pour le téléphone). Pour qu'une vente test arrive tout de suite dans le porte-monnaie, l'acheteur paie avec la carte 4000 0000 0000 0077.
+          </Txt>
+        )}
       </View>
     </Screen>
   );

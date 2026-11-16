@@ -24,6 +24,7 @@ export default function Checkout() {
   const del = useStore((s) => s.del);
   const set = useStore((s) => s.set);
   const showToast = useStore((s) => s.showToast);
+  const paymentsTest = useStore((s) => s.paymentsTest);
 
   const account = useStore(accountOf);
   const savedOk = hasAddress(account);
@@ -145,7 +146,7 @@ export default function Checkout() {
             <View style={{ padding: 16, borderRadius: 24, backgroundColor: colors.neutral100, gap: 6 }}>
               <Txt weight="semi">{fromWallet > 0 ? `Le reste, ${fmt(byCard)}, par carte bancaire, Apple Pay ou Google Pay` : 'Carte bancaire, Apple Pay ou Google Pay'}</Txt>
               <Txt size={13} color={colors.neutral700}>Tu choisiras sur la page de paiement sécurisée de Stripe. Ton argent reste protégé par Pimou jusqu'à ce que tu confirmes la réception.</Txt>
-              <Txt size={12} color={colors.accent700}>🧪 Mode test : utilise la carte 4242 4242 4242 4242, une date future et n'importe quel code. Aucun vrai argent n'est prélevé.</Txt>
+              {paymentsTest && <Txt size={12} color={colors.accent700}>🧪 Mode test : utilise la carte 4242 4242 4242 4242, une date future et n'importe quel code. Aucun vrai argent n'est prélevé.</Txt>}
             </View>
           )}
           {!!wallet?.pending && <Txt size={12} color={colors.neutral700}>{fmt(wallet.pending)} arrivent dans ton porte-monnaie d'ici quelques jours : tu pourras t'en servir à ce moment-là.</Txt>}

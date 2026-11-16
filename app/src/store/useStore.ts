@@ -109,6 +109,8 @@ type State = {
   payout: { ready: boolean; submitted: boolean } | null;
   /** The porte-monnaie (the balance of the parent's Stripe account). null: not asked yet. */
   wallet: Wallet | null;
+  /** Stripe runs with a test key (the server says so): the screens show the test cards. */
+  paymentsTest: boolean;
   /** Reviews of the person's real orders, by order id. */
   orderReviews: Record<string, Review>;
   /** The person's own public seller card (real rating, sales…), once logged in. */
@@ -185,6 +187,7 @@ export const useStore = create<State & Actions>()(
       realOrders: [],
       payout: null,
       wallet: null,
+      paymentsTest: false,
       orderReviews: {},
       myCard: null,
       lastMineId: null,

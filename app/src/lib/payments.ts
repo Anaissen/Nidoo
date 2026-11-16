@@ -120,7 +120,11 @@ export function startPayments() {
     const me = session.user.id;
     setTimeout(async () => {
       await loadOrders();
-      void call('sync').then(() => Promise.all([loadOrders(), loadWallet()]));
+      void call<{ test?: boolean }>('sync').then((r) => {
+        // Test cards and test hints only while Stripe runs in test mode.
+        if (typeof r.test === 'boolean') useStore.setState({ paymentsTest: r.test });
+        return Promise.all([loadOrders(), loadWallet()]);
+      });
       channel?.unsubscribe();
       channel = supabase.channel(`orders-${me}`)
         // An order changed: refresh it, and the listings (a sold article shows as such right away).

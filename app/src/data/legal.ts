@@ -30,7 +30,7 @@ export const LEGAL = {
  * Version recorded each time a parent accepts the CGU and the privacy policy (supabase/schema-8-cgu.sql).
  * A new value asks every parent to accept again at their next visit.
  */
-export const TERMS_VERSION = '2026-11-16';
+export const TERMS_VERSION = '2026-11-16b';
 
 /** Above this, in a calendar year, the platform reports the seller's sales to the tax office (DAC7). */
 export const TAX_REPORT = { sales: 30, amount: 2000 };
@@ -98,7 +98,7 @@ const cgu = (): LegalDoc => ({
     ] },
     { title: '9. Commission et porte-monnaie', body: [
       `Publier une annonce est gratuit. Quand un article est vendu, Pimou prend une commission de ${DEFAULT_COMMISSION} % du prix de vente (frais de livraison non compris). Elle est retenue sur la somme versée au vendeur. Le montant que tu recevras est affiché avant que tu publies ton annonce. Les frais de livraison payés par l'acheteur servent à payer le bordereau : ils ne sont pas versés au vendeur.`,
-      "Pour vendre, le parent active son porte-monnaie : Stripe lui demande son identité et son IBAN, comme la loi l'impose. L'argent de ses ventes y arrive dès que l'acheteur confirme la réception. Il est conservé par Stripe, sur un compte de paiement au nom du parent, et non par Pimou.",
+      "Pour vendre, le parent active son porte-monnaie : Stripe lui demande son identité et son IBAN, comme la loi l'impose, et lui fait accepter ses propres conditions (le Contrat de compte connecté Stripe, stripe.com/legal/connect-account). L'argent de ses ventes y arrive dès que l'acheteur confirme la réception. Il est conservé par Stripe, sur un compte de paiement au nom du parent, et non par Pimou.",
       "Le parent peut retirer l'argent disponible vers son compte bancaire à tout moment, à partir de 1 € (il arrive en quelques jours ouvrés), ou s'en servir pour payer ses achats sur Pimou, en tout ou en partie. L'argent d'une vente devient disponible quelques jours après le paiement de l'acheteur, le temps que sa banque le confirme.",
       "Si l'argent reste longtemps sans être retiré, Stripe peut le verser automatiquement sur le compte bancaire du parent, selon ses propres règles. Avant de supprimer son compte, le parent retire l'argent de son porte-monnaie.",
       "La commission correspond à un service entièrement fourni au moment de la vente : tu acceptes qu'il soit exécuté tout de suite, et tu ne peux donc plus te rétracter sur cette commission une fois la vente faite (article L221-28 du Code de la consommation).",
