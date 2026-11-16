@@ -15,8 +15,8 @@ import { colors, GUTTER } from '../../theme/tokens';
 
 export default function SellerScreen() {
   useMarket();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const [tab, setTab] = useState<'items' | 'reviews'>('items');
+  const { id, tab: startTab } = useLocalSearchParams<{ id: string; tab?: string }>();
+  const [tab, setTab] = useState<'items' | 'reviews'>(startTab === 'avis' ? 'reviews' : 'items');
   const mine = useStore((s) => s.mine);
   const following = useStore((s) => s.following.includes(id));
   const toggleFollow = useStore((s) => s.toggleFollow);
@@ -57,11 +57,15 @@ export default function SellerScreen() {
         </View>
 
         <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: GUTTER }}>
-          {stats.map(([big, small]) => (
-            <View key={small} style={{ flex: 1, padding: 12, borderRadius: 22, backgroundColor: colors.surface, alignItems: 'center' }}>
+          {stats.map(([big, small], i) => (
+            // The rating opens the reviews.
+            <Pressable
+              key={small} disabled={i !== 0} onPress={() => setTab('reviews')} accessibilityLabel={i === 0 ? `${big} ${small} : voir les avis` : undefined}
+              style={{ flex: 1, padding: 12, borderRadius: 22, backgroundColor: colors.surface, alignItems: 'center' }}
+            >
               <H size={22}>{big}</H>
               <Txt size={12} color={colors.neutral700}>{small}</Txt>
-            </View>
+            </Pressable>
           ))}
         </View>
 

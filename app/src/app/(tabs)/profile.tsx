@@ -20,11 +20,14 @@ export default function Profile() {
   const a = accountOf(s);
   const me = currentUser()?.id;
   const unread = useNotifications().filter((n) => n.unread).length;
+  const received = s.myCard?.reviews ?? 0;
+  const left = s.realOrders.filter((o) => o.buyerId === me && s.orderReviews[o.id]).length;
 
   const rows: { label: string; meta: string; href: Href }[] = [
     { label: 'Mes informations', meta: a.email, href: '/account' },
     { label: 'Mes achats', meta: String(s.realOrders.filter((o) => o.buyerId === me).length), href: '/orders?tab=achats' },
     { label: 'Mes ventes', meta: String(s.realOrders.filter((o) => o.sellerId === me).length), href: '/orders?tab=ventes' },
+    { label: 'Mes avis', meta: received ? `★ ${s.myCard?.rating} · ${received} reçu${received > 1 ? 's' : ''}` : left ? `${left} laissé${left > 1 ? 's' : ''}` : '—', href: '/avis' },
     { label: 'Mon porte-monnaie', meta: s.wallet?.account ? fmt(s.wallet.available + s.wallet.pending) : s.payout?.ready ? fmt(0) : 'À activer', href: '/payouts' },
     { label: 'Favoris', meta: String(s.favs.length), href: '/favorites' },
     { label: 'Passeports de mes enfants', meta: s.kids.map((k) => k.name).join(', ') || '—', href: '/kids' },

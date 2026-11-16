@@ -84,6 +84,13 @@ export default function RealOrderScreen() {
             <Txt weight="bold">{isSale ? `Tu reçois ${fmt(o.price - o.commission)}` : fmt(o.price + o.shipping)}</Txt>
           </View>
         </View>
+        {other && (
+          <LinkButton
+            label={isSale ? `Voir le profil de ${other.name} →` : `Voir le profil et les avis de ${other.name} →`}
+            size={14} style={{ alignSelf: 'flex-start', marginTop: -6 }}
+            onPress={() => router.push(isSale ? `/seller/${o.buyerId}` : `/seller/${o.sellerId}?tab=avis`)}
+          />
+        )}
 
         {o.status === 'cancelled' ? (
           <View style={{ padding: 16, borderRadius: 24, backgroundColor: colors.accent100 }}>
