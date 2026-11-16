@@ -8,7 +8,7 @@ import { Screen } from '../../components/Screen';
 import { Avatar, H, PrimaryButton, Txt } from '../../components/ui';
 import { cityLabel, fullName, initial } from '../../lib/account';
 import { currentUser } from '../../lib/backend';
-import { fmtInt, plural } from '../../lib/format';
+import { fmt, fmtInt, plural } from '../../lib/format';
 import { TREE_STAGES, treeStage } from '../../lib/impact';
 import { useNotifications } from '../../lib/notifications';
 import { accountOf, impactStats, useStore } from '../../store/useStore';
@@ -25,7 +25,7 @@ export default function Profile() {
     { label: 'Mes informations', meta: a.email, href: '/account' },
     { label: 'Mes achats', meta: String(s.realOrders.filter((o) => o.buyerId === me).length), href: '/orders?tab=achats' },
     { label: 'Mes ventes', meta: String(s.realOrders.filter((o) => o.sellerId === me).length), href: '/orders?tab=ventes' },
-    { label: 'Mes versements', meta: s.payout?.ready ? 'Activés' : 'À activer', href: '/payouts' },
+    { label: 'Mon porte-monnaie', meta: s.wallet?.account ? fmt(s.wallet.available + s.wallet.pending) : s.payout?.ready ? fmt(0) : 'À activer', href: '/payouts' },
     { label: 'Favoris', meta: String(s.favs.length), href: '/favorites' },
     { label: 'Passeports de mes enfants', meta: s.kids.map((k) => k.name).join(', ') || '—', href: '/kids' },
     { label: 'Notifications', meta: unread ? plural(unread, 'nouvelle') : '—', href: '/notifications' },

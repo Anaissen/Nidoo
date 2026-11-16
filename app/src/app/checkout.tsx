@@ -14,7 +14,7 @@ import { useCartGroups } from '../lib/cart';
 import { fmt } from '../lib/format';
 import { addressLine, fullName, hasAddress, isMobile } from '../lib/account';
 import { saveAccount } from '../lib/backend';
-import { payCart } from '../lib/payments';
+import { loadWallet, payCart, walletPart } from '../lib/payments';
 import { accountOf, Relay, useStore } from '../store/useStore';
 import { colors, fonts, ICON_STROKE } from '../theme/tokens';
 
@@ -42,6 +42,15 @@ export default function Checkout() {
   const ship = shipFor(del);
   const total = subtotal + ship;
 
+  // The porte-monnaie pays first (if the parent wants), the card the rest.
+  const wallet = useStore((s) => s.wallet);
+  useEffect(() => { void loadWallet(); }, []);
+  const spendable = wallet?.spendable ?? 0;
+  const [useWallet, setUseWallet] = useState(true);
+  const fromWallet = useWallet ? walletPart(total, spendable) : 0;
+  const byCard = Math.round((total - fromWallet) * 100) / 100;
+  const allWallet = fromWallet > 0 && byCard <= 0;
+
   // Point relais: the buyer picks the Mondial Relay point (unless labels aren't set up on the server yet).
   const [relay, setRelay] = useState<Relay | null>(null);
   const [relayPicking, setRelayPicking] = useState(true);
@@ -66,14 +75,14 @@ export default function Checkout() {
       const saved = await saveAccount({ ...account, phone: phone.trim() });
       if (saved.error) { setBusy(false); showToast(saved.error); return; }
     }
-    const err = await payCart(items.map((p) => p.remoteId!), del, { relay: del === 'relais' ? relay : null, shipAddress });
+    const err = await payCart(items.map((p) => p.remoteId!), del, { relay: del === 'relais' ? relay : null, shipAddress }, fromWallet > 0);
     setBusy(false);
     if (err) showToast(err);
   };
 
   return (
     <Screen
-      bottom={<BottomBar><PrimaryButton label={busy ? 'Ouverture du paiement…' : `Payer ${fmt(total)}`} onPress={onPay} disabledLook={!items.length || addressMissing || relayMissing || mobileMissing || busy} disabled={!items.length} style={{ flex: 1 }} /></BottomBar>}
+      bottom={<BottomBar><PrimaryButton label={busy ? (allWallet ? 'Paiement…' : 'Ouverture du paiement…') : allWallet ? `Payer ${fmt(total)} avec mon porte-monnaie` : fromWallet > 0 ? `Payer ${fmt(byCard)} par carte` : `Payer ${fmt(total)}`} onPress={onPay} disabledLook={!items.length || addressMissing || relayMissing || mobileMissing || busy} disabled={!items.length} style={{ flex: 1 }} /></BottomBar>}
       contentStyle={{ paddingHorizontal: 20 }}
     >
       <View style={{ gap: 18, paddingTop: 4 }}>
@@ -123,11 +132,23 @@ export default function Checkout() {
 
         <View style={{ gap: 8 }}>
           <H size={18}>Moyen de paiement</H>
-          <View style={{ padding: 16, borderRadius: 24, backgroundColor: colors.neutral100, gap: 6 }}>
-            <Txt weight="semi">Carte bancaire, Apple Pay ou Google Pay</Txt>
-            <Txt size={13} color={colors.neutral700}>Tu choisiras sur la page de paiement sécurisée de Stripe. Ton argent reste protégé par Pimou jusqu'à ce que tu confirmes la réception.</Txt>
-            <Txt size={12} color={colors.accent700}>🧪 Mode test : utilise la carte 4242 4242 4242 4242, une date future et n'importe quel code. Aucun vrai argent n'est prélevé.</Txt>
-          </View>
+          {spendable > 0 && (
+            <OptionCard control="check" on={useWallet} onPress={() => setUseWallet(!useWallet)} title="Utiliser mon porte-monnaie"
+              sub={useWallet ? `${fmt(fromWallet)} payés avec ton porte-monnaie (${fmt(spendable)} disponibles)` : `${fmt(spendable)} disponibles`} />
+          )}
+          {allWallet ? (
+            <View style={{ padding: 16, borderRadius: 24, backgroundColor: colors.accent2_100, gap: 6 }}>
+              <Txt weight="semi" color={colors.accent2_800}>Ton porte-monnaie paie tout</Txt>
+              <Txt size={13} color={colors.accent2_800}>Pas besoin de carte. Ton argent reste protégé par Pimou jusqu'à ce que tu confirmes la réception.</Txt>
+            </View>
+          ) : (
+            <View style={{ padding: 16, borderRadius: 24, backgroundColor: colors.neutral100, gap: 6 }}>
+              <Txt weight="semi">{fromWallet > 0 ? `Le reste, ${fmt(byCard)}, par carte bancaire, Apple Pay ou Google Pay` : 'Carte bancaire, Apple Pay ou Google Pay'}</Txt>
+              <Txt size={13} color={colors.neutral700}>Tu choisiras sur la page de paiement sécurisée de Stripe. Ton argent reste protégé par Pimou jusqu'à ce que tu confirmes la réception.</Txt>
+              <Txt size={12} color={colors.accent700}>🧪 Mode test : utilise la carte 4242 4242 4242 4242, une date future et n'importe quel code. Aucun vrai argent n'est prélevé.</Txt>
+            </View>
+          )}
+          {!!wallet?.pending && <Txt size={12} color={colors.neutral700}>{fmt(wallet.pending)} arrivent dans ton porte-monnaie d'ici quelques jours : tu pourras t'en servir à ce moment-là.</Txt>}
         </View>
 
         <View style={{ gap: 8, paddingVertical: 16, paddingHorizontal: 20, borderRadius: 28, backgroundColor: colors.surface }}>
@@ -138,6 +159,8 @@ export default function Checkout() {
             <Txt size={17} weight="bold">Total</Txt>
             <Txt size={17} weight="bold">{fmt(total)}</Txt>
           </View>
+          {fromWallet > 0 && <Line l="Payé avec ton porte-monnaie" r={`−${fmt(fromWallet)}`} />}
+          {fromWallet > 0 && !allWallet && <Line l="À payer par carte" r={fmt(byCard)} />}
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 4 }}>
           <Txt size={12} color={colors.neutral700}>En payant, tu acceptes les</Txt>

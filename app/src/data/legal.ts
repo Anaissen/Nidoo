@@ -5,7 +5,7 @@ import { DEFAULT_COMMISSION } from './catalog';
 /** Who publishes Pimou. An empty value shows "[à compléter]" on the pages. */
 export const LEGAL = {
   /** Shown on the pages. Change it with TERMS_VERSION when the texts change in a way that matters. */
-  updated: '14 novembre 2026',
+  updated: '16 novembre 2026',
   /** Date of the last change to the mentions légales alone (publisher, hosts…). */
   noticeUpdated: '14 novembre 2026',
   /** An entreprise individuelle shows "EI" next to the name (required since May 2022). */
@@ -30,7 +30,7 @@ export const LEGAL = {
  * Version recorded each time a parent accepts the CGU and the privacy policy (supabase/schema-8-cgu.sql).
  * A new value asks every parent to accept again at their next visit.
  */
-export const TERMS_VERSION = '2026-11-14.2';
+export const TERMS_VERSION = '2026-11-16';
 
 /** Above this, in a calendar year, the platform reports the seller's sales to the tax office (DAC7). */
 export const TAX_REPORT = { sales: 30, amount: 2000 };
@@ -85,20 +85,22 @@ const cgu = (): LegalDoc => ({
     ] },
     { title: '7. Paiement et livraison', body: [
       "L'acheteur paie le prix de l'article et la livraison. Le prix de la livraison dépend du mode choisi (point relais Mondial Relay ou domicile avec Colissimo) et du poids du colis : la taille indiquée par le vendeur (petit, moyen ou grand), ou le poids de tous les articles quand plusieurs articles du même vendeur partent ensemble dans un seul colis, jusqu'à 10 kg. Il s'affiche sur chaque annonce et avant de payer. La remise en main propre est gratuite. La protection acheteur est offerte.",
-      "Le paiement se fait uniquement sur Pimou, par carte bancaire, Apple Pay ou Google Pay, sur la page sécurisée de Stripe, notre prestataire de paiement agréé. Pimou ne voit jamais ton numéro de carte. Un paiement fait en dehors de Pimou (virement, espèces…) n'est pas protégé : ne l'accepte pas et ne le propose pas.",
-      "Si l'article a été acheté par quelqu'un d'autre juste avant toi, la vente est annulée et tu es remboursé·e automatiquement et en totalité.",
+      "Le paiement se fait uniquement sur Pimou : par carte bancaire, Apple Pay ou Google Pay, sur la page sécurisée de Stripe, notre prestataire de paiement agréé, ou avec ton porte-monnaie Pimou (voir l'article 9), en tout ou en partie. Pimou ne voit jamais ton numéro de carte. Un paiement fait en dehors de Pimou (virement, espèces…) n'est pas protégé : ne l'accepte pas et ne le propose pas.",
+      "Si l'article a été acheté par quelqu'un d'autre juste avant toi, la vente est annulée et tu es remboursé·e automatiquement et en totalité : sur ta carte pour ce que tu as payé par carte, dans ton porte-monnaie pour ce que tu as payé avec.",
       "Pour un envoi, Pimou fournit au vendeur un bordereau prépayé, payé avec les frais de livraison de l'acheteur. Le vendeur l'imprime, emballe soigneusement l'article et dépose le colis dans les 3 jours qui suivent le paiement, dans un point Mondial Relay ou un bureau de poste selon le mode choisi. Le suivi du colis se met à jour tout seul. Le vendeur indique une taille de colis honnête : si le transporteur facture un poids plus élevé, la différence peut lui être demandée.",
       "Un numéro de portable est demandé à l'acheteur et au vendeur pour les envois : il figure sur le bordereau, et le transporteur l'utilise pour prévenir de l'arrivée du colis.",
       "Pour une remise en main propre, les deux parents fixent le rendez-vous dans la messagerie, dans un lieu public.",
     ] },
     { title: '8. Réception et protection acheteur', body: [
-      "L'argent reste bloqué chez Stripe jusqu'à ce que l'acheteur confirme dans l'appli avoir bien reçu l'article. Il est alors versé au vendeur. L'acheteur ne confirme que lorsqu'il a vérifié l'article : une fois la réception confirmée, la vente est définitive.",
+      "L'argent reste bloqué chez Stripe jusqu'à ce que l'acheteur confirme dans l'appli avoir bien reçu l'article. Il est alors versé dans le porte-monnaie du vendeur. L'acheteur ne confirme que lorsqu'il a vérifié l'article : une fois la réception confirmée, la vente est définitive.",
       `Un problème (colis jamais arrivé, article très différent de l'annonce) ? Ne confirme pas la réception et écris-nous à ${LEGAL.email} avec des photos. Pimou étudie la situation avec les deux parents et décide, selon les éléments fournis, de rembourser l'acheteur (après retour de l'article si besoin) ou de payer le vendeur.`,
       "Si le vendeur n'a pas expédié l'article 7 jours après le paiement, l'acheteur peut demander l'annulation et le remboursement. Si l'acheteur ne confirme pas la réception et ne signale aucun problème 14 jours après l'expédition, Pimou peut confirmer la réception à sa place et payer le vendeur.",
     ] },
-    { title: '9. Commission et versements au vendeur', body: [
+    { title: '9. Commission et porte-monnaie', body: [
       `Publier une annonce est gratuit. Quand un article est vendu, Pimou prend une commission de ${DEFAULT_COMMISSION} % du prix de vente (frais de livraison non compris). Elle est retenue sur la somme versée au vendeur. Le montant que tu recevras est affiché avant que tu publies ton annonce. Les frais de livraison payés par l'acheteur servent à payer le bordereau : ils ne sont pas versés au vendeur.`,
-      "Pour recevoir son argent, le vendeur active ses paiements : Stripe lui demande son identité et son IBAN, comme la loi l'impose. L'argent arrive sur son compte bancaire en quelques jours ouvrés après la confirmation de réception.",
+      "Pour vendre, le parent active son porte-monnaie : Stripe lui demande son identité et son IBAN, comme la loi l'impose. L'argent de ses ventes y arrive dès que l'acheteur confirme la réception. Il est conservé par Stripe, sur un compte de paiement au nom du parent, et non par Pimou.",
+      "Le parent peut retirer l'argent disponible vers son compte bancaire à tout moment, à partir de 1 € (il arrive en quelques jours ouvrés), ou s'en servir pour payer ses achats sur Pimou, en tout ou en partie. L'argent d'une vente devient disponible quelques jours après le paiement de l'acheteur, le temps que sa banque le confirme.",
+      "Si l'argent reste longtemps sans être retiré, Stripe peut le verser automatiquement sur le compte bancaire du parent, selon ses propres règles. Avant de supprimer son compte, le parent retire l'argent de son porte-monnaie.",
       "La commission correspond à un service entièrement fourni au moment de la vente : tu acceptes qu'il soit exécuté tout de suite, et tu ne peux donc plus te rétracter sur cette commission une fois la vente faite (article L221-28 du Code de la consommation).",
     ] },
     { title: '10. Impôts et URSSAF', body: [
@@ -157,7 +159,8 @@ const confidentialite = (): LegalDoc => ({
         'Tes messages et tes offres avec les autres parents.',
         'Tes commandes et tes avis.',
         "La trace de ton acceptation des conditions d'utilisation et de cette politique : la version acceptée, la date et l'heure, et l'appareil utilisé (navigateur ou téléphone).",
-        "Les paiements : c'est Stripe qui reçoit ta carte bancaire, et l'identité et l'IBAN des vendeurs. Pimou n'a jamais accès à ton numéro de carte ni à tes papiers ; Pimou sait seulement si le paiement a réussi et si les versements d'un vendeur sont activés.",
+        "Les paiements : c'est Stripe qui reçoit ta carte bancaire, et l'identité et l'IBAN des vendeurs. Pimou n'a jamais accès à ton numéro de carte ni à tes papiers ; Pimou sait seulement si le paiement a réussi, si ton porte-monnaie est activé et combien il contient.",
+        "L'historique de ton porte-monnaie : les ventes qui l'ont rempli, les achats payés avec et tes retraits.",
         "Pour les vendeurs concernés par la déclaration annuelle aux impôts (au moins 30 ventes ou plus de 2 000 € par an) : les informations que la loi impose de transmettre (identité, adresse, date de naissance, numéro fiscal, montant des ventes).",
       ],
     ] },
@@ -192,6 +195,7 @@ const confidentialite = (): LegalDoc => ({
         'Ton compte, tes passeports, tes annonces et leurs photos, tes messages : tant que ton compte est ouvert. Ils sont supprimés dès que tu supprimes ton compte, ou après 3 ans sans connexion.',
         "Les avis : tant que le compte du vendeur existe. Ceux que tu as laissés restent visibles après la suppression de ton compte, sans ton nom.",
         "Les commandes : 10 ans, comme la loi l'impose pour la comptabilité. Après la suppression de ton compte, elles sont gardées sans ton nom ni ton adresse.",
+        "L'historique de ton porte-monnaie : tant que ton compte est ouvert. Stripe conserve de son côté les mouvements d'argent que la loi lui impose.",
         "Si tu as vendu : ton e-mail et l'identifiant de ton compte Stripe sont gardés après la suppression de ton compte, pour les déclarations obligatoires aux impôts (10 ans). Stripe conserve de son côté les informations que la loi lui impose.",
         'Les informations transmises aux impôts : 10 ans.',
         "La trace de ton acceptation des conditions : 5 ans après la fermeture de ton compte, le temps pendant lequel un litige reste possible.",

@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { Platform } from 'react-native';
 
 import { DeliveryId, Seller } from '../data/catalog';
-import { RealOrder, Relay, useStore } from '../store/useStore';
+import { RealOrder, Relay, useStore, Wallet } from '../store/useStore';
 import { currentUser, signOut, supabase } from './backend';
 import { loadMarket, sellerFromRow, SellerRow } from './listings';
 import { loadOrderReviews } from './reviews';
@@ -16,14 +16,15 @@ import { everyWhileVisible } from './visible';
 type OrderRow = {
   id: string; group_id: string; listing_id: number | null; buyer_id: string; seller_id: string; title: string; photo: string | null;
   price: number | string; shipping: number | string; commission: number | string; delivery: DeliveryId; address: string;
-  status: RealOrder['status']; payment_intent: string | null; created_at: string;
+  status: RealOrder['status']; payment_intent: string | null; created_at: string; paid_at?: string | null;
   relay?: Relay | null; shipping_order_id?: string | null; tracking_status?: string | null; tracking_url?: string | null; label_error?: string | null;
 };
 
 const toOrder = (r: OrderRow): RealOrder => ({
   id: r.id, groupId: r.group_id, listingId: r.listing_id, buyerId: r.buyer_id, sellerId: r.seller_id, title: r.title, photo: r.photo,
   price: Number(r.price), shipping: Number(r.shipping), commission: Number(r.commission), delivery: r.delivery, address: r.address,
-  status: r.status, refunded: r.status === 'cancelled' && !!r.payment_intent, createdAt: r.created_at,
+  // Paid then given back (sold to someone else meanwhile): paid by card, or from the porte-monnaie (no card payment then).
+  status: r.status, refunded: r.status === 'cancelled' && (!!r.payment_intent || !!r.paid_at), createdAt: r.created_at,
   relay: r.relay ?? null, shippingOrderId: r.shipping_order_id ?? null, trackingStatus: r.tracking_status ?? null, trackingUrl: r.tracking_url ?? null, labelError: r.label_error ?? null,
 });
 
@@ -112,14 +113,14 @@ export function startPayments() {
       stopPolling?.(); stopPolling = null;
       known = null;
       knownReviews = null;
-      useStore.setState({ realOrders: [], payout: null, orderReviews: {} });
+      useStore.setState({ realOrders: [], payout: null, wallet: null, orderReviews: {} });
       return;
     }
     if (event !== 'INITIAL_SESSION' && event !== 'SIGNED_IN') return;
     const me = session.user.id;
     setTimeout(async () => {
       await loadOrders();
-      void call('sync').then(loadOrders);
+      void call('sync').then(() => Promise.all([loadOrders(), loadWallet()]));
       channel?.unsubscribe();
       channel = supabase.channel(`orders-${me}`)
         // An order changed: refresh it, and the listings (a sold article shows as such right away).
@@ -165,20 +166,61 @@ export async function openPayoutDashboard() {
   return null;
 }
 
+// ── Porte-monnaie ───────────────────────────────────────────────────────────────────────
+
+/** The balance and history of the porte-monnaie (the parent's own Stripe account). */
+export async function loadWallet() {
+  const r = await call<Wallet>('wallet');
+  if (!r.error) {
+    const { error: _e, ...wallet } = r;
+    useStore.setState({ wallet: wallet as Wallet });
+  }
+  return r;
+}
+
+/** Everything usable goes to the parent's bank account. Returns the amount sent, or an error to show. */
+export async function withdrawWallet() {
+  const r = await call<{ amount: number; wallet: Wallet }>('withdraw');
+  if (r.error) return { error: r.error, amount: 0 };
+  useStore.setState({ wallet: r.wallet });
+  return { error: null, amount: r.amount };
+}
+
+/**
+ * How much of a purchase (euros) the porte-monnaie pays: all it can, but a card payment is at least 0,50 €
+ * (Stripe's minimum). Same rule as the payments function.
+ */
+export function walletPart(total: number, spendable: number) {
+  const t = Math.round(total * 100), s = Math.round(spendable * 100);
+  let part = Math.min(Math.max(0, s), t);
+  if (part < t && t - part < 50) part = Math.max(0, t - 50);
+  return part / 100;
+}
+
 // ── Buyers ──────────────────────────────────────────────────────────────────────────────
 
 export type ShipAddress = { name: string; street: string; zip: string; city: string };
 
-/** Pay for these real listings on Stripe's page. Returns an error message, or null once the page is open. */
-export async function payCart(listingIds: number[], delivery: DeliveryId, dest: { relay?: Relay | null; shipAddress?: ShipAddress | null }) {
+/**
+ * Pay for these real listings: on Stripe's page, or straight from the porte-monnaie when it covers everything.
+ * Returns an error message, or null once the page is open (or the purchase done).
+ */
+export async function payCart(listingIds: number[], delivery: DeliveryId, dest: { relay?: Relay | null; shipAddress?: ShipAddress | null }, useWallet = false) {
   const a = dest.shipAddress;
-  const r = await call<{ url: string; sessionId: string }>('checkout', {
+  const r = await call<{ url?: string; sessionId: string; paid?: boolean }>('checkout', {
     listingIds, delivery, relay: dest.relay ?? null, shipAddress: a ?? null,
     // The address on one line too, for a payments function from before labels.
     address: a ? `${a.name}, ${a.street}, ${a.zip} ${a.city}` : '',
     fromApp: Platform.OS !== 'web',
+    useWallet,
   });
   if (r.error) return r.error;
+  // All paid from the porte-monnaie: no Stripe page, the confirmation right away.
+  if (r.paid || !r.url) {
+    void loadWallet();
+    router.push(`/paid?session_id=${r.sessionId}`);
+    return null;
+  }
   await open(r.url);
   // Web: the page has left for Stripe. Phone: the browser is closed, see how the payment went.
   if (Platform.OS !== 'web') router.push(`/paid?session_id=${r.sessionId}`);

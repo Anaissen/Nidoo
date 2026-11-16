@@ -30,7 +30,7 @@ export function useNotifications(): Notice[] {
       const r = reviews[o.id];
       return [
         ...(r ? [{ init: '⭐', bg: colors.accent100, text: `${who(o.buyerId)} t'a laissé ${r.rating} étoile${r.rating > 1 ? 's' : ''} pour « ${o.title} »${r.comment ? ` : « ${r.comment.slice(0, 80)} »` : ''}`, when, unread: false, open }] : []),
-        { init: '💶', bg: colors.accent2_200, text: `${who(o.buyerId)} a bien reçu « ${o.title} » : ton argent est en route vers ton compte bancaire.`, when, unread: false, open },
+        { init: '💶', bg: colors.accent2_200, text: `${who(o.buyerId)} a bien reçu « ${o.title} » : ton argent est dans ton porte-monnaie.`, when, unread: false, open },
       ];
     }
     if (o.buyerId === me && o.status === 'received' && !reviews[o.id]) return [{ init: '⭐', bg: colors.accent100, text: `Comment s'est passé ton achat « ${o.title} » ? Laisse un avis à ${who(o.sellerId)}.`, when, unread: true, open }];

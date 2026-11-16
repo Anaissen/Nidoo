@@ -23,12 +23,12 @@ function steps(o: RealOrder, isSale: boolean) {
   if (o.delivery === 'main') return [
     ['Commande payée', 'Paiement protégé par Pimou'],
     ['Rendez-vous', 'Fixez le lieu et l\'heure dans la messagerie'],
-    ['Remis en main propre', isSale ? 'Ton argent est envoyé vers ton compte bancaire' : 'Le vendeur reçoit son paiement'],
+    ['Remis en main propre', isSale ? 'Ton argent arrive dans ton porte-monnaie' : 'Le vendeur reçoit son paiement'],
   ];
   return [
     ['Commande payée', 'Paiement protégé par Pimou'],
     ['Colis expédié', isSale ? 'Tu as déposé le colis' : 'Le vendeur a déposé le colis'],
-    ['Reçu', isSale ? 'Ton argent est envoyé vers ton compte bancaire' : 'Le vendeur reçoit son paiement'],
+    ['Reçu', isSale ? 'Ton argent arrive dans ton porte-monnaie' : 'Le vendeur reçoit son paiement'],
   ];
 }
 
@@ -173,7 +173,7 @@ export default function RealOrderScreen() {
         )}
         {o.status === 'received' && (
           <View style={{ padding: 16, borderRadius: 24, backgroundColor: colors.accent2_100 }}>
-            <Txt color={colors.accent2_800}>{isSale ? `Bravo pour ta vente ! ${fmt(o.price - o.commission)} sont en route vers ton compte bancaire.` : 'Commande terminée. Merci d\'avoir donné une seconde vie à ce vêtement 🌱'}</Txt>
+            <Txt color={colors.accent2_800}>{isSale ? `Bravo pour ta vente ! ${fmt(o.price - o.commission)} sont dans ton porte-monnaie : retire-les vers ton compte bancaire ou garde-les pour tes achats.` : 'Commande terminée. Merci d\'avoir donné une seconde vie à ce vêtement 🌱'}</Txt>
           </View>
         )}
         {o.status === 'received' && !isSale && <ReviewBox order={o} sellerName={other?.name ?? 'le vendeur'} />}

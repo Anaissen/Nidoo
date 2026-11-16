@@ -32,6 +32,15 @@ export type RealOrder = {
 /** The Mondial Relay point a buyer picked. */
 export type Relay = { code: string; name: string; street: string; zip: string; city: string; distance?: number | null };
 
+/** One line of the porte-monnaie's history (euros: + in, − out). */
+export type WalletMove = { amount: number; kind: 'sale' | 'purchase' | 'refund' | 'withdrawal'; label: string; order_id: string | null; created_at: string };
+/**
+ * The porte-monnaie, in euros: the balance of the parent's own Stripe account (src/lib/payments.ts).
+ * available: usable now; pending: on its way (a few days); reserved: promised to a card payment in progress;
+ * spendable: what can be withdrawn or spent now. account: false until the parent has opened one (to sell).
+ */
+export type Wallet = { account: boolean; ready: boolean; available: number; pending: number; reserved: number; spendable: number; movements: WalletMove[] };
+
 /** A conversation on the server (src/lib/messaging.ts), as shown in the app. */
 export type Chat = { sid: string; pid: number; when: string; unread: boolean; msgs: Msg[]; remote: { convId: string; role: 'buyer' | 'seller' } };
 
@@ -95,6 +104,8 @@ type State = {
   realOrders: RealOrder[];
   /** Can the parent receive payments for what they sell (Stripe account checked)? null: not asked yet. */
   payout: { ready: boolean; submitted: boolean } | null;
+  /** The porte-monnaie (the balance of the parent's Stripe account). null: not asked yet. */
+  wallet: Wallet | null;
   /** Reviews of the person's real orders, by order id. */
   orderReviews: Record<string, Review>;
   /** The person's own public seller card (real rating, sales…), once logged in. */
@@ -168,6 +179,7 @@ export const useStore = create<State & Actions>()(
       viewingCid: null,
       realOrders: [],
       payout: null,
+      wallet: null,
       orderReviews: {},
       myCard: null,
       lastMineId: null,

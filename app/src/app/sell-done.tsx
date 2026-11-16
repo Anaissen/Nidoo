@@ -33,8 +33,8 @@ export default function SellDone() {
         )}
         {signedIn && payout && !payout.ready && (
           <Pressable onPress={() => router.push('/payouts')} style={{ padding: 16, borderRadius: 24, backgroundColor: colors.accent100, gap: 4 }}>
-            <Txt weight="semi" color={colors.accent800}>Dernière étape : active tes paiements</Txt>
-            <Txt size={13} color={colors.accent800}>Sans ça, les parents ne pourront pas acheter ton annonce. Ça prend 5 minutes →</Txt>
+            <Txt weight="semi" color={colors.accent800}>Dernière étape : active ton porte-monnaie</Txt>
+            <Txt size={13} color={colors.accent800}>C'est là qu'arrive l'argent de tes ventes : sans lui, les parents ne pourront pas acheter ton annonce. Ça prend 5 minutes →</Txt>
           </Pressable>
         )}
         <View style={{ gap: 10 }}>

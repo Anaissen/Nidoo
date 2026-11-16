@@ -9,7 +9,7 @@ import { H, OutlineButton, PrimaryButton, Txt } from '../components/ui';
 import type { Product } from '../data/catalog';
 import { fmt } from '../lib/format';
 import { appIdOf, loadMarket } from '../lib/listings';
-import { checkoutStatus, loadOrders } from '../lib/payments';
+import { checkoutStatus, loadOrders, loadWallet } from '../lib/payments';
 import { productById, RealOrder, useStore } from '../store/useStore';
 import { colors, ICON_STROKE } from '../theme/tokens';
 
@@ -43,6 +43,7 @@ export default function Paid() {
         useStore.setState((x) => ({ cart: x.cart.filter((pid) => !gone.has(pid)) }));
         void loadOrders();
         void loadMarket();
+        void loadWallet();
       } else if (r.status === 'pending' && ++tries < 8) setTimeout(check, 2500);
     };
     void check();

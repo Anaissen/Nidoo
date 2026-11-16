@@ -5,6 +5,9 @@
 // the price minus its commission to the seller's Stripe account. Shipping stays with Pimou, which
 // pays the labels.
 //
+// Porte-monnaie (supabase/schema-13-porte-monnaie.sql): that Stripe account keeps the money (payouts only on request)
+// until the parent withdraws it to their bank or pays a purchase with it, fully or with a card for the rest.
+//
 // Setup (Supabase dashboard): Edge Functions → Deploy a new function → name "payments", paste this
 // file, turn OFF "Verify JWT" (the function checks the user itself), and add the secret
 // STRIPE_SECRET_KEY (sk_test_… in test mode) under Edge Functions → Secrets. Optional: the secret
@@ -74,8 +77,10 @@ type Order = {
   payment_intent: string | null; charge_id: string | null; transfer_id: string | null;
   parcel_size?: string | null; relay?: Relay | null; ship_address?: ShipAddress | null;
   shipping_order_id?: string | null; tracking_number?: string | null; tracking_url?: string | null; tracking_status?: string | null; label_error?: string | null;
+  /** Part of the price and shipping paid from the buyer's porte-monnaie (supabase/schema-13-porte-monnaie.sql). */
+  wallet_amount?: number | string | null; wallet_transfer_id?: string | null; paid_at?: string | null; created_at?: string;
 };
-type Profile = { first_name?: string; last_name?: string; phone?: string; street?: string; zip?: string; city?: string };
+type Profile ={ first_name?: string; last_name?: string; phone?: string; street?: string; zip?: string; city?: string };
 
 /** Size of one listing's parcel, guessed when the seller didn't say (listings from before). */
 function listingSize(l: Listing): ParcelSize {
@@ -163,6 +168,10 @@ const RELAY_OFFER = () => Deno.env.get('BOXTAL_RELAY_OFFER') ?? 'MONR-CpourToi';
 const HOME_OFFER = () => Deno.env.get('BOXTAL_HOME_OFFER') ?? 'POFR-ColissimoAccess';
 /** How long a call that started ordering a label keeps the parcel to itself (see claimParcel). */
 const LABEL_CLAIM_MS = 2 * 60_000;
+/** Stripe's smallest card payment in euros: when the porte-monnaie almost covers a purchase, the card pays at least this. */
+const CARD_MIN = 50;
+/** A Stripe page stays open 30 minutes: until then, its porte-monnaie part is promised (not withdrawable, not spendable). */
+const WALLET_HOLD_MS = 40 * 60_000;
 /** Tracking statuses once the seller has dropped the parcel. */
 const ON_ITS_WAY = ['SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'FAILED_ATTEMPT', 'REACHED_DELIVERY_PICKUP_POINT', 'DELIVERED'];
 
@@ -252,18 +261,121 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
       },
       metadata: { pimou_user: user.id },
     });
+    await keepInWallet(account);
     const row = { user_id: user.id, stripe_account_id: account.id, ready: false };
     const { error } = await admin.from('payout_accounts').insert(row);
     if (error) throw error;
     return row;
   }
 
+  /**
+   * The porte-monnaie: the money of a parent's sales stays on their own Stripe account until they withdraw it
+   * (payouts "manual", only when they ask) or spend it on Pimou. Pimou never holds it.
+   */
+  async function keepInWallet(a: Stripe.Account) {
+    if (a.settings?.payouts?.schedule?.interval === 'manual') return true;
+    try {
+      await stripe.accounts.update(a.id, { settings: { payouts: { schedule: { interval: 'manual' } } } });
+      return true;
+    } catch (e) {
+      console.error('manual payouts', a.id, e);
+      return false;
+    }
+  }
+
   async function refreshSeller(user: User) {
     const acc = await payoutAccount(user);
     const a = await stripe.accounts.retrieve(acc.stripe_account_id);
+    await keepInWallet(a);
     const ready = !!a.payouts_enabled && a.capabilities?.transfers === 'active';
     if (ready !== acc.ready) await admin.from('payout_accounts').update({ ready, updated_at: new Date().toISOString() }).eq('user_id', user.id);
     return { ready, submitted: !!a.details_submitted };
+  }
+
+  // ── Porte-monnaie ─────────────────────────────────────────────────────────────────────
+
+  async function walletAccount(userId: string) {
+    const { data } = await admin.from('payout_accounts').select('stripe_account_id, ready').eq('user_id', userId).maybeSingle();
+    return data as { stripe_account_id: string; ready: boolean } | null;
+  }
+  /** In cents: usable now, and on its way (a few days, until the buyer's bank has confirmed the payment). */
+  async function balanceOf(account: string) {
+    const b = await stripe.balance.retrieve({}, { stripeAccount: account });
+    const eur = (list?: { amount: number; currency: string }[]) => (list ?? []).filter((x) => x.currency === 'eur').reduce((n, x) => n + x.amount, 0);
+    return { available: eur(b.available), pending: eur(b.pending) };
+  }
+  /** In cents: promised to purchases whose card page is still open (taken once the card is paid). */
+  async function reservedOf(userId: string, exceptSession?: string) {
+    const since = new Date(Date.now() - WALLET_HOLD_MS).toISOString();
+    const { data } = await admin.from('orders').select('wallet_amount, stripe_session_id').eq('buyer_id', userId).eq('status', 'pending').gt('wallet_amount', 0).gte('created_at', since);
+    return ((data ?? []) as Order[]).filter((o) => o.stripe_session_id !== exceptSession).reduce((n, o) => n + cents(Number(o.wallet_amount)), 0);
+  }
+  /** One line of a parent's history, in words. Never in the way of the money itself. */
+  async function movement(userId: string, amount: number, kind: 'sale' | 'purchase' | 'refund' | 'withdrawal', label: string, orderId?: string | null, stripeId?: string | null) {
+    try {
+      const { error } = await admin.from('wallet_movements').insert({ user_id: userId, amount: round2(amount), kind, label, order_id: orderId ?? null, stripe_id: stripeId ?? null });
+      if (error) console.error('wallet movement', error.message);
+    } catch (e) {
+      console.error('wallet movement', e);
+    }
+  }
+  /**
+   * Take an amount (cents) from a parent's porte-monnaie for a purchase. The money there came from Pimou's transfers
+   * (their sales): Pimou takes part of them back, oldest first. All or nothing.
+   */
+  async function takeFromWallet(userId: string, amount: number, key: string) {
+    const acc = await walletAccount(userId);
+    if (!acc) throw new Error('no porte-monnaie');
+    const { available } = await balanceOf(acc.stripe_account_id);
+    if (available < amount) throw new Error(`porte-monnaie short: ${available} < ${amount}`);
+    const { data } = await stripe.transfers.list({ destination: acc.stripe_account_id, limit: 100 });
+    let taken = 0;
+    try {
+      for (const t of [...data].sort((x, y) => x.created - y.created)) {
+        const room = t.amount - (t.amount_reversed ?? 0);
+        if (taken >= amount || room <= 0) continue;
+        const take = Math.min(room, amount - taken);
+        await stripe.transfers.createReversal(t.id, { amount: take, metadata: { pimou: key } }, { idempotencyKey: `${key}-${t.id}` });
+        taken += take;
+      }
+      if (taken < amount) throw new Error(`porte-monnaie: only ${taken} of ${amount} found in transfers`);
+    } catch (e) {
+      if (taken > 0) await giveToWallet(userId, taken, `${key}-undo`);
+      throw e;
+    }
+  }
+  /** Money (cents) back into a parent's porte-monnaie. */
+  async function giveToWallet(userId: string, amount: number, key: string) {
+    const acc = await walletAccount(userId);
+    if (!acc) throw new Error('no porte-monnaie');
+    return stripe.transfers.create({ amount, currency: 'eur', destination: acc.stripe_account_id, metadata: { pimou: key } }, { idempotencyKey: key });
+  }
+
+  /** What the porte-monnaie screen shows (euros). */
+  async function walletInfo(user: User) {
+    const { data: moves } = await admin.from('wallet_movements').select('amount, kind, label, order_id, created_at')
+      .eq('user_id', user.id).order('created_at', { ascending: false }).limit(30);
+    const movements = ((moves ?? []) as { amount: number | string }[]).map((m) => ({ ...m, amount: Number(m.amount) }));
+    const acc = await walletAccount(user.id);
+    if (!acc) return { account: false, ready: false, available: 0, pending: 0, reserved: 0, spendable: 0, movements };
+    const [{ available, pending }, reserved] = await Promise.all([balanceOf(acc.stripe_account_id), reservedOf(user.id)]);
+    return { account: true, ready: acc.ready, available: available / 100, pending: pending / 100, reserved: reserved / 100, spendable: Math.max(0, available - reserved) / 100, movements };
+  }
+
+  /** Everything usable goes to the parent's bank account. */
+  async function withdraw(user: User) {
+    const acc = await walletAccount(user.id);
+    if (!acc) throw new Refusal("Ton porte-monnaie est vide : l'argent de tes ventes y arrive quand l'acheteur confirme la réception.");
+    const a = await stripe.accounts.retrieve(acc.stripe_account_id);
+    if (!a.payouts_enabled) throw new Refusal("Termine d'abord la vérification de ton compte de paiement (bouton « Reprendre »).");
+    if (!(await keepInWallet(a))) throw new Refusal("Le retrait n'est pas disponible pour le moment : écris à reclamation@pimou.fr.");
+    const [{ available }, reserved] = await Promise.all([balanceOf(acc.stripe_account_id), reservedOf(user.id)]);
+    const amount = available - reserved;
+    if (amount < 100) throw new Refusal(amount > 0 ? 'Il faut au moins 1 € disponible pour faire un retrait.' : "Rien à retirer pour l'instant.");
+    const payout = await stripe.payouts.create({ amount, currency: 'eur', metadata: { pimou_user: user.id } },
+      { stripeAccount: acc.stripe_account_id, idempotencyKey: `withdraw-${user.id}-${amount}-${Math.floor(Date.now() / 60_000)}` });
+    await movement(user.id, -amount / 100, 'withdrawal', 'Retrait vers ton compte bancaire', null, payout.id);
+    return { amount: amount / 100, arrival: payout.arrival_date ?? null, wallet: await walletInfo(user) };
   }
 
   // ── Orders ────────────────────────────────────────────────────────────────────────────
@@ -279,7 +391,7 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
     return last?.kind === 'accept' && amount > 0 && amount <= listed ? amount : listed;
   }
 
-  async function checkout(user: User, body: { listingIds?: unknown; delivery?: unknown; address?: unknown; relay?: unknown; shipAddress?: unknown; fromApp?: unknown }) {
+  async function checkout(user: User, body: { listingIds?: unknown; delivery?: unknown; address?: unknown; relay?: unknown; shipAddress?: unknown; fromApp?: unknown; useWallet?: unknown }) {
     const delivery = body.delivery as Delivery;
     if (!DELIVERIES.includes(delivery)) throw new Refusal('Choisis un mode de livraison');
     const ids = [...new Set(Array.isArray(body.listingIds) ? body.listingIds.map(Number).filter((n) => Number.isInteger(n) && n > 0) : [])].slice(0, MAX_ITEMS);
@@ -332,6 +444,35 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
       });
     }
 
+    // The porte-monnaie pays first (what isn't promised elsewhere), the card the rest: at least 0,50 €, Stripe's minimum.
+    const total = rows.reduce((n, r) => n + cents(Number(r.price) + Number(r.shipping)), 0);
+    let fromWallet = 0;
+    if (body.useWallet === true) {
+      const acc = await walletAccount(user.id);
+      if (acc) {
+        const [{ available }, reserved] = await Promise.all([balanceOf(acc.stripe_account_id), reservedOf(user.id)]);
+        fromWallet = Math.min(Math.max(0, available - reserved), total);
+        if (fromWallet < total && total - fromWallet < CARD_MIN) fromWallet = Math.max(0, total - CARD_MIN);
+      }
+    }
+    if (fromWallet > 0) {
+      // Each article knows its part (for a refund, and to pay its seller).
+      let left = fromWallet;
+      for (const r of rows) {
+        const part = Math.min(left, cents(Number(r.price) + Number(r.shipping)));
+        r.wallet_amount = part / 100;
+        left -= part;
+      }
+    }
+    if (fromWallet > 0 && fromWallet === total) {
+      // All from the porte-monnaie: no Stripe page, the purchase is done right away.
+      const sessionId = `wallet_${group}`;
+      const { data: inserted, error: insertError } = await admin.from('orders').insert(rows.map((r) => ({ ...r, stripe_session_id: sessionId }))).select('*');
+      if (insertError) throw insertError;
+      const done = await finishPayment((inserted ?? []) as Order[], null);
+      return { sessionId, paid: true, status: done.status };
+    }
+
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = rows.map((r) => ({
       quantity: 1,
       price_data: { currency: 'eur', unit_amount: cents(Number(r.price)), product_data: { name: r.title, ...(r.photo ? { images: [r.photo] } : {}) } },
@@ -343,11 +484,16 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
       });
     }
 
+    // The porte-monnaie part shows on Stripe's page as a discount; it's taken from the porte-monnaie once the card is paid.
+    const coupon = fromWallet > 0
+      ? await stripe.coupons.create({ amount_off: fromWallet, currency: 'eur', duration: 'once', max_redemptions: 1, name: 'Porte-monnaie Pimou', metadata: { pimou_group: group } })
+      : null;
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       locale: 'fr',
       customer_email: user.email,
       line_items: lineItems,
+      ...(coupon ? { discounts: [{ coupon: coupon.id }] } : {}),
       payment_intent_data: { transfer_group: group, metadata: { pimou_group: group } },
       metadata: { pimou_group: group, pimou_buyer: user.id },
       // From the phone app, the Stripe page opens in a browser: the page it ends on just says to go back to the app.
@@ -365,9 +511,12 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
     const { data } = await admin.from('orders').select('*').eq('stripe_session_id', sessionId).eq('buyer_id', buyerId);
     const orders = (data ?? []) as Order[];
     if (!orders.some((o) => o.status === 'pending')) return { status: orders.every((o) => o.status === 'cancelled') ? 'cancelled' : 'paid', orders };
+    // Paid in full from the porte-monnaie, no Stripe page: finish what a call stopped half-way didn't.
+    if (sessionId.startsWith('wallet_')) return finishPayment(orders, null);
 
     const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ['payment_intent'] });
     if (session.status === 'expired') {
+      // Nothing was taken from the porte-monnaie: its part is only taken once the card is paid.
       await admin.from('orders').update({ status: 'cancelled' }).eq('stripe_session_id', sessionId).eq('status', 'pending');
       return { status: 'cancelled', orders: orders.map((o) => ({ ...o, status: 'cancelled' as const })) };
     }
@@ -375,6 +524,14 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
 
     const pi = session.payment_intent as Stripe.PaymentIntent;
     const charge = typeof pi.latest_charge === 'string' ? pi.latest_charge : pi.latest_charge?.id ?? null;
+    return finishPayment(orders, { pi: pi.id, charge });
+  }
+
+  /**
+   * The buyer has paid, by card, from the porte-monnaie or both: each article is claimed, or everything paid for it goes
+   * back (the card part to the card, the rest to the porte-monnaie) if someone else bought it meanwhile.
+   */
+  async function finishPayment(orders: Order[], card: { pi: string; charge: string | null } | null) {
     const now = new Date().toISOString();
     const out: Order[] = [];
     for (const o of orders) {
@@ -383,10 +540,31 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
       // each order. Stamping paid_at on a pending order is the atomic "I'm on it".
       const { data: mine } = await admin.from('orders').update({ paid_at: now }).eq('id', o.id).eq('status', 'pending').is('paid_at', null).select('id');
       if (!mine?.length) { out.push(await settledElsewhere(o)); continue; }
+      const walletPart = cents(Number(o.wallet_amount ?? 0));
+      const cardPart = cents(Number(o.price) + Number(o.shipping)) - walletPart;
+      const paidWith = { payment_intent: card?.pi ?? null, charge_id: card?.charge ?? null };
+      const cancel = async () => {
+        if (card && cardPart > 0) await stripe.refunds.create({ payment_intent: card.pi, amount: cardPart, metadata: { pimou_order: o.id } }, { idempotencyKey: `refund-${o.id}` });
+        // payment_intent and paid_at kept: they tell the app this one was paid, then refunded.
+        const patch = { status: 'cancelled' as const, ...paidWith, paid_at: now };
+        await admin.from('orders').update(patch).eq('id', o.id);
+        out.push({ ...o, ...patch });
+      };
+      // The porte-monnaie part is taken now. Gone meanwhile (it was promised, so it shouldn't): the purchase is undone.
+      if (walletPart > 0) {
+        try {
+          await takeFromWallet(o.buyer_id, walletPart, `wallet-${o.id}`);
+        } catch (e) {
+          console.error('porte-monnaie', o.id, e);
+          await cancel();
+          continue;
+        }
+        await movement(o.buyer_id, -walletPart / 100, 'purchase', `Achat « ${o.title} »`, o.id);
+      }
       // Atomic: only one buyer can turn the listing from active to sold.
       const { data: claimed } = await admin.from('listings').update({ status: 'sold' }).eq('id', o.listing_id).eq('status', 'active').select('id');
       if (claimed?.length) {
-        const patch = { status: 'paid' as const, payment_intent: pi.id, charge_id: charge, paid_at: now };
+        const patch = { status: 'paid' as const, ...paidWith, paid_at: now };
         await admin.from('orders').update(patch).eq('id', o.id);
         out.push({ ...o, ...patch });
         const buyer = escapeHtml(await displayName(o.buyer_id));
@@ -399,10 +577,11 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
               : 'Prépare le colis et expédie-le sous 3 jours, puis indique-le dans l\'appli.',
         ], { label: 'Voir ma vente', url: `${APP_URL}commande/${o.id}` }, TAX_NOTE);
       } else {
-        await stripe.refunds.create({ payment_intent: pi.id, amount: cents(Number(o.price) + Number(o.shipping)), metadata: { pimou_order: o.id } }, { idempotencyKey: `refund-${o.id}` });
-        // payment_intent kept: it tells the app this one was paid, then refunded.
-        await admin.from('orders').update({ status: 'cancelled', payment_intent: pi.id }).eq('id', o.id);
-        out.push({ ...o, status: 'cancelled', payment_intent: pi.id });
+        if (walletPart > 0) {
+          await giveToWallet(o.buyer_id, walletPart, `wallet-back-${o.id}`);
+          await movement(o.buyer_id, walletPart / 100, 'refund', `Remboursement « ${o.title} » (déjà vendu)`, o.id);
+        }
+        await cancel();
       }
     }
     // Paid parcels get their label (Pimou pays it with the shipping fee).
@@ -711,20 +890,26 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
     if (o.status !== 'paid' && o.status !== 'shipped') throw new Refusal("Cette commande n'est pas encore payée");
     if (o.delivery !== 'main' && o.status !== 'shipped') throw new Refusal("Le vendeur n'a pas encore expédié le colis");
     const { data: acc } = await admin.from('payout_accounts').select('stripe_account_id').eq('user_id', o.seller_id).single();
-    const transfer = await stripe.transfers.create({
-      amount: cents(Number(o.price) - Number(o.commission)),
-      currency: 'eur',
-      destination: acc!.stripe_account_id,
-      transfer_group: o.group_id,
-      ...(o.charge_id ? { source_transaction: o.charge_id } : {}),
-      metadata: { pimou_order: o.id },
-    }, { idempotencyKey: `release-${o.id}` });
-    const patch = { status: 'received' as const, transfer_id: transfer.id, received_at: new Date().toISOString() };
+    // The seller's money goes to their porte-monnaie. What the buyer paid by card is sent from that payment (available
+    // when it is); what they paid from their own porte-monnaie, from Pimou's balance, where it already is.
+    const due = cents(Number(o.price) - Number(o.commission));
+    const fromWallet = Math.min(due, cents(Number(o.wallet_amount ?? 0)));
+    const send = (amount: number, key: string, source: string | null) => stripe.transfers.create({
+      amount, currency: 'eur', destination: acc!.stripe_account_id, transfer_group: o.group_id,
+      ...(source ? { source_transaction: source } : {}), metadata: { pimou_order: o.id },
+    }, { idempotencyKey: key });
+    const byCard = due - fromWallet > 0 ? await send(due - fromWallet, `release-${o.id}`, o.charge_id) : null;
+    const byWallet = fromWallet > 0 ? await send(fromWallet, `release-wallet-${o.id}`, null) : null;
+    const patch = {
+      status: 'received' as const, transfer_id: byCard?.id ?? byWallet?.id ?? null, received_at: new Date().toISOString(),
+      ...(byWallet ? { wallet_transfer_id: byWallet.id } : {}),
+    };
     await admin.from('orders').update(patch).eq('id', o.id);
-    await mailTo(o.seller_id, 'Ton argent est en route 💶', [
+    await movement(o.seller_id, due / 100, 'sale', `Vente « ${o.title} »`, o.id, byCard?.id ?? byWallet?.id);
+    await mailTo(o.seller_id, 'Ton argent est dans ton porte-monnaie 💶', [
       `${escapeHtml(await displayName(o.buyer_id))} a bien reçu <strong>« ${escapeHtml(o.title)} »</strong>.`,
-      `${euros(Number(o.price) - Number(o.commission))} sont en route vers ton compte bancaire : ils arrivent en général en quelques jours ouvrés.`,
-    ], { label: 'Voir ma vente', url: `${APP_URL}commande/${o.id}` });
+      `${euros(due / 100)} sont dans ton porte-monnaie Pimou. Tu peux les retirer vers ton compte bancaire quand tu veux, ou t'en servir pour tes achats sur Pimou. S'ils sont encore « en cours », ils seront disponibles d'ici quelques jours.`,
+    ], { label: 'Voir mon porte-monnaie', url: `${APP_URL}payouts` });
     return { order: { ...o, ...patch } };
   }
 
@@ -754,6 +939,15 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
       }
     }
     const { data: acc } = await admin.from('payout_accounts').select('stripe_account_id').eq('user_id', user.id).maybeSingle();
+    // Money left in the porte-monnaie is the parent's: it goes to their bank first.
+    if (acc?.stripe_account_id) {
+      const { available, pending } = await balanceOf(acc.stripe_account_id);
+      if (available + pending > 0) {
+        throw new Refusal(available > 0
+          ? `Il reste ${euros((available + pending) / 100)} dans ton porte-monnaie : retire-les d'abord (Profil → Mon porte-monnaie), puis tu pourras supprimer ton compte.`
+          : `${euros(pending / 100)} arrivent dans ton porte-monnaie d'ici quelques jours : retire-les dès qu'ils sont disponibles, puis tu pourras supprimer ton compte.`);
+      }
+    }
     const { error: keptError } = await admin.from('closed_accounts').upsert({ user_id: user.id, email: user.email ?? '', stripe_account_id: acc?.stripe_account_id ?? null });
     if (keptError) throw new Error(`closed_accounts: ${keptError.message}`);
     // Orders stay for the accounts, without the delivery address or the photo (the photos go below).
@@ -824,6 +1018,10 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
           }
           return reply({ ok: true });
         }
+        case 'wallet':
+          return reply(await walletInfo(user));
+        case 'withdraw':
+          return reply(await withdraw(user));
         case 'parcel-points':
           return reply(await parcelPoints(body));
         case 'price-check':
@@ -864,7 +1062,7 @@ export function makeHandler(stripe: Stripe, admin: SupabaseClient, sendMail: Sen
           : `Boxtal (test) : erreur ${e.status} ${JSON.stringify(e.body ?? '').slice(0, 300)}` }, 500);
       }
       const what = action === 'parcel-points' ? 'La recherche de points relais' : action === 'label' || action === 'tracking' ? 'La demande au transporteur'
-        : action === 'price-check' ? 'La vérification des prix' : 'Le paiement';
+        : action === 'price-check' ? 'La vérification des prix' : action === 'wallet' || action === 'withdraw' ? 'Le porte-monnaie' : 'Le paiement';
       return reply({ error: `${what} n'a pas pu aboutir, réessaie dans un instant.` }, 500);
     }
   };
