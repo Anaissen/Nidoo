@@ -313,8 +313,8 @@ function market(): Product[] { return useStore.getState().market; }
 function marketSellers(): Record<string, Seller> { return useStore.getState().marketSellers; }
 function archived(): Product[] { return useStore.getState().archived; }
 
-/** Public feed: the user's own listings first, then other parents'. */
-export const allProducts = (mine: Product[]) => [...mine, ...market()];
+/** Public feed: the user's own listings first, then other parents'. A sold article leaves it (it stays in "Mon dressing"). */
+export const allProducts = (mine: Product[]) => [...mine.filter((p) => !p.sold), ...market()];
 
 /** Re-render a feed when the listings from the server arrive (the helpers above read them on demand). */
 export const useMarket = () => useStore((s) => s.market);

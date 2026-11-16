@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 import { Category, DeliveryId, ParcelSize, Product, Seller, sizeLabel } from '../data/catalog';
 import { useStore } from '../store/useStore';
 import { currentUser, supabase } from './backend';
+import { everyWhileVisible } from './visible';
 
 /** Server listings get app ids well above the local ones (1-999, 1000+). */
 const REMOTE_ID_OFFSET = 100000;
@@ -90,6 +91,8 @@ export function startMarket() {
     // After backend.ts has applied the session (it also defers to the next tick).
     if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') setTimeout(loadMarket, 10);
   });
+  // Articles bought by other parents leave everyone's feed within a minute, new ones show up.
+  everyWhileVisible(60_000, () => { void loadMarket(); });
 }
 
 // ── Photos ──────────────────────────────────────────────────────────────────────────────
