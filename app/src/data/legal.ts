@@ -156,6 +156,7 @@ const confidentialite = (): LegalDoc => ({
         "Ton compte : prénom, nom, e-mail, adresse postale, numéro de portable (demandé pour envoyer ou recevoir un colis), et ton mot de passe (enregistré chiffré : personne chez Pimou ne peut le lire).",
         "Les passeports de tes enfants, si tu en crées : prénom ou surnom, date de naissance, fille ou garçon, taille, pointure, couleurs et styles préférés, notes. Tu choisis ce que tu y mets : un surnom suffit.",
         'Tes annonces : photos, descriptions, prix, et tes favoris.',
+        "Ton panier : les articles que tu y mets, pour que tu le retrouves en te reconnectant, sur n'importe quel appareil.",
         'Tes messages et tes offres avec les autres parents.',
         'Tes commandes et tes avis.',
         "La trace de ton acceptation des conditions d'utilisation et de cette politique : la version acceptée, la date et l'heure, et l'appareil utilisé (navigateur ou téléphone).",
@@ -192,7 +193,7 @@ const confidentialite = (): LegalDoc => ({
     ] },
     { title: '6. Combien de temps', body: [
       [
-        'Ton compte, tes passeports, tes annonces et leurs photos, tes messages : tant que ton compte est ouvert. Ils sont supprimés dès que tu supprimes ton compte, ou après 3 ans sans connexion.',
+        'Ton compte, tes passeports, ton panier, tes annonces et leurs photos, tes messages : tant que ton compte est ouvert. Ils sont supprimés dès que tu supprimes ton compte, ou après 3 ans sans connexion.',
         "Les avis : tant que le compte du vendeur existe. Ceux que tu as laissés restent visibles après la suppression de ton compte, sans ton nom.",
         "Les commandes : 10 ans, comme la loi l'impose pour la comptabilité. Après la suppression de ton compte, elles sont gardées sans ton nom ni ton adresse.",
         "L'historique de ton porte-monnaie : tant que ton compte est ouvert. Stripe conserve de son côté les mouvements d'argent que la loi lui impose.",

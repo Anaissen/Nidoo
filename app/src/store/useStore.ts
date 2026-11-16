@@ -87,6 +87,9 @@ type State = {
   homeType: TypeFilter;
   favs: number[];
   cart: number[];
+  /** The basket on the server at the last exchange, and whose it is (src/lib/basket.ts). null: logged out. */
+  cartBase: number[] | null;
+  cartOwner: string | null;
   following: string[];
   q: string;
   ftype: TypeFilter;
@@ -168,6 +171,8 @@ export const useStore = create<State & Actions>()(
       homeType: 'all',
       favs: [],
       cart: [],
+      cartBase: null,
+      cartOwner: null,
       following: [],
       q: '',
       ftype: 'all',
@@ -296,7 +301,7 @@ export const useStore = create<State & Actions>()(
         theme: s.theme, textScale: s.textScale, meVerified: s.meVerified, wardrobes: s.wardrobes, account: s.account,
         signedIn: s.signedIn,
         // Kept so the basket is still there when coming back from the payment page.
-        cart: s.cart, del: s.del,
+        cart: s.cart, cartBase: s.cartBase, cartOwner: s.cartOwner, del: s.del,
       }),
     },
   ),

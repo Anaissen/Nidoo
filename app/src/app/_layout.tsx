@@ -10,6 +10,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TermsGate } from '../components/TermsGate';
 import { Toast } from '../components/Toast';
 import { startBackend } from '../lib/backend';
+import { startBasket } from '../lib/basket';
 import { startMarket } from '../lib/listings';
 import { startMessaging } from '../lib/messaging';
 import { startPayments } from '../lib/payments';
@@ -19,6 +20,7 @@ import { applyTheme, colors, shadows } from '../theme/tokens';
 
 startBackend();
 startMarket();
+startBasket();
 startMessaging();
 startPayments();
 startTerms();
