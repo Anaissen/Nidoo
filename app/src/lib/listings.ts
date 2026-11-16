@@ -80,6 +80,27 @@ async function fetchMarket() {
     // Own listings from the server, plus any published on this phone before logging in.
     mine: [...rows.filter((r) => r.seller_id === me).map((r) => toProduct(r, true)), ...s.mine.filter((p) => !p.remoteId)],
   }));
+  await pruneCart();
+}
+
+/**
+ * The basket keeps only articles still for sale by someone else: bought by another parent meanwhile, taken down,
+ * or one's own (another account used this phone) go. Offline, it stays as it is.
+ */
+async function pruneCart() {
+  const cart = useStore.getState().cart;
+  if (!cart.length) return;
+  const gone = new Set(cart.filter((id) => id < REMOTE_ID_OFFSET));
+  const ids = cart.filter((id) => id >= REMOTE_ID_OFFSET).map((id) => id - REMOTE_ID_OFFSET);
+  if (ids.length) {
+    const { data, error } = await supabase.from('listings').select('id, status, seller_id').in('id', ids);
+    if (error || !data) return;
+    const me = currentUser()?.id;
+    const open = new Set((data as Pick<ListingRow, 'id' | 'status' | 'seller_id'>[]).filter((r) => r.status === 'active' && r.seller_id !== me).map((r) => r.id));
+    ids.filter((id) => !open.has(id)).forEach((id) => gone.add(appIdOf(id)));
+  }
+  // Only what was checked: an article added meanwhile stays.
+  if (gone.size) useStore.setState((s) => ({ cart: s.cart.filter((id) => !gone.has(id)) }));
 }
 
 let started = false;
@@ -88,6 +109,8 @@ export function startMarket() {
   if (started) return;
   started = true;
   supabase.auth.onAuthStateChange((event) => {
+    // The basket belongs to the account: someone else logging in on this phone starts with an empty one.
+    if (event === 'SIGNED_OUT') useStore.setState({ cart: [] });
     // After backend.ts has applied the session (it also defers to the next tick).
     if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') setTimeout(loadMarket, 10);
   });

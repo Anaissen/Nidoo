@@ -4,8 +4,9 @@ import { Pressable, useWindowDimensions } from 'react-native';
 import { View } from 'react-native';
 
 import { initial } from '../../lib/account';
+import { useCartGroups } from '../../lib/cart';
 import { useNotifications } from '../../lib/notifications';
-import { accountOf, TypeFilter, useStore } from '../../store/useStore';
+import { accountOf, TypeFilter, useMarket, useStore } from '../../store/useStore';
 import { colors, ICON_STROKE } from '../../theme/tokens';
 import { Avatar, CircleButton, H, Txt } from '../ui';
 import type { Filters } from '../../store/useStore';
@@ -41,7 +42,9 @@ export function AccountButton() {
 }
 
 export function CartButton() {
-  const count = useStore((s) => s.cart.length);
+  // What the basket shows: an article no longer for sale doesn't count, even before it's taken out.
+  useMarket();
+  const count = useCartGroups().items.length;
   return (
     <CircleButton onPress={() => router.push('/cart')} accessibilityLabel="Panier">
       <ShoppingBag size={20} strokeWidth={ICON_STROKE} color={colors.text} />
