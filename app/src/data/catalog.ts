@@ -141,8 +141,8 @@ export const PARCEL_KG: Record<ParcelSize, number> = { petit: 0.5, moyen: 1, gra
  */
 const BRACKETS_KG = [0.5, 1, 2, 3, 5, 7, 10];
 export const SHIPPING_PRICES: Record<Exclude<DeliveryId, 'main'>, number[]> = {
-  relais: [3.99, 4.49, 6.29, 6.59, 11.9, 13.49, 13.49],
-  domicile: [9.49, 11.49, 12.9, 14.49, 16.99, 18.99, 22.49],
+  relais: [4.99, 5.39, 7.09, 7.29, 11.69, 13.89, 14.99],
+  domicile: [8.49, 10.19, 11.39, 12.49, 14.69, 16.39, 19.59],
 };
 /** Shipping for one parcel of `kg` (a size's weight, or a seller's articles together). */
 export function shippingPrice(d: DeliveryId, kg: number) {

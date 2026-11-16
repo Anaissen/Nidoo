@@ -47,12 +47,13 @@ const PARCELS = [
 ] as const;
 type Parcel = (typeof PARCELS)[number];
 /**
- * What the buyer pays for one parcel, bracket by bracket (same order as PARCELS); it pays for the label: Boxtal's price
- * (grid of March 2024) + 20 % VAT, which Pimou can't get back, + a few cents. Same figures as SHIPPING_PRICES in the app.
+ * What the buyer pays for one parcel, bracket by bracket (same order as PARCELS); it pays for the label. Boxtal's price
+ * (page /verifier-tarifs, November 2026) + 20 % VAT, which Pimou can't get back, + 2 % for Stripe + 0,25 €, rounded up
+ * to x,x9. Same figures as SHIPPING_PRICES in the app.
  */
 const SHIPPING: Record<Exclude<Delivery, 'main'>, number[]> = {
-  relais: [3.99, 4.49, 6.29, 6.59, 11.9, 13.49, 13.49],
-  domicile: [9.49, 11.49, 12.9, 14.49, 16.99, 18.99, 22.49],
+  relais: [4.99, 5.39, 7.09, 7.29, 11.69, 13.89, 14.99],
+  domicile: [8.49, 10.19, 11.39, 12.49, 14.69, 16.39, 19.59],
 };
 const shippingPrice = (d: Delivery, parcel: Parcel) => (d === 'main' ? 0 : SHIPPING[d][PARCELS.indexOf(parcel)]);
 /** A parcel saved on an order ("tres-grand" was the 5 kg one before the brackets). */
